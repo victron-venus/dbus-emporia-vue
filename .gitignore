@@ -10,5 +10,4 @@ __pycache__/
 .DS_Store
 # Ruff cache
 .ruff_cache/
-# SetupHelper temporary
-# (none)
+terraform-github-victron/
