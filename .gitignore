@@ -1,0 +1,14 @@
+# Local configuration (contains secrets)
+config.json
+# Logs
+logs/
+# Python bytecode
+__pycache__/
+*.pyc
+# Temporary files
+*.tmp
+.DS_Store
+# Ruff cache
+.ruff_cache/
+# SetupHelper temporary
+# (none)

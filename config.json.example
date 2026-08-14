@@ -1,0 +1,22 @@
+{
+  "ha_url": "ws://192.168.1.50:8123/api/websocket",
+  "ha_token": "YOUR_LONG_LIVED_ACCESS_TOKEN",
+  "channels": [
+    {
+      "ha_entity_id": "sensor.emporia_channel_1_power",
+      "service_name": "com.victronenergy.acload.emporia_ch1",
+      "instance": 71,
+      "custom_name": "Heat Pump",
+      "position": 0
+    },
+    {
+      "ha_entity_id": "sensor.emporia_channel_2_power",
+      "service_name": "com.victronenergy.acload.emporia_ch2",
+      "instance": 72,
+      "custom_name": "Water Heater",
+      "position": 0
+    }
+    // Add more channels as needed...
+  ],
+  "log_level": "INFO"
+}

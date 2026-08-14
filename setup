@@ -1,0 +1,114 @@
+#!/bin/bash
+
+# dbus-emporia-vue SetupHelper compatible setup script
+# Exposes Emporia Vue channels as Victron AC Loads on DBus
+
+#### following line incorporates SetupHelper resources into this script
+source "/data/SetupHelper/HelperResources/IncludeHelpers"
+#### end of lines to include helper resources
+
+# Default configuration (none needed)
+
+#### running manually - prompt for input
+if [ "$scriptAction" == 'NONE' ]; then
+    standardActionPrompt
+fi
+
+#### install
+if [ "$scriptAction" == 'INSTALL' ]; then
+    logMessage "Installing $packageName"
+
+    # Install Python script and config
+    mkdir -p /data/dbus-emporia-vue
+    cp "$scriptDir/main.py" /data/dbus-emporia-vue/
+    chmod +x /data/dbus-emporia-vue/main.py
+
+    # Copy example config if no config exists
+    if [ ! -f "/data/dbus-emporia-vue/config.json" ]; then
+        cp "$scriptDir/config.json.example" /data/dbus-emporia-vue/config.json
+    fi
+
+    # Create service directories
+    mkdir -p /service/dbus-emporia-vue
+    mkdir -p /service/dbus-emporia-vue/log
+    mkdir -p /var/log/dbus-emporia-vue
+
+    # Main run script
+    cat > "/service/dbus-emporia-vue/run" << 'EOF'
+#!/bin/sh
+exec 2>&1
+cd /data/dbus-emporia-vue
+exec python3 main.py
+EOF
+    chmod +x "/service/dbus-emporia-vue/run"
+
+    # Log run script (use multilog, not svlogd - Venus OS standard)
+    cat > "/service/dbus-emporia-vue/log/run" << 'EOF'
+#!/bin/sh
+exec 2>&1
+exec multilog t s25000 n4 /var/log/dbus-emporia-vue
+EOF
+    chmod +x "/service/dbus-emporia-vue/log/run"
+
+    # Register with PackageManager (for GUI v1 management)
+    pmDir="/data/packageManager/$packageName"
+    mkdir -p "$pmDir"
+    [ -f "$scriptDir/gitHubInfo" ] && cp "$scriptDir/gitHubInfo" "$pmDir/"
+    ln -sf "$scriptDir" "$pmDir/current"
+    svc -t /service/PackageManager 2>/dev/null || true
+
+    # Venus OS firmware update persistence
+    setupFirmwarePersistence
+
+    logMessage "Installation complete"
+fi
+
+# Function to set up firmware update persistence
+setupFirmwarePersistence() {
+    logMessage "Setting up Venus OS firmware update persistence..."
+
+    # Add rc.local entry to restart services on boot
+    RC_LOCAL="/data/rc.local"
+    if [ ! -f "$RC_LOCAL" ]; then
+        echo "#!/bin/sh" > "$RC_LOCAL"
+        chmod +x "$RC_LOCAL"
+    fi
+
+    if ! grep -q "dbus-emporia-vue" "$RC_LOCAL" 2>/dev/null; then
+        cat >> "$RC_LOCAL" << 'EOF'
+
+# === dbus-emporia-vue service persistence ===
+# Restart service after Venus OS firmware update
+if [ -d /service/dbus-emporia-vue ]; then
+    svcadm restart dbus-emporia-vue 2>/dev/null || svc -u /service/dbus-emporia-vue
+fi
+# === end dbus-emporia-vue ===
+
+EOF
+        logMessage "Added service restart commands to $RC_LOCAL"
+    else
+        logMessage "Service persistence already configured in $RC_LOCAL"
+    fi
+}
+
+#### uninstall
+if [ "$scriptAction" == 'UNINSTALL' ]; then
+    logMessage "Uninstalling $packageName"
+
+    # Stop and remove service
+    svc -d /service/dbus-emporia-vue 2>/dev/null || true
+    rm -rf /service/dbus-emporia-vue
+    rm -rf /var/log/dbus-emporia-vue
+
+    # Remove data directory (keep config? we remove all)
+    rm -rf /data/dbus-emporia-vue
+
+    # Remove PackageManager registration
+    rm -rf /data/packageManager/$packageName
+    svc -t /service/PackageManager 2>/dev/null || true
+
+    logMessage "Uninstallation complete"
+fi
+
+# endScript without INSTALL_SERVICE since we manage services manually
+endScript
