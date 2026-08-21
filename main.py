@@ -18,6 +18,9 @@ import websockets
 from dbus_fast import BusType
 from dbus_fast.aio.message_bus import MessageBus
 
+import random
+import time
+
 _here = os.path.dirname(os.path.abspath(__file__))
 
 for _p in (
@@ -95,7 +98,7 @@ class AcLoadService:
 
     async def close(self):
         await self._service.close()
-        self._bus.disconnect()
+        # Do not disconnect the shared bus here
 
     def update_power(self, power):
         with self._service as s:
@@ -259,6 +262,8 @@ async def main():
         return
 
     services = {}
+    # Create a single shared message bus
+    bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
     for chan in channels_config:
         entity_id = chan.get("ha_entity_id")
         service_name = chan.get("service_name")
@@ -270,13 +275,12 @@ async def main():
             logger.error("Invalid channel configuration: %s", chan)
             continue
 
-        bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
         service = AcLoadService(bus, service_name, instance, custom_name, position)
         try:
             await service.register()
         except Exception as e:  # noqa: BLE001 - a broken channel must not kill startup
             logger.error("Failed to register service %s: %s", service_name, e)
-            bus.disconnect()
+            # Do not disconnect the shared bus here
             continue
         services[entity_id] = service
         logger.info("Registered %s for entity %s (instance %d)", service_name, entity_id, instance)
@@ -288,22 +292,41 @@ async def main():
     ws_client = HaWebSocketClient(ha_url, ha_token, services)
 
     async def websocket_task():
+        delay = 1  # Start with 1 second
+        max_delay = 60  # Maximum delay of 60 seconds
         while True:
             try:
                 await ws_client.connect()
                 await ws_client.listen()
+                # If we get here, the connection was successful and we reset the delay
+                delay = 1
             except (RuntimeError, websockets.exceptions.WebSocketException) as e:
                 logger.error("WebSocket error: %s: %s", type(e).__name__, e)
             finally:
                 ws_client.set_connected(False)
                 await ws_client.disconnect()
-            await asyncio.sleep(5)
+            # Wait for the delay period before retrying, with jitter to avoid thundering herd
+            jitter = delay * 0.1 * random.random()  # 10% jitter
+            await asyncio.sleep(delay + jitter)
+            delay = min(delay * 2, max_delay)  # Exponential backoff
+
+    async def heartbeat_task():
+        heartbeat_file = "/tmp/dbus-emporia-vue.heartbeat"
+        while True:
+            try:
+                with open(heartbeat_file, "w") as f:
+                    f.write(str(int(time.time())))
+            except Exception as e:
+                logger.error("Failed to write heartbeat file: %s", e)
+            await asyncio.sleep(5)  # Update every 5 seconds
 
     async def shutdown():
         logger.info("Shutting down...")
         await ws_client.disconnect()
         for service in services.values():
             await service.close()
+        # Disconnect the shared bus
+        bus.disconnect()
         sys.exit(0)
 
     loop = asyncio.get_running_loop()
@@ -313,7 +336,7 @@ async def main():
         except NotImplementedError:
             pass
 
-    await asyncio.gather(websocket_task())
+    await asyncio.gather(websocket_task(), heartbeat_task())
 
 
 if __name__ == "__main__":
