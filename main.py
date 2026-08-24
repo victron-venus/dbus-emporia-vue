@@ -169,9 +169,16 @@ class HaWebSocketClient:
         }
         self._message_id += 1
         await self.websocket.send(json.dumps(request))
-        response = json.loads(await self.websocket.recv())
-        if response.get("success") is not True:
-            logger.warning("Could not fetch initial states: %s", response.get("error"))
+        # Skip trigger events that may arrive before the get_states reply.
+        request_id = request["id"]
+        response = None
+        for _ in range(50):
+            message = json.loads(await self.websocket.recv())
+            if message.get("id") == request_id and ("result" in message or "error" in message):
+                response = message
+                break
+        if response is None or response.get("success") is not True:
+            logger.warning("Could not fetch initial states: %s", (response or {}).get("error"))
             return
         count = 0
         for entity in response.get("result", []):
