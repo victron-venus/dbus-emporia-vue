@@ -98,7 +98,9 @@ class AcLoadService:
 
     async def close(self):
         await self._service.close()
-        # Do not disconnect the shared bus here
+        # Each service owns its D-Bus connection (one com.victronenergy.*
+        # name per connection, every service exports BusItem at "/").
+        self._bus.disconnect()
 
     def update_power(self, power):
         with self._service as s:
@@ -262,8 +264,6 @@ async def main():
         return
 
     services = {}
-    # Create a single shared message bus
-    bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
     for chan in channels_config:
         entity_id = chan.get("ha_entity_id")
         service_name = chan.get("service_name")
@@ -275,12 +275,16 @@ async def main():
             logger.error("Invalid channel configuration: %s", chan)
             continue
 
+        # One message bus per service: every com.victronenergy.* service
+        # exports the BusItem interface at "/", so sharing a single bus
+        # between services raises "already exported on this bus".
+        bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
         service = AcLoadService(bus, service_name, instance, custom_name, position)
         try:
             await service.register()
         except Exception as e:  # noqa: BLE001 - a broken channel must not kill startup
             logger.error("Failed to register service %s: %s", service_name, e)
-            # Do not disconnect the shared bus here
+            await service.close()
             continue
         services[entity_id] = service
         logger.info("Registered %s for entity %s (instance %d)", service_name, entity_id, instance)
