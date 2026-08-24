@@ -32,8 +32,10 @@ python3 -m py_compile "$SCRIPT_DIR/main.py"
 echo "    Syntax OK"
 
 # Create directories on remote
+# NOTE: never mkdir anything under /service (tmpfs) — a real directory there
+# would block the rc.local symlink and the service would die on reboot.
 echo ">>> Creating directories..."
-ssh "$SSH_HOST" "mkdir -p $INSTALL_DIR $SERVICE_DIR/log $LOG_DIR $SETUP_OPTIONS_DIR"
+ssh "$SSH_HOST" "mkdir -p $INSTALL_DIR $LOG_DIR $SETUP_OPTIONS_DIR"
 
 # Copy main Python file
 echo ">>> Copying main.py..."
@@ -127,8 +129,10 @@ ssh "$SSH_HOST" "chmod +x $SERVICE_DATA_DIR/log/run"
 
 rm -f /tmp/dbus-emporia-vue-run /tmp/dbus-emporia-vue-log-run
 
-# Create /service symlink (will be recreated by rc.local on boot)
-ssh "$SSH_HOST" "ln -sf $SERVICE_DATA_DIR $SERVICE_DIR"
+# Create /service symlink (will be recreated by rc.local on boot).
+# rm first: ln -sf cannot replace an existing real directory (it would nest
+# the link inside it), which is exactly how a tmpfs copy used to appear here.
+ssh "$SSH_HOST" "rm -rf $SERVICE_DIR && ln -sfn $SERVICE_DATA_DIR $SERVICE_DIR"
 
 # Add rc.local entry for boot persistence
 echo ">>> Adding boot persistence to rc.local..."
