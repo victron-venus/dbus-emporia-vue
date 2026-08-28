@@ -12,3 +12,4 @@ __pycache__/
 .ruff_cache/
 terraform-github-victron/
 terraform-github-victron
+*.backup
