@@ -44,6 +44,9 @@ from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem  # noqa:
 
 PRODUCT_ID = 0xFFFF
 
+PATH_CONNECTED = "/Connected"
+PATH_STATUS = "/Status"
+
 DEFAULT_CONFIG = {
     "ha_url": "ws://192.168.1.50:8123/api/websocket",
     "ha_token": "",
@@ -89,8 +92,8 @@ class AcLoadService:
         self._service.add_item(TextItem("/CustomName", custom_name))
         self._service.add_item(TextItem("/FirmwareVersion", VERSION))
         self._service.add_item(IntegerItem("/Position", position))
-        self._service.add_item(IntegerItem("/Connected", 0))
-        self._service.add_item(IntegerItem("/Status", 1))
+        self._service.add_item(IntegerItem(PATH_CONNECTED, 0))
+        self._service.add_item(IntegerItem(PATH_STATUS, 1))
         self._service.add_item(IntegerItem("/IsGenericEnergyMeter", 1))
         self._service.add_item(DoubleItem("/Ac/Power", 0.0))
         self._service.add_item(DoubleItem("/Ac/L1/Power", 0.0))
@@ -113,13 +116,13 @@ class AcLoadService:
         with self._service as s:
             s["/Ac/Power"] = power
             s["/Ac/L1/Power"] = power
-            s["/Connected"] = 1
-            s["/Status"] = 0
+            s[PATH_CONNECTED] = 1
+            s[PATH_STATUS] = 0
 
     def set_connected(self, connected):
         with self._service as s:
-            s["/Connected"] = 1 if connected else 0
-            s["/Status"] = 0 if connected else 1
+            s[PATH_CONNECTED] = 1 if connected else 0
+            s[PATH_STATUS] = 0 if connected else 1
 
 
 class HaWebSocketClient:
@@ -218,9 +221,9 @@ class HaWebSocketClient:
             service.update_power(power)
             logger.debug("Updated %s to %.1f W", entity_id, power)
         except json.JSONDecodeError:
-            logger.error("Invalid JSON received: %s", message[:200])
-        except Exception as e:  # noqa: BLE001 - keep the listener alive
-            logger.error("Error processing message: %s", e)
+            logger.exception("Invalid JSON received: %s", message[:200])
+        except Exception:  # keep the listener alive
+            logger.exception("Error processing message")
 
     async def disconnect(self):
         if self.websocket:
@@ -238,10 +241,10 @@ async def main():
     try:
         config = load_config(config_path)
     except FileNotFoundError:
-        logger.error("Configuration file %s not found", config_path)
+        logger.exception("Configuration file %s not found", config_path)
         return
-    except json.JSONDecodeError as e:
-        logger.error("Invalid JSON in %s: %s", config_path, e)
+    except json.JSONDecodeError:
+        logger.exception("Invalid JSON in %s", config_path)
         return
 
     logger.setLevel(str(config.get("log_level", DEFAULT_CONFIG["log_level"])).upper())
@@ -277,8 +280,8 @@ async def main():
         service = AcLoadService(bus, service_name, instance, custom_name, position)
         try:
             await service.register()
-        except Exception as e:  # noqa: BLE001 - a broken channel must not kill startup
-            logger.error("Failed to register service %s: %s", service_name, e)
+        except Exception:  # a broken channel must not kill startup
+            logger.exception("Failed to register service %s", service_name)
             await service.close()
             continue
         services[entity_id] = service
@@ -304,8 +307,8 @@ async def main():
                 await ws_client.listen()
                 # If we get here, the connection was successful and we reset the delay
                 delay = 1
-            except (RuntimeError, websockets.exceptions.WebSocketException) as e:
-                logger.error("WebSocket error: %s: %s", type(e).__name__, e)
+            except (RuntimeError, websockets.exceptions.WebSocketException):
+                logger.exception("WebSocket error")
             finally:
                 ws_client.set_connected(False)
                 await ws_client.disconnect()
@@ -324,8 +327,8 @@ async def main():
         while True:
             try:
                 await asyncio.to_thread(_write)
-            except OSError as e:
-                logger.error("Failed to write heartbeat file: %s", e)
+            except OSError:
+                logger.exception("Failed to write heartbeat file")
             await asyncio.sleep(5)  # Update every 5 seconds
 
     async def shutdown():

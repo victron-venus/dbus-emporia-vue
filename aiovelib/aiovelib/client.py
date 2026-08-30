@@ -196,24 +196,24 @@ class Monitor(object):
 
 		return m
 
-	def __init__(self, bus, itemsChanged=None, handlers=None):
+	def __init__(self, bus, items_changed=None, handlers=None):
 		self.bus = bus
 		self._services = {}
-		self._servicesByName = {}
-		self._itemsChanged = itemsChanged
+		self._services_by_name = {}
+		self._items_changed = items_changed
 		self._handlers = Service.handlers if handlers is None else handlers
 
-	def itemsChanged(self, service, values):
+	def items_changed(self, service, values):
 		""" Default calls whatever was passed to the constructor, but
 		    you can override this in a subclass. """
-		if self._itemsChanged is not None:
-			return self._itemsChanged(service, values)
+		if self._items_changed is not None:
+			return self._items_changed(service, values)
 
-	async def serviceAdded(self, service):
+	async def service_added(self, service):
 		""" Default method, called when service is added. """
 		pass
 
-	async def serviceRemoved(self, service):
+	async def service_removed(self, service):
 		""" called when service is removed. """
 		pass
 
@@ -285,7 +285,7 @@ class Monitor(object):
 			else:
 				updated = service.update_items(msg.body[0])
 				if updated:
-					self.itemsChanged(service, updated)
+					self.items_changed(service, updated)
 		elif msg.member == "PropertiesChanged":
 			try:
 				service = self._services[msg.sender]
@@ -294,7 +294,7 @@ class Monitor(object):
 			else:
 				updated = service.update_items({ msg.path: msg.body[0] })
 				if updated:
-					self.itemsChanged(service, updated)
+					self.items_changed(service, updated)
 		elif msg.member == "NameOwnerChanged":
 			return self.name_owner_changed(*msg.body)
 
@@ -322,12 +322,12 @@ class Monitor(object):
 
 		# Watch updates on this service only
 		await asyncio.gather(
-			self.add_match(interface="com.victronenergy.BusItem",
+			self.add_match(interface=IFACE,
 				sender=name,
 				path="/",
 				type="signal",
 				member="ItemsChanged"),
-			self.add_match(interface="com.victronenergy.BusItem",
+			self.add_match(interface=IFACE,
 				sender=name,
 				type="signal",
 				member="PropertiesChanged")
@@ -340,23 +340,23 @@ class Monitor(object):
 
 		try:
 			# If this succeeds, someone was waiting for it
-			self._servicesByName[name].set_result(service)
+			self._services_by_name[name].set_result(service)
 		except KeyError:
-			self._servicesByName[name] = f = asyncio.Future()
+			self._services_by_name[name] = f = asyncio.Future()
 			f.set_result(service)
 
-		await self.serviceAdded(service)
+		await self.service_added(service)
 		return service
 
 	async def _remove_matches(self, name):
 		# Remove watches. These need to match the calls in add_service
 		await asyncio.gather(
-			self.remove_match(interface="com.victronenergy.BusItem",
+			self.remove_match(interface=IFACE,
 				sender=name,
 				path="/",
 				type="signal",
 				member="ItemsChanged"),
-			self.remove_match(interface="com.victronenergy.BusItem",
+			self.remove_match(interface=IFACE,
 				sender=name,
 				type="signal",
 				member="PropertiesChanged")
@@ -368,8 +368,8 @@ class Monitor(object):
 
 			service = self._services[owner]
 			del self._services[owner]
-			del self._servicesByName[name]
-			await self.serviceRemoved(service)
+			del self._services_by_name[name]
+			await self.service_removed(service)
 
 	async def dbus_call(self, name, path, member, signature, *params, interface=IFACE):
 		reply = await self.bus.call(Message(
@@ -403,18 +403,18 @@ class Monitor(object):
 
 	@property
 	def services(self):
-		return iter(s.result() for s in self._servicesByName.values() if s.done())
+		return iter(s.result() for s in self._services_by_name.values() if s.done())
 
 	def get_service(self, name):
 		try:
-			return self._servicesByName[name].result()
+			return self._services_by_name[name].result()
 		except (KeyError, asyncio.InvalidStateError):
 			pass
 		return None
 
 	def get_value(self, name, path, default=None):
 		try:
-			return self._servicesByName[name].result().get_value(path)
+			return self._services_by_name[name].result().get_value(path)
 		except (KeyError, AttributeError, asyncio.InvalidStateError):
 			pass
 		return default
@@ -422,7 +422,7 @@ class Monitor(object):
 	def set_value_async(self, name, path, value):
 		""" Similar naming to old velib method for fire and forget setting. """
 		try:
-			if not path in self._servicesByName[name].result().values:
+			if path not in self._services_by_name[name].result().values:
 				return -1
 		except (KeyError, asyncio.InvalidStateError):
 			return -1 # name not in services
@@ -432,7 +432,7 @@ class Monitor(object):
 
 	def seen(self, name, path):
 		try:
-			return self._servicesByName[name].result().seen(path)
+			return self._services_by_name[name].result().seen(path)
 		except (KeyError, AttributeError, asyncio.InvalidStateError):
 			pass
 		return False
@@ -450,9 +450,9 @@ class Monitor(object):
 		""" Returns Service object if already known, otherwise
 		    await it. """
 		try:
-			return await self._servicesByName[name]
+			return await self._services_by_name[name]
 		except KeyError:
-			self._servicesByName[name] = f = asyncio.Future()
+			self._services_by_name[name] = f = asyncio.Future()
 			return await f
 
 if __name__ == "__main__":
@@ -464,7 +464,7 @@ if __name__ == "__main__":
 		from dbus_next.constants import BusType
 
 	class MyMonitor(Monitor):
-		def itemsChanged(self, service, values):
+		def items_changed(self, service, values):
 			for p, v in values.items():
 				print (f"{service.name}{p} changed to {v}")
 
