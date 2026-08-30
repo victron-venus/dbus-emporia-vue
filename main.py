@@ -15,11 +15,18 @@ import signal
 import sys
 
 import websockets
-from dbus_fast import BusType
-from dbus_fast.aio.message_bus import MessageBus
+
+try:
+    from dbus_fast import BusType
+    from dbus_fast.aio.message_bus import MessageBus
+except ImportError:
+    BusType = None  # type: ignore[assignment, misc]
+    MessageBus = None  # type: ignore[assignment, misc]
 
 import random
 import time
+
+from parse_ha import parse_ha_state_change, parse_initial_state
 
 _here = os.path.dirname(os.path.abspath(__file__))
 
@@ -33,7 +40,7 @@ for _p in (
         sys.path.insert(0, _p)
         break
 
-from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem
+from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem  # noqa: E402
 
 PRODUCT_ID = 0xFFFF
 
@@ -133,9 +140,7 @@ class HaWebSocketClient:
         if initial.get("type") != "auth_required":
             raise RuntimeError(f"Expected auth_required, got: {initial}")
 
-        await self.websocket.send(
-            json.dumps({"type": "auth", "access_token": self.token})
-        )
+        await self.websocket.send(json.dumps({"type": "auth", "access_token": self.token}))
         auth_resp = json.loads(await self.websocket.recv())
         if auth_resp.get("type") != "auth_ok":
             raise RuntimeError(f"Home Assistant authentication failed: {auth_resp}")
@@ -182,13 +187,8 @@ class HaWebSocketClient:
             return
         count = 0
         for entity in response.get("result", []):
-            entity_id = entity.get("entity_id")
-            if entity_id not in self.channel_map:
-                continue
-            state = entity.get("state")
-            try:
-                power = float(state) if state not in (None, "", "unavailable", "unknown") else 0.0
-            except (TypeError, ValueError):
+            entity_id, power = parse_initial_state(entity)
+            if entity_id not in self.channel_map or power is None:
                 continue
             self.channel_map[entity_id].update_power(power)
             count += 1
@@ -209,24 +209,12 @@ class HaWebSocketClient:
 
     async def handle_message(self, message):
         try:
-            data = json.loads(message)
-            if data.get("type") != "event":
+            entity_id, power = parse_ha_state_change(message)
+            if entity_id is None or power is None:
                 return
-            variables = data.get("event", {}).get("variables", {})
-            trigger = variables.get("trigger", {})
-            entity_id = trigger.get("entity_id")
-            state = (trigger.get("to_state") or {}).get("state")
-
             service = self.channel_map.get(entity_id)
             if service is None:
                 return
-
-            try:
-                power = float(state) if state not in (None, "", "unavailable", "unknown") else 0.0
-            except (TypeError, ValueError):
-                logger.warning("Could not convert state %r to float for %s", state, entity_id)
-                return
-
             service.update_power(power)
             logger.debug("Updated %s to %.1f W", entity_id, power)
         except json.JSONDecodeError:
@@ -294,7 +282,12 @@ async def main():
             await service.close()
             continue
         services[entity_id] = service
-        logger.info("Registered %s for entity %s (instance %d)", service_name, entity_id, instance)
+        logger.info(
+            "Registered %s for entity %s (instance %d)",
+            service_name,
+            entity_id,
+            instance,
+        )
 
     if not services:
         logger.error("No services could be registered")
@@ -323,11 +316,15 @@ async def main():
 
     async def heartbeat_task():
         heartbeat_file = "/tmp/dbus-emporia-vue.heartbeat"
+
+        def _write():
+            with open(heartbeat_file, "w") as f:
+                f.write(str(int(time.time())))
+
         while True:
             try:
-                with open(heartbeat_file, "w") as f:
-                    f.write(str(int(time.time())))
-            except Exception as e:
+                await asyncio.to_thread(_write)
+            except OSError as e:
                 logger.error("Failed to write heartbeat file: %s", e)
             await asyncio.sleep(5)  # Update every 5 seconds
 
