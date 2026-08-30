@@ -11,7 +11,7 @@ def parse_power(state: str | None) -> float:
     if state in (None, "", "unavailable", "unknown"):
         return 0.0
     try:
-        return float(state)
+        return float(state)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return 0.0
 

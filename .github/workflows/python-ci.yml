@@ -35,8 +35,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --prefer-binary -r requirements.txt
-          pip install --prefer-binary pytest pytest-asyncio pytest-cov mypy ruff
+          pip install --only-binary=:all: -r requirements.txt
+          pip install --only-binary=:all: -r requirements-dev.txt
 
       - name: Lint
         run: |

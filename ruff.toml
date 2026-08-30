@@ -1,0 +1,10 @@
+# Ruff config for dbus-emporia-vue.
+# Vendored aiovelib/ ships from upstream as-is — exclude from lint/format.
+
+extend-exclude = ["aiovelib", "build", "dist", "ha_config_gen.py"]
+
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "BLE", "ASYNC", "RUF"]

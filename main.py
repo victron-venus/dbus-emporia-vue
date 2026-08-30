@@ -40,7 +40,7 @@ for _p in (
         sys.path.insert(0, _p)
         break
 
-from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem
+from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem  # noqa: E402
 
 PRODUCT_ID = 0xFFFF
 
@@ -80,9 +80,7 @@ class AcLoadService:
     def __init__(self, bus, service_name, instance, custom_name, position):
         self._bus = bus
         self._service = Service(bus, service_name)
-        self._service.add_item(
-            TextItem("/Mgmt/ProcessName", os.path.basename(__file__))
-        )
+        self._service.add_item(TextItem("/Mgmt/ProcessName", os.path.basename(__file__)))
         self._service.add_item(TextItem("/Mgmt/ProcessVersion", VERSION))
         self._service.add_item(TextItem("/Mgmt/Connection", "Home Assistant"))
         self._service.add_item(IntegerItem("/DeviceInstance", instance))
@@ -140,9 +138,7 @@ class HaWebSocketClient:
         if initial.get("type") != "auth_required":
             raise RuntimeError(f"Expected auth_required, got: {initial}")
 
-        await self.websocket.send(
-            json.dumps({"type": "auth", "access_token": self.token})
-        )
+        await self.websocket.send(json.dumps({"type": "auth", "access_token": self.token}))
         auth_resp = json.loads(await self.websocket.recv())
         if auth_resp.get("type") != "auth_ok":
             raise RuntimeError(f"Home Assistant authentication failed: {auth_resp}")
@@ -167,9 +163,7 @@ class HaWebSocketClient:
         response = json.loads(await self.websocket.recv())
         if response.get("success") is not True:
             raise RuntimeError(f"Failed to subscribe to triggers: {response}")
-        logger.info(
-            "Subscribed to state triggers for %d entities", len(self.channel_map)
-        )
+        logger.info("Subscribed to state triggers for %d entities", len(self.channel_map))
 
     async def fetch_initial_states(self):
         request = {
@@ -311,11 +305,15 @@ async def main():
 
     async def heartbeat_task():
         heartbeat_file = "/tmp/dbus-emporia-vue.heartbeat"
+
+        def _write():
+            with open(heartbeat_file, "w") as f:
+                f.write(str(int(time.time())))
+
         while True:
             try:
-                with open(heartbeat_file, "w") as f:  # noqa: ASYNC230
-                    f.write(str(int(time.time())))
-            except Exception as e:  # noqa: BLE001
+                await asyncio.to_thread(_write)
+            except OSError as e:
                 logger.error("Failed to write heartbeat file: %s", e)
             await asyncio.sleep(5)  # Update every 5 seconds
 
