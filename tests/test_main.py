@@ -211,26 +211,38 @@ class TestHaWebSocketClient:
 
     def test_handle_message_updates_matching_service(self):
         c = self._make(channel_map={"sensor.x": MagicMock()})
-        msg = json.dumps({
-            "type": "event",
-            "event": {"variables": {"trigger": {
-                "entity_id": "sensor.x",
-                "to_state": {"state": "500.0"},
-            }}},
-        })
+        msg = json.dumps(
+            {
+                "type": "event",
+                "event": {
+                    "variables": {
+                        "trigger": {
+                            "entity_id": "sensor.x",
+                            "to_state": {"state": "500.0"},
+                        }
+                    }
+                },
+            }
+        )
         asyncio.run(c.handle_message(msg))
         c.channel_map["sensor.x"].update_power.assert_called_once_with(500.0)
 
     def test_handle_message_unknown_entity_noop(self):
         svc = MagicMock()
         c = self._make(channel_map={"sensor.x": svc})
-        msg = json.dumps({
-            "type": "event",
-            "event": {"variables": {"trigger": {
-                "entity_id": "sensor.other",
-                "to_state": {"state": "1"},
-            }}},
-        })
+        msg = json.dumps(
+            {
+                "type": "event",
+                "event": {
+                    "variables": {
+                        "trigger": {
+                            "entity_id": "sensor.other",
+                            "to_state": {"state": "1"},
+                        }
+                    }
+                },
+            }
+        )
         asyncio.run(c.handle_message(msg))
         svc.update_power.assert_not_called()
 
@@ -262,6 +274,7 @@ class TestHaWebSocketClient:
 
             async def __anext__(self):
                 from websockets.exceptions import ConnectionClosed  # type: ignore[import-not-found]
+
                 raise ConnectionClosed(None, None)
 
         c.websocket = _BrokenWS()
@@ -296,14 +309,20 @@ class TestHaWebSocketClientConnect:
         fake_ws = _patch_websockets(monkeypatch)
         svc = MagicMock()
         svc.update_power = MagicMock()
-        ws = self._ws([
-            {"type": "auth_required"},
-            {"type": "auth_ok"},
-            {"success": True},
-            {"id": 2, "success": True, "result": [
-                {"entity_id": "sensor.x", "state": "42.0"},
-            ]},
-        ])
+        ws = self._ws(
+            [
+                {"type": "auth_required"},
+                {"type": "auth_ok"},
+                {"success": True},
+                {
+                    "id": 2,
+                    "success": True,
+                    "result": [
+                        {"entity_id": "sensor.x", "state": "42.0"},
+                    ],
+                },
+            ]
+        )
         fake_ws.connect = AsyncMock(return_value=ws)
         c = HaWebSocketClient("ws://h:8123/api/websocket", "tok", {"sensor.x": svc})
 
@@ -316,10 +335,12 @@ class TestHaWebSocketClientConnect:
         from main import HaWebSocketClient
 
         fake_ws = _patch_websockets(monkeypatch)
-        ws = self._ws([
-            {"type": "auth_required"},
-            {"type": "auth_invalid", "message": "bad"},
-        ])
+        ws = self._ws(
+            [
+                {"type": "auth_required"},
+                {"type": "auth_invalid", "message": "bad"},
+            ]
+        )
         fake_ws.connect = AsyncMock(return_value=ws)
         c = HaWebSocketClient("ws://h:8123/api/websocket", "tok", {})
         with pytest.raises(RuntimeError, match="authentication failed"):
@@ -558,5 +579,3 @@ def test_shutdown_cleans_up(monkeypatch, tmp_path):
                 asyncio.run(main())
     # ALS constructed → main() reached the registration phase without crashing.
     ALS.assert_called_once()
-
-
