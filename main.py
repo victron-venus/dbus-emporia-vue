@@ -15,11 +15,18 @@ import signal
 import sys
 
 import websockets
-from dbus_fast import BusType
-from dbus_fast.aio.message_bus import MessageBus
+
+try:
+    from dbus_fast import BusType
+    from dbus_fast.aio.message_bus import MessageBus
+except ImportError:
+    BusType = None  # type: ignore[assignment, misc]
+    MessageBus = None  # type: ignore[assignment, misc]
 
 import random
 import time
+
+from parse_ha import parse_ha_state_change, parse_initial_state
 
 _here = os.path.dirname(os.path.abspath(__file__))
 
@@ -73,7 +80,9 @@ class AcLoadService:
     def __init__(self, bus, service_name, instance, custom_name, position):
         self._bus = bus
         self._service = Service(bus, service_name)
-        self._service.add_item(TextItem("/Mgmt/ProcessName", os.path.basename(__file__)))
+        self._service.add_item(
+            TextItem("/Mgmt/ProcessName", os.path.basename(__file__))
+        )
         self._service.add_item(TextItem("/Mgmt/ProcessVersion", VERSION))
         self._service.add_item(TextItem("/Mgmt/Connection", "Home Assistant"))
         self._service.add_item(IntegerItem("/DeviceInstance", instance))
@@ -158,7 +167,9 @@ class HaWebSocketClient:
         response = json.loads(await self.websocket.recv())
         if response.get("success") is not True:
             raise RuntimeError(f"Failed to subscribe to triggers: {response}")
-        logger.info("Subscribed to state triggers for %d entities", len(self.channel_map))
+        logger.info(
+            "Subscribed to state triggers for %d entities", len(self.channel_map)
+        )
 
     async def fetch_initial_states(self):
         request = {
@@ -173,13 +184,8 @@ class HaWebSocketClient:
             return
         count = 0
         for entity in response.get("result", []):
-            entity_id = entity.get("entity_id")
-            if entity_id not in self.channel_map:
-                continue
-            state = entity.get("state")
-            try:
-                power = float(state) if state not in (None, "", "unavailable", "unknown") else 0.0
-            except (TypeError, ValueError):
+            entity_id, power = parse_initial_state(entity)
+            if entity_id not in self.channel_map or power is None:
                 continue
             self.channel_map[entity_id].update_power(power)
             count += 1
@@ -200,24 +206,12 @@ class HaWebSocketClient:
 
     async def handle_message(self, message):
         try:
-            data = json.loads(message)
-            if data.get("type") != "event":
+            entity_id, power = parse_ha_state_change(message)
+            if entity_id is None or power is None:
                 return
-            variables = data.get("event", {}).get("variables", {})
-            trigger = variables.get("trigger", {})
-            entity_id = trigger.get("entity_id")
-            state = (trigger.get("to_state") or {}).get("state")
-
             service = self.channel_map.get(entity_id)
             if service is None:
                 return
-
-            try:
-                power = float(state) if state not in (None, "", "unavailable", "unknown") else 0.0
-            except (TypeError, ValueError):
-                logger.warning("Could not convert state %r to float for %s", state, entity_id)
-                return
-
             service.update_power(power)
             logger.debug("Updated %s to %.1f W", entity_id, power)
         except json.JSONDecodeError:
@@ -283,7 +277,12 @@ async def main():
             # Do not disconnect the shared bus here
             continue
         services[entity_id] = service
-        logger.info("Registered %s for entity %s (instance %d)", service_name, entity_id, instance)
+        logger.info(
+            "Registered %s for entity %s (instance %d)",
+            service_name,
+            entity_id,
+            instance,
+        )
 
     if not services:
         logger.error("No services could be registered")
@@ -314,9 +313,9 @@ async def main():
         heartbeat_file = "/tmp/dbus-emporia-vue.heartbeat"
         while True:
             try:
-                with open(heartbeat_file, "w") as f:
+                with open(heartbeat_file, "w") as f:  # noqa: ASYNC230
                     f.write(str(int(time.time())))
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error("Failed to write heartbeat file: %s", e)
             await asyncio.sleep(5)  # Update every 5 seconds
 
