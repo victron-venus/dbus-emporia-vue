@@ -1,14 +1,15 @@
 import asyncio
 import warnings
 from inspect import iscoroutinefunction
+
 try:
 	import dbus_fast
 except ImportError:
+	from dbus_next import Message, MessageFlag, MessageType, Variant
 	from dbus_next.service import ServiceInterface, method, signal
-	from dbus_next import Variant, Message, MessageFlag, MessageType
 else:
+	from dbus_fast import Message, MessageFlag, MessageType, Variant
 	from dbus_fast.service import ServiceInterface, method, signal
-	from dbus_fast import Variant, Message, MessageFlag, MessageType
 
 IFACE="com.victronenergy.BusItem"
 
@@ -156,7 +157,7 @@ class RootItemInterface(ServiceInterface):
 	def SetValue(self, v: 'v') -> 'i':
 		return 1
 
-class ItemChangeCollector(object):
+class ItemChangeCollector:
 	def __init__(self, service):
 		self.service = service
 		self.changes = {}
@@ -171,7 +172,7 @@ class ItemChangeCollector(object):
 		if self.changes:
 			self.service.send_items_changed(self.changes)
 
-class Service(object):
+class Service:
 
 	_closed = False
 
@@ -192,7 +193,7 @@ class Service(object):
 		self._closed = True
 
 		while self.objects:
-			path, ob = self.objects.popitem()
+			path, _ = self.objects.popitem()
 			self.bus.unexport(path)
 		self.bus.unexport("/")
 		await self.bus.release_name(self.name)
@@ -284,7 +285,7 @@ if __name__ == "__main__":
 		# emit the changed signal after two seconds.
 		await asyncio.sleep(3)
 
-		with service as s:
+		async with service as s:
 			s['/Int'] = 11
 			s['/Double'] = 22.0
 			s['/Text'] = 'This is not text'

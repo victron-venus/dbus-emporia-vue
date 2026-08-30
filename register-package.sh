@@ -14,8 +14,8 @@ echo "Registering $PACKAGE_NAME with PackageManager..."
 
 # Check if package is installed
 if [ ! -d "$PACKAGE_DIR" ]; then
-    echo "Error: Package not installed at $PACKAGE_DIR"
-    echo "Run setup install first"
+    echo "Error: Package not installed at $PACKAGE_DIR" >&2
+    echo "Run setup install first" >&2
     exit 1
 fi
 

@@ -15,7 +15,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _stub_aiovelib(monkeypatch):
+def _stub_aiovelib():
     """Inject fake aiovelib + dbus_fast into sys.modules so main.py imports succeed."""
     # Fake dbus_fast
     dbus_fast = types.ModuleType("dbus_fast")
@@ -77,7 +77,6 @@ def _stub_aiovelib(monkeypatch):
     # Now safe to import main
     if "main" in sys.modules:
         del sys.modules["main"]
-    yield
 
 
 def _patch_websockets(monkeypatch):
@@ -322,8 +321,9 @@ class TestHaWebSocketClientConnect:
         ])
         fake_ws.connect = AsyncMock(return_value=ws)
         c = HaWebSocketClient("ws://h:8123/api/websocket", "tok", {})
+        coro = c.connect()
         with pytest.raises(RuntimeError, match="authentication failed"):
-            asyncio.run(c.connect())
+            asyncio.run(coro)
 
     def test_connect_bad_initial_raises(self, monkeypatch):
         from main import HaWebSocketClient
@@ -332,8 +332,9 @@ class TestHaWebSocketClientConnect:
         ws = self._ws([{"type": "other"}])
         fake_ws.connect = AsyncMock(return_value=ws)
         c = HaWebSocketClient("ws://h:8123/api/websocket", "tok", {})
+        coro = c.connect()
         with pytest.raises(RuntimeError, match="auth_required"):
-            asyncio.run(c.connect())
+            asyncio.run(coro)
 
 
 # ---------------------------------------------------------------------------
