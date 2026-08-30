@@ -13,3 +13,4 @@ __pycache__/
 terraform-github-victron/
 terraform-github-victron
 *.backup
+.coverage
