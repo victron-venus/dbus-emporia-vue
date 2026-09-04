@@ -22,6 +22,7 @@ if [ "$scriptAction" == 'INSTALL' ]; then
     mkdir -p /data/dbus-emporia-vue
     cp "$scriptDir/main.py" /data/dbus-emporia-vue/
     chmod +x /data/dbus-emporia-vue/main.py
+    cp "$scriptDir/parse_ha.py" /data/dbus-emporia-vue/
 
     # Copy example config if no config exists
     if [ ! -f "/data/dbus-emporia-vue/config.json" ]; then

@@ -29,6 +29,7 @@ echo ""
 # Check local syntax before copying
 echo ">>> Checking Python syntax..."
 python3 -m py_compile "$SCRIPT_DIR/main.py"
+python3 -m py_compile "$SCRIPT_DIR/parse_ha.py"
 echo "    Syntax OK"
 
 # Create directories on remote
@@ -41,6 +42,10 @@ ssh "$SSH_HOST" "mkdir -p $INSTALL_DIR $LOG_DIR $SETUP_OPTIONS_DIR"
 echo ">>> Copying main.py..."
 scp -q "$SCRIPT_DIR/main.py" "$SSH_HOST:$INSTALL_DIR/"
 ssh "$SSH_HOST" "chmod +x $INSTALL_DIR/main.py"
+
+# Copy parse_ha module (imported by main.py)
+echo ">>> Copying parse_ha.py..."
+scp -q "$SCRIPT_DIR/parse_ha.py" "$SSH_HOST:$INSTALL_DIR/"
 
 # Copy vendored aiovelib library
 echo ">>> Copying aiovelib..."
