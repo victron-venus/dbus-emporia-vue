@@ -72,7 +72,7 @@ PATH_CONNECTED = "/Connected"
 PATH_STATUS = "/Status"
 
 DEFAULT_CONFIG = {
-    "ha_url": "ws://192.168.1.50:8123/api/websocket",
+    "ha_url": "ws://192.168.1.50:8123/api/websocket",  # NOSONAR: User-overridable LAN endpoint.
     "ha_token": "",
     "channels": [],
     "log_level": "INFO",

@@ -24,7 +24,7 @@ from urllib.request import Request, urlopen
 def ha_url_to_rest(ws_url: str) -> str:
     """Convert WS URL to REST base URL."""
     if ws_url.startswith("ws://"):
-        http_url = "http://" + ws_url[5:]
+        http_url = "http://" + ws_url[5:]  # NOSONAR: Preserve caller-selected LAN transport.
     elif ws_url.startswith("wss://"):
         http_url = "https://" + ws_url[6:]
     else:
