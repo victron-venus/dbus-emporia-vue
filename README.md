@@ -217,6 +217,20 @@ a valid reading of zero remains zero. A connected WebSocket alone does not make
 missing channels connected. Energy is unavailable because this bridge receives
 power measurements, not cumulative energy.
 
+Initial loading preserves state-trigger updates received while `get_states`
+is in flight. A snapshot replaces an interleaved event only when both HA state
+objects provide `last_updated` and identify the snapshot as newer; otherwise
+the already received event wins. This comparison is scoped to initial loading,
+so it cannot reject later events after an HA clock adjustment. The existing
+50-message initialization cap and 30-second connection deadline remain intact.
+Regressions cover older/newer snapshots, unavailable power, measured zero,
+missing timestamps and a failed initial query. The state timestamps follow the
+[Home Assistant WebSocket API](https://developers.home-assistant.io/docs/api/websocket/).
+
+A stable channel is not disconnected merely because its value does not change.
+WebSocket availability and HA state timestamps do not independently verify the
+physical Emporia sensor or its upstream integration.
+
 
 Dependency bundles should use the checked-in hash lock:
 `python3 -m pip install --require-hashes -r requirements.lock` in the selected

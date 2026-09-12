@@ -13,6 +13,7 @@ import logging
 import os
 import signal
 import sys
+from datetime import datetime
 
 import websockets
 
@@ -89,6 +90,15 @@ for _name in ("websockets", "websockets.client", "websockets.protocol"):
     _mod = logging.getLogger(_name)
     _mod.setLevel(logging.CRITICAL)
     _mod.propagate = False
+
+
+def _state_updated_at(state):
+    """Read HA's timestamp only for ordering startup snapshot/event overlap."""
+    try:
+        value = datetime.fromisoformat(state.get("last_updated"))
+        return value if value.tzinfo is not None else None
+    except (AttributeError, TypeError, ValueError):
+        return None
 
 
 def read_version():
@@ -204,10 +214,15 @@ class HaWebSocketClient:
         # Skip trigger events that may arrive before the get_states reply.
         request_id = request["id"]
         response = None
+        event_updates = {}
         for _ in range(50):
             message = json.loads(await self.websocket.recv())
             if message.get("type") == "event":
                 await self.handle_message(json.dumps(message))
+                trigger = message.get("event", {}).get("variables", {}).get("trigger", {})
+                entity_id = trigger.get("entity_id")
+                if entity_id in self.channel_map:
+                    event_updates[entity_id] = _state_updated_at(trigger.get("to_state"))
             if message.get("id") == request_id and ("result" in message or "error" in message):
                 response = message
                 break
@@ -219,6 +234,13 @@ class HaWebSocketClient:
             entity_id, power = parse_initial_state(entity)
             if entity_id not in self.channel_map:
                 continue
+            if entity_id in event_updates:
+                event_time = event_updates[entity_id]
+                snapshot_time = _state_updated_at(entity)
+                # Interleaved events have already been applied. Replace only
+                # when HA explicitly identifies this snapshot as newer.
+                if event_time is None or snapshot_time is None or event_time >= snapshot_time:
+                    continue
             self.channel_map[entity_id].update_power(power)
             count += 1
         logger.info("Loaded initial state for %d entities", count)

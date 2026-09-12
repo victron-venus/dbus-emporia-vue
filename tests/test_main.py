@@ -643,3 +643,73 @@ def test_heartbeat_replaces_symlink_without_clobbering_target(tmp_path):
     assert not heartbeat.is_symlink()
     assert int(heartbeat.read_text(encoding="utf-8")) > 0
     assert list(tmp_path.glob(".dbus-emporia-vue-heartbeat-*")) == []
+
+
+@pytest.mark.parametrize(
+    "event_state,event_time,snapshot_time,expected",
+    [
+        ("100", "2026-09-12T10:00:02+00:00", "2026-09-12T10:00:01+00:00", 100.0),
+        ("100", "2026-09-12T10:00:01+00:00", "2026-09-12T10:00:02+00:00", 50.0),
+        ("unavailable", "2026-09-12T10:00:02+00:00", "2026-09-12T10:00:01+00:00", None),
+        ("0", "2026-09-12T10:00:02+00:00", "2026-09-12T10:00:01+00:00", 0.0),
+        ("100", None, None, 100.0),
+    ],
+)
+def test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event(
+    event_state, event_time, snapshot_time, expected
+):
+    """HA timestamps resolve overlap without restoring stale or invalid values."""
+    from main import HaWebSocketClient  # pylint: disable=import-outside-toplevel
+
+    service = MagicMock()
+    client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
+    event = {
+        "type": "event",
+        "event": {
+            "variables": {
+                "trigger": {
+                    "entity_id": "sensor.x",
+                    "to_state": {"state": event_state, "last_updated": event_time},
+                }
+            }
+        },
+    }
+    result = {
+        "id": 1,
+        "type": "result",
+        "success": True,
+        "result": [
+            {"entity_id": "sensor.x", "state": "50", "last_updated": snapshot_time},
+        ],
+    }
+    client.websocket = AsyncMock()
+    client.websocket.recv.side_effect = [json.dumps(event), json.dumps(result)]
+    asyncio.run(client.fetch_initial_states())
+    assert service.update_power.call_args.args[0] == expected
+
+
+def test_interleaved_event_is_retained_when_initial_snapshot_fails():
+    """A failed initial query must not discard an already received zero value."""
+    from main import HaWebSocketClient  # pylint: disable=import-outside-toplevel
+
+    service = MagicMock()
+    client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
+    client.websocket = AsyncMock()
+    client.websocket.recv.side_effect = [
+        json.dumps(
+            {
+                "type": "event",
+                "event": {
+                    "variables": {
+                        "trigger": {
+                            "entity_id": "sensor.x",
+                            "to_state": {"state": "0"},
+                        }
+                    }
+                },
+            }
+        ),
+        json.dumps({"id": 1, "type": "result", "success": False, "error": {"code": "test"}}),
+    ]
+    asyncio.run(client.fetch_initial_states())
+    service.update_power.assert_called_once_with(0.0)
