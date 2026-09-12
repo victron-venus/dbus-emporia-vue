@@ -1,19 +1,21 @@
 """Pure functions for HA WebSocket payload → D-Bus power mapping. Hardware-free."""
 
 import json
+import math
 
 
-def parse_power(state: str | None) -> float:
+def parse_power(state: str | None) -> float | None:
     """Convert HA entity state to power in watts.
 
-    Returns 0.0 for unavailable/unknown/empty states.
+    Returns None for unavailable, malformed or non-finite states.
     """
     if state in (None, "", "unavailable", "unknown"):
-        return 0.0
+        return None
     try:
-        return float(state)  # type: ignore[arg-type]
+        value = float(state)  # type: ignore[arg-type]
+        return value if math.isfinite(value) else None
     except (TypeError, ValueError):
-        return 0.0
+        return None
 
 
 def parse_ha_state_change(message: str) -> tuple[str | None, float | None]:
@@ -35,7 +37,7 @@ def parse_ha_state_change(message: str) -> tuple[str | None, float | None]:
     return entity_id, parse_power(state)
 
 
-def parse_initial_state(entity: dict) -> tuple[str | None, float]:
+def parse_initial_state(entity: dict) -> tuple[str | None, float | None]:
     """Parse a single entity from HA get_states response.
 
     Returns:

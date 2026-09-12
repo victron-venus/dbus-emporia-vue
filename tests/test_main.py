@@ -328,7 +328,8 @@ class TestHaWebSocketClientConnect:
         asyncio.run(c.connect())
 
         svc.update_power.assert_called_once_with(42.0)
-        assert svc.set_connected.call_args_list[-1].args == (True,)
+        # Connection alone must not mark missing or unavailable sensors live.
+        svc.set_connected.assert_not_called()
 
     def test_connect_auth_failure_raises(self, monkeypatch):
         from main import HaWebSocketClient
@@ -535,7 +536,7 @@ def test_main_heartbeat_writes_file(caplog, tmp_path, monkeypatch):
 
     monkeypatch.setattr(main_mod.asyncio, "gather", fake_gather)
     monkeypatch.setattr(main_mod.asyncio, "to_thread", fake_to_thread)
-    monkeypatch.setattr(main_mod, "write_heartbeat", lambda: None)
+    monkeypatch.setattr(main_mod, "write_heartbeat", MagicMock())
     monkeypatch.setattr(main_mod.os, "makedirs", MagicMock())  # no-op
 
     with patch("main.os.path.join", return_value=str(p)):
@@ -581,6 +582,52 @@ def test_shutdown_cleans_up(monkeypatch, tmp_path):
                 asyncio.run(main())
     # ALS constructed → main() reached the registration phase without crashing.
     ALS.assert_called_once()
+
+
+def test_unavailable_channel_does_not_publish_zero():
+    from main import AcLoadService, HaWebSocketClient
+
+    service = AcLoadService(MagicMock(), "com.victronenergy.acload.x", 71, "X", 0)
+    service.update_power(42.0)
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.x": service})
+    message = json.dumps(
+        {
+            "type": "event",
+            "event": {
+                "variables": {
+                    "trigger": {"entity_id": "sensor.x", "to_state": {"state": "unavailable"}}
+                }
+            },
+        }
+    )
+    asyncio.run(client.handle_message(message))
+    assert service._service["/Connected"] == 0
+    assert service._service["/Ac/Power"] is None
+    assert service._service["/Ac/L1/Power"] is None
+
+
+@pytest.mark.parametrize("failure", [ConnectionRefusedError("offline"), TimeoutError("slow HA")])
+def test_network_failure_retries_without_exiting(monkeypatch, failure):
+    from main import run_websocket_client
+
+    client = MagicMock()
+    client.connect = AsyncMock(side_effect=failure)
+    client.disconnect = AsyncMock()
+    waits = []
+
+    async def wait_once(delay):
+        waits.append(delay)
+        if len(waits) == 2:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr("main.asyncio.sleep", wait_once)
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(run_websocket_client(client))
+    assert client.connect.await_count == 2
+    assert client.disconnect.await_count == 2
+    assert 1 <= waits[0] <= 1.1
+    assert 2 <= waits[1] <= 2.2
+    client.set_connected.assert_called_with(False)
 
 
 def test_heartbeat_replaces_symlink_without_clobbering_target(tmp_path):
