@@ -1,0 +1,4 @@
+#!/bin/sh
+cd /data/dbus-emporia-vue || exit 1
+exec 2>&1
+exec python3 main.py

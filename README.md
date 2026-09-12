@@ -9,7 +9,7 @@ A Python service for Victron Venus OS (Cerbo GX) that reads power measurements f
 - Loads the current value of every channel via HA `get_states` on startup
 - Registers each channel as a `com.victronenergy.acload.*` service on DBus using the standard `com.victronenergy.BusItem` interface (via a vendored copy of `aiovelib`)
 - Assigns unique DeviceInstance numbers (configurable per channel) to avoid conflicts
-- Tracks HA connection state: channels are marked `Connected=0` while the WebSocket link is down
+- Tracks HA and sensor availability: channels are marked `Connected=0` when their sensor is unavailable or the WebSocket link is down
 - Provides example configuration and easy installation
 - Can be installed via Venus OS PackageManager (using SetupHelper) – same pattern as `dbus-mqtt-battery`, `dbus-tasmota-pv`, `inverter-control`
 
@@ -21,42 +21,32 @@ A Python service for Victron Venus OS (Cerbo GX) that reads power measurements f
 
 ## Installation
 
-### Manual Installation
+### Deploy from a workstation
 
-1. Copy the `config.json.example` to `config.json` and edit it with your Home Assistant URL, long-lived access token, and channel mappings.
-   * The resulting `config.json` contains your long-lived access token and should be kept private (it is already ignored by git).
-   * Alternatively, you can generate a config automatically with the provided `ha_config_gen.py` script (see below).
-2. Install the required Python packages:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Make sure the `dbus-fast` and `websockets` packages are available in your Python environment.
-4. Run the service:
-   ```bash
-   python main.py
-   ```
+1. Copy `config.json.example` to `config.json` and configure the HA URL, token
+   and channel mappings. Keep this file private.
+2. Check that the GX system Python can import `dbus_fast` and `websockets`.
+   Do not run a global `pip install` on the firmware filesystem. If packages are
+   missing, provide a compatible dependency bundle on persistent storage and
+   verify it with the same interpreter used by the service.
+3. Run `./deploy.sh root@cerbo` using SSH key authentication. The workstation
+   may also generate the local configuration using `HA_URL` and `HA_TOKEN`.
 
-### Venus OS PackageManager Installation (Recommended)
+### SetupHelper / PackageManager
 
-The service can be installed as a PackageManager package using the provided SetupHelper scripts.
+Place the complete package in `/data/dbus-emporia-vue`, configure `config.json`,
+and run the SetupHelper entry point:
 
-1. Copy the entire `dbus-emporia-vue` directory to your Venus OS device (e.g., via SCP to `/root/`).
-2. On the Venus OS device, run:
-   ```bash
-   cd /root/dbus-emporia-vue
-   ./setup install
-   ```
-3. The package will be registered with PackageManager and can be managed via:
-   - GUI v1: Settings → PackageManager
-   - CLI: `/data/dbus-emporia-vue/setup install` (to reinstall) or `/data/dbus-emporia-vue/setup uninstall` to remove.
-
-### First‑time Setup Wizard
-
-You can also run the setup script interactively:
-```bash
-./setup
+```sh
+cd /data/dbus-emporia-vue
+./setup install
 ```
-It will prompt you to choose install/uninstall.
+
+The same `update.sh` installs both a release archive and an in-place reinstall.
+The vendored `aiovelib` and persistent service definitions are installed together.
+SetupHelper must already be available at `/data/SetupHelper`. Use
+`./setup uninstall` to remove the service and boot hook; configuration is retained.
+Without SetupHelper, a prepared release can be installed with `sh update.sh`.
 
 ## Configuration
 
@@ -74,7 +64,6 @@ Edit `config.json` with the following structure:
       "custom_name": "Heat Pump",
       "position": 0
     }
-    // Add more channels as needed...
   ],
   "log_level": "INFO"
 }
@@ -109,13 +98,13 @@ If you prefer not to manually list each channel, you can use the helper script `
 
 Usage (run on a machine with network access to your HA instance):
 ```bash
-HASS_SERVER=ws://<HA_IP>:8123/api/websocket HA_TOKEN=<your_long_lived_token> python ha_config_gen.py
+HA_URL=ws://<HA_IP>:8123/api/websocket HA_TOKEN=<your_long_lived_token> python ha_config_gen.py
 ```
 The script will create (or overwrite) `config.json` in the current directory. Review the generated file and adjust `instance` numbers if needed to avoid collisions.
 
 ## Service Management on Venus OS
 
-When installed via the setup script, the service is automatically created under `/service/dbus-emporia-vue` and supervised by runit. It will start on boot and restart after firmware updates.
+When installed via the setup script, the service is automatically created under `/service/dbus-emporia-vue` and supervised by daemontools. It will start on boot and restart after firmware updates.
 
 To manually control the service:
 ```bash
@@ -126,7 +115,7 @@ svc -d /service/dbus-emporia-vue
 # Restart
 svc -t /service/dbus-emporia-vue
 # View logs
-sv log /service/dbus-emporia-vue
+tail -n 40 /var/log/dbus-emporia-vue/current
 ```
 
 ### Verifying installation
@@ -154,7 +143,7 @@ ssh root@cerbo "dbus -y com.victronenergy.system /Ac/HasAcLoads GetValue"
 
 ## Dependencies
 
-- Python 3.7+
+- Python 3.11+ (verified on Venus OS v3.75 with Python 3.12)
 - dbus-fast
 - websockets
 - requests (used by ha_config_gen.py)
@@ -163,3 +152,54 @@ ssh root@cerbo "dbus -y com.victronenergy.system /Ac/HasAcLoads GetValue"
 ## License
 
 MIT
+
+## Venus OS installation and recovery
+
+Use the canonical `/data/dbus-emporia-vue` directory. Both `setup install`
+(SetupHelper/PackageManager) and the workstation `deploy.sh` call `update.sh`.
+A release is staged under volatile `/tmp` before stopping the service, so
+reinstalling from the installed tree does not delete the update source.
+The updater preserves `config.json`; `deploy.sh` deliberately replaces it
+when the workstation has a local copy (`PUSH_LOCAL_`config.json`=1`).
+
+Service definitions persist under `/data/dbus-emporia-vue/service/dbus-emporia-vue`.
+`/service/dbus-emporia-vue` is a symlink recreated by `/data/rc.local`, including
+when that script already ends with `exit 0`. The logger recreates its volatile
+`/var/log/dbus-emporia-vue` directory and rotates four 25 KB files. Heartbeats
+also live on volatile storage. Runtime data does not require writes to the
+read-only firmware filesystem. Firmware updates can replace system Python
+packages; check dependencies after each update before assuming the service is
+healthy. The installer does not run `pip` or upgrade system packages.
+
+Before installation, check the target interpreter:
+
+```sh
+python3 --version
+python3 -c "import dbus_fast, websockets"
+```
+
+Verify a running process and its D-Bus data after installation:
+
+```sh
+svstat /service/dbus-emporia-vue /service/dbus-emporia-vue/log
+readlink /service/dbus-emporia-vue
+tail -n 40 /var/log/dbus-emporia-vue/current
+```
+
+`deploy.sh` fails if a fresh heartbeat does not appear within 60 seconds or the
+service never reaches `up`. A heartbeat proves the loop is running, not that
+Home Assistant is reachable: also inspect `/Connected` and the log. Restore a
+previous release with its `update.sh`, keeping the device-local configuration.
+The isolated installer regression test covers two consecutive in-place updates,
+configuration preservation, service symlinks, and a boot script ending in `exit 0`.
+
+
+### Home Assistant outage behavior
+
+Connection refusals, socket failures and timeouts retry with exponential backoff
+(up to 60 seconds, plus jitter) while D-Bus names stay registered. Authentication,
+subscription and initial-state loading share a 30-second deadline. Unknown,
+unavailable, malformed and non-finite power readings publish invalid values;
+a valid reading of zero remains zero. A connected WebSocket alone does not make
+missing channels connected. Energy is unavailable because this bridge receives
+power measurements, not cumulative energy.

@@ -1,0 +1,227 @@
+#!/bin/sh
+#
+# dbus-emporia-vue self-update script.
+#
+# Ships inside the release tarball and runs ON the Venus OS device to install
+# the release into INSTALL_DIR (default /data/dbus-emporia-vue). It is invoked
+# by the auto-deploy webhook (../inverter-monitoring) or manually:
+#
+#     sh update.sh [INSTALL_DIR]
+#
+# This script owns all layout knowledge (runtime files, daemontools services,
+# /service symlinks, device-local file preservation, restart order) so that
+# callers like the webhook never need to hardcode where files go. Adding a new
+# module or a new daemontools service requires a change here only.
+#
+set -eu
+
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_DIR="${1:-/data/dbus-emporia-vue}"
+
+# Unit commands and boot hooks use this canonical persistent location.
+if [ "$INSTALL_DIR" != "/data/dbus-emporia-vue" ]; then
+    echo "Unsupported install directory: use /data/dbus-emporia-vue" >&2
+    exit 2
+fi
+
+# Device-local files that must never be overwritten by an update.
+LOCAL_ONLY="config.json"
+
+# Runtime items shipped at the repo root and installed at INSTALL_DIR root.
+RUNTIME_ITEMS="update.sh main.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt"
+
+# Reserved for obsolete runtime files from future migrations.
+STALE_TOP_LEVEL=""
+
+sep() { echo "=== dbus-emporia-vue update: $*"; }
+
+# Fail before stopping the existing service if the firmware lacks dependencies.
+# Provision packages separately; never modify the system Python during an update.
+PYTHONDONTWRITEBYTECODE=1 python3 - <<'PYTHON'
+import sys
+if sys.version_info < (3, 11):
+    raise SystemExit("Python 3.11 or newer is required")
+import dbus_fast, websockets
+PYTHON
+
+# Stage the release before stopping anything. SetupHelper runs this script from
+# the installed package tree, which must not be deleted while it is our source.
+# /tmp is volatile on Venus OS and avoids writing an extra release to flash.
+STAGING_DIR=$(mktemp -d /tmp/dbus-emporia-vue-update.XXXXXX)
+trap 'rm -rf "$STAGING_DIR"' EXIT
+trap 'exit 1' HUP INT TERM
+mkdir -p "$STAGING_DIR/source" "$STAGING_DIR/backup"
+for item in $RUNTIME_ITEMS $LOCAL_ONLY service services; do
+    [ ! -e "$SRC_DIR/$item" ] || cp -a "$SRC_DIR/$item" "$STAGING_DIR/source/$item"
+done
+# Supervise state belongs to the old process, not the release payload.
+find "$STAGING_DIR/source" -type d -name supervise -prune -exec rm -rf {} \;
+SRC_DIR="$STAGING_DIR/source"
+cd "$STAGING_DIR"
+
+# 1. Stop the services BEFORE touching files so a half-written tree is never
+#    executed and the multilog log dir is not disturbed under a running logger.
+for svc in /service/dbus-emporia-vue/log /service/dbus-emporia-vue; do
+    [ -e "$svc" ] && svc -dk "$svc" 2>/dev/null || true
+done
+sleep 1
+
+# 1c. Reap stale daemontools supervise processes left behind by earlier
+#     updates. Every time a service dir under $INSTALL_DIR/service is replaced
+#     the inode changes, so svscan spawns a NEW supervise and the old one is
+#     never killed - they linger forever with "(deleted)" cwd. Several
+#     supervisors on one service corrupt runit state (broken log pipes that
+#     crash print() with EPIPE, and down services that svc -u cannot bring up).
+#     The same inode churn also orphans the run processes themselves
+#     (cwd == $INSTALL_DIR): when a supervise dies, svc -dk can no longer
+#     reach its child, so it keeps running the old code and hammering D-Bus
+#     next to the new instance. Drop the /service symlinks first so svscan
+#     does not respawn supervisors while we replace the dirs below, then kill
+#     matching service workers and daemontools supervisors. Fresh
+#     supervisors are spawned in step 6.
+#     rm -rf (not rm -f): a pre-existing legacy install may have left a real
+#     directory here; ln -sf onto a directory would nest the link inside it.
+rm -rf /service/dbus-emporia-vue
+sleep 2
+for pid in /proc/[0-9]*; do
+    cwd=$(readlink "$pid/cwd" 2>/dev/null) || continue
+    case "$cwd" in
+        "$INSTALL_DIR/service/"*)
+            # Limit cleanup to daemontools, never an installer or login shell.
+            comm=$(cat "$pid/comm" 2>/dev/null) || continue
+            case "$comm" in
+                supervise|multilog) kill -9 "${pid##*/}" 2>/dev/null || true ;;
+            esac
+            ;;
+        "$INSTALL_DIR")
+            command_line=$(tr '\000' ' ' < "$pid/cmdline" 2>/dev/null) || continue
+            case "$command_line" in
+                *"python"*" main.py"|*"python"*" main.py "*)
+                    kill -9 "${pid##*/}" 2>/dev/null || true ;;
+            esac
+            ;;
+        *)
+            # Ignore processes outside our install tree
+            ;;
+    esac
+done
+sleep 1
+
+# 1d. Remove the legacy single-script install. Venus OS boot machinery links
+#     everything under /opt/victronenergy into /service at startup, so a left-
+#     over copy there resurrects a REAL /service/dbus-emporia-vue directory after
+#     every reboot - and the later `ln -sf` in step 6/rc.local then silently
+#     fails onto that directory, running stale code forever (seen 2026-08-25).
+LEGACY_OPT="/opt/victronenergy/dbus-emporia-vue"
+if [ -e "$LEGACY_OPT" ]; then
+    rm -rf "$LEGACY_OPT"
+    sep "removed legacy $LEGACY_OPT"
+fi
+
+mkdir -p "$INSTALL_DIR"
+sep "installing from $SRC_DIR into $INSTALL_DIR"
+
+# 2. Back up device-local files so the wholesale copy below can restore them.
+TMP_BACKUP="$STAGING_DIR/backup"
+mkdir -p "$TMP_BACKUP"
+for f in $LOCAL_ONLY; do
+    [ -f "$INSTALL_DIR/$f" ] && cp -p "$INSTALL_DIR/$f" "$TMP_BACKUP/"
+done
+
+# 3. Install runtime items (replace wholesale to also drop stale files).
+for item in $RUNTIME_ITEMS; do
+    [ -n "$item" ] || continue
+    if [ -e "$SRC_DIR/$item" ]; then
+        rm -rf "${INSTALL_DIR:?}/$item"
+        cp -a "$SRC_DIR/$item" "$INSTALL_DIR/$item"
+    fi
+done
+
+# 4. Install daemontools services: every dir under service/ and services/
+#    maps to INSTALL_DIR/service/. New services are picked up automatically.
+#    A manual `svc -d` on the device leaves a `down` file behind, which would
+#    keep the service "normally down" across reboots even after `svc -u` -
+#    a deploy means "run the new version", so drop them.
+mkdir -p "$INSTALL_DIR/service"
+for svc in "$SRC_DIR/service"/* "$SRC_DIR/services"/*; do
+    [ -d "$svc" ] || continue
+    name="$(basename "$svc")"
+    rm -rf "$INSTALL_DIR/service/$name"
+    cp -a "$svc" "$INSTALL_DIR/service/$name"
+    find "$INSTALL_DIR/service/$name" -type f -name run -exec chmod +x {} \; 2>/dev/null || true
+    find "$INSTALL_DIR/service/$name" -name down -exec rm -f {} \; 2>/dev/null || true
+done
+
+# 5. Restore device-local files and drop stale flat-file leftovers.
+for f in $LOCAL_ONLY; do
+    [ -f "$TMP_BACKUP/$f" ] && cp -p "$TMP_BACKUP/$f" "$INSTALL_DIR/$f"
+done
+rm -rf "$TMP_BACKUP"
+for f in $STALE_TOP_LEVEL; do
+    rm -f "$INSTALL_DIR/$f"
+done
+
+# 5b. Optional: push the developer's config.json instead of keeping the
+#     device copy (used by deploy.sh, where the dev machine is authoritative).
+if [ "${PUSH_LOCAL_CONFIG:-0}" = "1" ] && [ -f "$SRC_DIR/config.json" ]; then
+    SETUP_OPTIONS_DIR="/data/setupOptions/dbus-emporia-vue"
+    mkdir -p "$SETUP_OPTIONS_DIR"
+    cp -p "$SRC_DIR/config.json" "$INSTALL_DIR/config.json"
+    cp -p "$SRC_DIR/config.json" "$SETUP_OPTIONS_DIR/config.json"
+    sep "pushed config.json (PUSH_LOCAL_CONFIG=1)"
+fi
+
+# 6. Refresh /service symlinks.
+ln -sf "$INSTALL_DIR/service/dbus-emporia-vue" /service/
+
+# 6a. Ensure boot persistence: /service is tmpfs, so rc.local recreates the
+#     symlink on every boot. The block is rewritten on every update so fixes
+#     reach devices that already carry an older block (marker-delimited).
+#     `rm -rf` before `ln -sf`: if anything recreated a real directory at
+#     /service/dbus-emporia-vue, ln -sf would fail silently onto it and stale code
+#     would keep running.
+RC_LOCAL="/data/rc.local"
+if [ ! -f "$RC_LOCAL" ]; then
+    printf '#!/bin/sh\n' > "$RC_LOCAL"
+    chmod +x "$RC_LOCAL"
+fi
+sed -i '/# === dbus-emporia-vue service persistence ===/,/# === end dbus-emporia-vue ===/d' "$RC_LOCAL" 2>/dev/null || true
+RC_BLOCK="$STAGING_DIR/rc.block"
+cat > "$RC_BLOCK" << 'RCEOF'
+
+# === dbus-emporia-vue service persistence ===
+# Recreate /service symlink on boot (lost since /service is tmpfs).
+rm -rf /service/dbus-emporia-vue
+ln -sf /data/dbus-emporia-vue/service/dbus-emporia-vue /service/dbus-emporia-vue
+sleep 2
+svc -u /service/dbus-emporia-vue/log 2>/dev/null || true
+svc -u /service/dbus-emporia-vue 2>/dev/null || true
+# === end dbus-emporia-vue ===
+RCEOF
+# An existing rc.local may end in "exit 0"; boot hooks appended after it never run.
+awk -v block="$RC_BLOCK" '
+    !inserted && /^exit[ \t]+0[ \t]*$/ {
+        while ((getline line < block) > 0) print line
+        close(block)
+        inserted = 1
+    }
+    { print }
+    END { if (!inserted) while ((getline line < block) > 0) print line }
+' "$RC_LOCAL" > "$STAGING_DIR/rc.local"
+cat "$STAGING_DIR/rc.local" > "$RC_LOCAL"
+chmod +x "$RC_LOCAL"
+sep "refreshed rc.local boot persistence block"
+
+# 6b. Give svscan a moment to spawn fresh supervisors for the new symlinks
+#     before we try to bring the services up, so svc -u lands on a live one.
+sleep 3
+
+# 7. Let PackageManager rediscover the package (version changed).
+svc -t /service/PackageManager 2>/dev/null || true
+
+# 8. Bring everything back up (svc -d only marks down; svc -u starts).
+for svc in /service/dbus-emporia-vue/log /service/dbus-emporia-vue; do
+    [ -e "$svc" ] && svc -u "$svc" 2>/dev/null || true
+done
+
+sep "installed version $(cat "$INSTALL_DIR/version" 2>/dev/null || echo unknown)"
