@@ -95,9 +95,9 @@ class AcLoadService:
         self._service.add_item(IntegerItem(PATH_CONNECTED, 0))
         self._service.add_item(IntegerItem(PATH_STATUS, 1))
         self._service.add_item(IntegerItem("/IsGenericEnergyMeter", 1))
-        self._service.add_item(DoubleItem("/Ac/Power", 0.0))
-        self._service.add_item(DoubleItem("/Ac/L1/Power", 0.0))
-        self._service.add_item(DoubleItem("/Ac/Energy/Forward", 0.0))
+        self._service.add_item(DoubleItem("/Ac/Power", None))
+        self._service.add_item(DoubleItem("/Ac/L1/Power", None))
+        self._service.add_item(DoubleItem("/Ac/Energy/Forward", None))
 
     @property
     def name(self):
@@ -116,8 +116,8 @@ class AcLoadService:
         with self._service as s:
             s["/Ac/Power"] = power
             s["/Ac/L1/Power"] = power
-            s[PATH_CONNECTED] = 1
-            s[PATH_STATUS] = 0
+            s[PATH_CONNECTED] = 1 if power is not None else 0
+            s[PATH_STATUS] = 0 if power is not None else 1
 
     def set_connected(self, connected):
         with self._service as s:
@@ -151,7 +151,6 @@ class HaWebSocketClient:
         logger.info("Authenticated with Home Assistant")
         await self.subscribe_triggers()
         await self.fetch_initial_states()
-        self.set_connected(True)
         logger.info("Connected, subscribed to %d entities", len(self.channel_map))
 
     async def subscribe_triggers(self):
@@ -182,6 +181,8 @@ class HaWebSocketClient:
         response = None
         for _ in range(50):
             message = json.loads(await self.websocket.recv())
+            if message.get("type") == "event":
+                await self.handle_message(json.dumps(message))
             if message.get("id") == request_id and ("result" in message or "error" in message):
                 response = message
                 break
@@ -191,7 +192,7 @@ class HaWebSocketClient:
         count = 0
         for entity in response.get("result", []):
             entity_id, power = parse_initial_state(entity)
-            if entity_id not in self.channel_map or power is None:
+            if entity_id not in self.channel_map:
                 continue
             self.channel_map[entity_id].update_power(power)
             count += 1
@@ -213,13 +214,13 @@ class HaWebSocketClient:
     async def handle_message(self, message):
         try:
             entity_id, power = parse_ha_state_change(message)
-            if entity_id is None or power is None:
+            if entity_id is None:
                 return
             service = self.channel_map.get(entity_id)
             if service is None:
                 return
             service.update_power(power)
-            logger.debug("Updated %s to %.1f W", entity_id, power)
+            logger.debug("Updated %s to %s W", entity_id, power)
         except json.JSONDecodeError:
             logger.exception("Invalid JSON received: %s", message[:200])
         except Exception:  # keep the listener alive
@@ -234,6 +235,34 @@ class HaWebSocketClient:
 def load_config(path):
     with open(path) as f:
         return json.load(f)
+
+
+async def run_websocket_client(ws_client):
+    """Reconnect after network failures without restarting the D-Bus services."""
+    delay = 1  # Start with 1 second
+    max_delay = 60  # Maximum delay of 60 seconds
+    while True:
+        try:
+            # Bound authentication/subscription too, not just the TCP open.
+            await asyncio.wait_for(ws_client.connect(), timeout=30)
+            await ws_client.listen()
+            # If we get here, the connection was successful and we reset the delay
+            delay = 1
+        except (
+            OSError,
+            TimeoutError,
+            RuntimeError,
+            json.JSONDecodeError,
+            websockets.exceptions.WebSocketException,
+        ) as exc:
+            logger.warning("Home Assistant unavailable: %s; retrying in %s s", exc, delay)
+        finally:
+            ws_client.set_connected(False)
+            await ws_client.disconnect()
+        # Wait for the delay period before retrying, with jitter to avoid thundering herd
+        jitter = delay * 0.1 * random.random()  # 10% jitter
+        await asyncio.sleep(delay + jitter)
+        delay = min(delay * 2, max_delay)  # Exponential backoff
 
 
 async def main():
@@ -298,25 +327,6 @@ async def main():
 
     ws_client = HaWebSocketClient(ha_url, ha_token, services)
 
-    async def websocket_task():
-        delay = 1  # Start with 1 second
-        max_delay = 60  # Maximum delay of 60 seconds
-        while True:
-            try:
-                await ws_client.connect()
-                await ws_client.listen()
-                # If we get here, the connection was successful and we reset the delay
-                delay = 1
-            except (RuntimeError, websockets.exceptions.WebSocketException):
-                logger.exception("WebSocket error")
-            finally:
-                ws_client.set_connected(False)
-                await ws_client.disconnect()
-            # Wait for the delay period before retrying, with jitter to avoid thundering herd
-            jitter = delay * 0.1 * random.random()  # 10% jitter
-            await asyncio.sleep(delay + jitter)
-            delay = min(delay * 2, max_delay)  # Exponential backoff
-
     async def heartbeat_task():
         heartbeat_file = "/tmp/dbus-emporia-vue.heartbeat"
 
@@ -347,7 +357,7 @@ async def main():
         except NotImplementedError:
             pass
 
-    await asyncio.gather(websocket_task(), heartbeat_task())
+    await asyncio.gather(run_websocket_client(ws_client), heartbeat_task())
 
 
 if __name__ == "__main__":

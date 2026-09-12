@@ -17,20 +17,20 @@ class TestParsePower:
     def test_negative_value(self):
         assert parse_power("-50.3") == -50.3
 
-    def test_unavailable_returns_zero(self):
-        assert parse_power("unavailable") == 0.0
+    def test_unavailable_returns_none(self):
+        assert parse_power("unavailable") is None
 
-    def test_unknown_returns_zero(self):
-        assert parse_power("unknown") == 0.0
+    def test_unknown_returns_none(self):
+        assert parse_power("unknown") is None
 
-    def test_empty_string_returns_zero(self):
-        assert parse_power("") == 0.0
+    def test_empty_string_returns_none(self):
+        assert parse_power("") is None
 
-    def test_none_returns_zero(self):
-        assert parse_power(None) == 0.0
+    def test_none_returns_none(self):
+        assert parse_power(None) is None
 
-    def test_junk_string_returns_zero(self):
-        assert parse_power("not_a_number") == 0.0
+    def test_junk_string_returns_none(self):
+        assert parse_power("not_a_number") is None
 
 
 # ---------------------------------------------------------------------------
@@ -89,15 +89,15 @@ class TestParseHaStateChange:
         assert entity_id == "sensor.emporia_channel_1_power"
         assert power == 847.2
 
-    def test_unavailable_state_returns_zero_power(self):
+    def test_unavailable_state_returns_none_power(self):
         entity_id, power = parse_ha_state_change(HA_EVENT_DISCONNECT)
         assert entity_id == "sensor.emporia_channel_2_power"
-        assert power == 0.0
+        assert power is None
 
-    def test_null_to_state_returns_zero_power(self):
+    def test_null_to_state_returns_none_power(self):
         entity_id, power = parse_ha_state_change(HA_EVENT_UNKNOWN_STATE)
         assert entity_id == "sensor.emporia_channel_3_power"
-        assert power == 0.0
+        assert power is None
 
     def test_non_event_message_returns_none(self):
         entity_id, power = parse_ha_state_change(HA_NON_EVENT_MESSAGE)
@@ -146,12 +146,17 @@ class TestParseInitialState:
         assert entity_id == "sensor.emporia_channel_1_power"
         assert power == 312.0
 
-    def test_unavailable_returns_zero(self):
+    def test_unavailable_returns_none(self):
         entity_id, power = parse_initial_state(HA_STATE_ENTITY_UNAVAILABLE)
         assert entity_id == "sensor.emporia_channel_2_power"
-        assert power == 0.0
+        assert power is None
 
     def test_missing_entity_id_returns_none(self):
         entity_id, power = parse_initial_state(HA_STATE_ENTITY_MISSING)
         assert entity_id is None
         assert power == 500.0
+
+
+def test_nonfinite_power_is_unavailable():
+    for value in ("nan", "inf", "-inf"):
+        assert parse_power(value) is None
