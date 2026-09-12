@@ -170,11 +170,17 @@ still running after twenty-five seconds. Unexpected service links, real `/servic
 directories or legacy firmware copies require a separate migration before
 updating; the updater leaves them untouched.
 
+SIGTERM and SIGINT cancel and join the WebSocket and heartbeat workers before
+releasing channel services. WebSocket close and D-Bus release are bounded;
+each channel's private bus is disconnected even if name release fails. Normal
+shutdown does not raise `SystemExit` in a background task.
+
 Service definitions persist under `/data/dbus-emporia-vue/service/dbus-emporia-vue`.
 `/service/dbus-emporia-vue` is a symlink recreated by `/data/rc.local`, including
-when that script already ends with `exit 0`. The logger recreates its volatile
-`/var/log/dbus-emporia-vue` directory and rotates four 25 KB files. Heartbeats
-also live on volatile storage. Runtime data does not require writes to the
+when that script already ends with `exit 0`. The logger recreates its
+`/var/log/dbus-emporia-vue` directory and rotates four 25 KB files. On the audited
+Venus image `/var/log` resolves to persistent `/data/log`, so rotation bounds flash
+usage. Heartbeats live on volatile storage. Runtime data does not require writes to the
 read-only firmware filesystem. Firmware updates can replace system Python
 packages; check dependencies after each update before assuming the service is
 healthy. The installer does not run `pip` or upgrade system packages.

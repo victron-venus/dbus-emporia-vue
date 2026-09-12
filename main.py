@@ -16,6 +16,7 @@ import sys
 from datetime import datetime
 
 import websockets
+from websockets.exceptions import ConnectionClosed, WebSocketException
 
 try:
     from dbus_fast import BusType
@@ -142,10 +143,11 @@ class AcLoadService:
         await self._service.register()
 
     async def close(self):
-        await self._service.close()
-        # Each service owns its D-Bus connection (one com.victronenergy.*
-        # name per connection, every service exports BusItem at "/").
-        self._bus.disconnect()
+        try:
+            await self._service.close()
+        finally:
+            # Each service owns its connection, including failed name release.
+            self._bus.disconnect()
 
     def update_power(self, power):
         with self._service as s:
@@ -253,7 +255,7 @@ class HaWebSocketClient:
         try:
             async for message in self.websocket:
                 await self.handle_message(message)
-        except websockets.exceptions.ConnectionClosed:
+        except ConnectionClosed:
             logger.warning("Home Assistant WebSocket connection closed")
         finally:
             self.set_connected(False)
@@ -274,9 +276,9 @@ class HaWebSocketClient:
             logger.exception("Error processing message")
 
     async def disconnect(self):
-        if self.websocket:
-            await self.websocket.close()
-            self.websocket = None
+        websocket, self.websocket = self.websocket, None
+        if websocket:
+            await asyncio.wait_for(websocket.close(), timeout=5)
 
 
 def load_config(path):
@@ -300,12 +302,15 @@ async def run_websocket_client(ws_client):
             TimeoutError,
             RuntimeError,
             json.JSONDecodeError,
-            websockets.exceptions.WebSocketException,
+            WebSocketException,
         ) as exc:
             logger.warning("Home Assistant unavailable: %s; retrying in %s s", exc, delay)
         finally:
             ws_client.set_connected(False)
-            await ws_client.disconnect()
+            try:
+                await ws_client.disconnect()
+            except (OSError, TimeoutError, WebSocketException):
+                logger.exception("Failed to close Home Assistant connection")
         # Wait for the delay period before retrying, with jitter to avoid thundering herd
         jitter = delay * 0.1 * (secrets.randbelow(1_000_000) / 1_000_000)  # 10% jitter
         await asyncio.sleep(delay + jitter)
@@ -382,23 +387,65 @@ async def main():
                 logger.exception("Failed to write heartbeat file")
             await asyncio.sleep(5)  # Update every 5 seconds
 
-    async def shutdown():
-        logger.info("Shutting down...")
-        await ws_client.disconnect()
-        for service in services.values():
-            await service.close()
-        # Disconnect the shared bus
-        bus.disconnect()
-        sys.exit(0)
-
     loop = asyncio.get_running_loop()
+    main_task = asyncio.current_task()
+    stopping = False
+
+    def request_shutdown():
+        nonlocal stopping
+        if not stopping:
+            stopping = True
+            logger.info("Shutting down...")
+            if main_task is not None:
+                main_task.cancel()
+
+    installed_signals = []
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
-            loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown()))
+            loop.add_signal_handler(sig, request_shutdown)
+            installed_signals.append(sig)
         except NotImplementedError:
             pass
 
-    await asyncio.gather(run_websocket_client(ws_client), heartbeat_task())
+    tasks = [
+        asyncio.create_task(run_websocket_client(ws_client)),
+        asyncio.create_task(heartbeat_task()),
+    ]
+    try:
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        if not stopping:
+            raise
+    finally:
+        # Stop and retrieve workers before releasing their D-Bus resources.
+        for task in tasks:
+            task.cancel()
+        try:
+            await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5)
+        except TimeoutError:
+            logger.exception("Timed out stopping background tasks")
+        finally:
+            try:
+                await asyncio.wait_for(ws_client.disconnect(), timeout=5)
+            except Exception:  # cleanup must continue even after an unexpected close failure
+                logger.exception("Failed to close Home Assistant connection")
+            finally:
+                try:
+                    results = await asyncio.wait_for(
+                        asyncio.gather(
+                            *(service.close() for service in services.values()),
+                            return_exceptions=True,
+                        ),
+                        timeout=5,
+                    )
+                    for result in results:
+                        if isinstance(result, Exception):
+                            logger.error("Failed to release D-Bus service: %s", result)
+                except TimeoutError:
+                    logger.exception("Timed out releasing D-Bus services")
+                finally:
+                    for sig in installed_signals:
+                        loop.remove_signal_handler(sig)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Handle SIGTERM and SIGINT by cancelling and joining the main workers instead of raising SystemExit in an unobserved task.
+- Bound WebSocket close, release every channel's private D-Bus connection, and remove signal handlers even when cleanup fails.
+- Test real process signals with stubbed network and D-Bus I/O, including cleanup failure paths.
+
 ## 1.0.3
 
 - Prevent an older initial HA snapshot from overwriting an interleaved state-trigger update.
