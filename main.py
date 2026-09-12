@@ -309,7 +309,7 @@ async def run_websocket_client(ws_client):
             ws_client.set_connected(False)
             try:
                 await ws_client.disconnect()
-            except (OSError, TimeoutError, WebSocketException):
+            except (OSError, TimeoutError, RuntimeError, WebSocketException):
                 logger.exception("Failed to close Home Assistant connection")
         # Wait for the delay period before retrying, with jitter to avoid thundering herd
         jitter = delay * 0.1 * (secrets.randbelow(1_000_000) / 1_000_000)  # 10% jitter
