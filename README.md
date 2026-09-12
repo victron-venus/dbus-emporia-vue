@@ -28,7 +28,7 @@ A Python service for Victron Venus OS (Cerbo GX) that reads power measurements f
    * Alternatively, you can generate a config automatically with the provided `ha_config_gen.py` script (see below).
 2. Install the required Python packages:
    ```bash
-   pip install -r requirements.txt
+   pip install --require-hashes -r requirements.lock
    ```
 3. Make sure the `dbus-fast` and `websockets` packages are available in your Python environment.
 4. Run the service:
@@ -163,3 +163,4 @@ ssh root@cerbo "dbus -y com.victronenergy.system /Ac/HasAcLoads GetValue"
 ## License
 
 MIT
+The heartbeat remains at `/tmp/dbus-emporia-vue.heartbeat` on Venus OS and is replaced atomically, so readers never see a partial timestamp and existing symlinks cannot redirect writes. The timestamp is readable only by the service account.

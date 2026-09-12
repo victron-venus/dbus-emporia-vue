@@ -65,10 +65,10 @@ if [[ -f "$SCRIPT_DIR/version" ]]; then
     scp -q "$SCRIPT_DIR/version" "$SSH_HOST:$INSTALL_DIR/"
 fi
 
-# Copy requirements.txt (optional, for reference)
+# Copy runtime dependency inputs and the installable lock.
 if [[ -f "$SCRIPT_DIR/requirements.txt" ]]; then
     echo ">>> Copying requirements.txt..."
-    scp -q "$SCRIPT_DIR/requirements.txt" "$SSH_HOST:$INSTALL_DIR/"
+    scp -q "$SCRIPT_DIR/requirements.txt" "$SCRIPT_DIR/requirements.lock" "$SSH_HOST:$INSTALL_DIR/"
 fi
 
 # Copy gitHubInfo for PackageManager (create if missing)
