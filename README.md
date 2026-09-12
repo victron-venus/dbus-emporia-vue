@@ -48,7 +48,9 @@ The service can be installed as a PackageManager package using the provided Setu
    ```
 3. The package will be registered with PackageManager and can be managed via:
    - GUI v1: Settings → PackageManager
-   - CLI: `/data/dbus-emporia-vue/setup install` (to reinstall) or `/data/dbus-emporia-vue/setup uninstall` to remove.
+   - CLI: run `./setup install` or `./setup uninstall` from the retained source package directory.
+
+The installer copies the bundled `aiovelib` package and version metadata alongside the service. Keep the extracted source package for subsequent SetupHelper actions. Python dependencies must be installed with `pip install --require-hashes -r requirements.lock` before starting the service.
 
 ### First‑time Setup Wizard
 
