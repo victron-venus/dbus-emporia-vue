@@ -74,7 +74,7 @@ Edit `config.json` with the following structure:
 - `channels`: Array of channel configurations:
   - `ha_entity_id`: Entity ID of the power sensor in Home Assistant (should report power in Watts)
   - `service_name`: DBus service name (must be unique, use the pattern `com.victronenergy.acload.emporia_chX`)
-  - `instance`: DeviceInstance number (integer). **Choose numbers that do not conflict with existing devices on the VeBus.**  
+  - `instance`: DeviceInstance number (integer). **Choose numbers that do not conflict with existing devices on the VeBus.**
     On a typical Venus OS system, numbers 41‑56 are partially occupied (e.g., 45 and 52 are used). A free block is 71‑86, so you may start at 71 and increment for each channel.
   - `custom_name`: Display name for the load (e.g., "Heat Pump", "Dryer")
   - `position`: AC position of the load:
@@ -161,6 +161,14 @@ A release is staged under volatile `/tmp` before stopping the service, so
 reinstalling from the installed tree does not delete the update source.
 The updater preserves `config.json`; `deploy.sh` deliberately replaces it
 when the workstation has a local copy (`PUSH_LOCAL_CONFIG=1`).
+Existing service and log directory inodes, ownership, supervisor state and the
+canonical `/service` symlink are preserved. Only the application is stopped;
+run scripts are replaced atomically and a healthy logger keeps running.
+Ordinary updates do not restart PackageManager. A stuck application receives
+one supervisor-scoped kill after twenty seconds; installation aborts if it is
+still running after twenty-five seconds. Unexpected service links, real `/service`
+directories or legacy firmware copies require a separate migration before
+updating; the updater leaves them untouched.
 
 Service definitions persist under `/data/dbus-emporia-vue/service/dbus-emporia-vue`.
 `/service/dbus-emporia-vue` is a symlink recreated by `/data/rc.local`, including
@@ -186,12 +194,17 @@ readlink /service/dbus-emporia-vue
 tail -n 40 /var/log/dbus-emporia-vue/current
 ```
 
+`update.sh` confirms termination before copying but does not wait for a fresh
+process or heartbeat after requesting startup. The deployment caller must
+verify startup and D-Bus availability.
+
 `deploy.sh` fails if a fresh heartbeat does not appear within 60 seconds or the
 service never reaches `up`. A heartbeat proves the loop is running, not that
 Home Assistant is reachable: also inspect `/Connected` and the log. Restore a
 previous release with its `update.sh`, keeping the device-local configuration.
-The isolated installer regression test covers two consecutive in-place updates,
-configuration preservation, service symlinks, and a boot script ending in `exit 0`.
+Installer regressions cover repeated updates with live directory handles,
+supervisor-state and ownership preservation, atomic run-script replacement,
+configuration, safe rejection before stopping, and boot hooks before `exit 0`.
 
 
 ### Home Assistant outage behavior
