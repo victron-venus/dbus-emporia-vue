@@ -72,7 +72,8 @@ PATH_CONNECTED = "/Connected"
 PATH_STATUS = "/Status"
 
 DEFAULT_CONFIG = {
-    "ha_url": "ws://192.168.1.50:8123/api/websocket",  # NOSONAR: User-overridable LAN endpoint.
+    # User-overridable Home Assistant LAN example, including its placeholder IP.
+    "ha_url": "ws://192.168.1.50:8123/api/websocket",  # NOSONAR(S5332, S1313)
     "ha_token": "",
     "channels": [],
     "log_level": "INFO",
