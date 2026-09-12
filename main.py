@@ -23,8 +23,10 @@ except ImportError:
     BusType = None  # type: ignore[assignment, misc]
     MessageBus = None  # type: ignore[assignment, misc]
 
-import random
+import secrets
+import tempfile
 import time
+from pathlib import Path
 
 from parse_ha import parse_ha_state_change, parse_initial_state
 
@@ -42,13 +44,36 @@ for _p in (
 
 from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem  # noqa: E402
 
+
+def write_heartbeat(path: Path | None = None) -> None:
+    """Atomically replace the heartbeat without following an existing symlink."""
+    destination = path or Path(tempfile.gettempdir()) / "dbus-emporia-vue.heartbeat"
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=destination.parent,
+            prefix=".dbus-emporia-vue-heartbeat-",
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+            temporary.write(str(int(time.time())))
+            temporary.flush()
+        os.replace(temporary_path, destination)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 PRODUCT_ID = 0xFFFF
 
 PATH_CONNECTED = "/Connected"
 PATH_STATUS = "/Status"
 
 DEFAULT_CONFIG = {
-    "ha_url": "ws://192.168.1.50:8123/api/websocket",
+    # User-overridable Home Assistant LAN example, including its placeholder IP.
+    "ha_url": "ws://192.168.1.50:8123/api/websocket",  # NOSONAR(S5332, S1313)
     "ha_token": "",
     "channels": [],
     "log_level": "INFO",
@@ -260,7 +285,7 @@ async def run_websocket_client(ws_client):
             ws_client.set_connected(False)
             await ws_client.disconnect()
         # Wait for the delay period before retrying, with jitter to avoid thundering herd
-        jitter = delay * 0.1 * random.random()  # 10% jitter
+        jitter = delay * 0.1 * (secrets.randbelow(1_000_000) / 1_000_000)  # 10% jitter
         await asyncio.sleep(delay + jitter)
         delay = min(delay * 2, max_delay)  # Exponential backoff
 
@@ -328,15 +353,9 @@ async def main():
     ws_client = HaWebSocketClient(ha_url, ha_token, services)
 
     async def heartbeat_task():
-        heartbeat_file = "/tmp/dbus-emporia-vue.heartbeat"
-
-        def _write():
-            with open(heartbeat_file, "w") as f:
-                f.write(str(int(time.time())))
-
         while True:
             try:
-                await asyncio.to_thread(_write)
+                await asyncio.to_thread(write_heartbeat)
             except OSError:
                 logger.exception("Failed to write heartbeat file")
             await asyncio.sleep(5)  # Update every 5 seconds

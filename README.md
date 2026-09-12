@@ -160,7 +160,7 @@ Use the canonical `/data/dbus-emporia-vue` directory. Both `setup install`
 A release is staged under volatile `/tmp` before stopping the service, so
 reinstalling from the installed tree does not delete the update source.
 The updater preserves `config.json`; `deploy.sh` deliberately replaces it
-when the workstation has a local copy (`PUSH_LOCAL_`config.json`=1`).
+when the workstation has a local copy (`PUSH_LOCAL_CONFIG=1`).
 
 Service definitions persist under `/data/dbus-emporia-vue/service/dbus-emporia-vue`.
 `/service/dbus-emporia-vue` is a symlink recreated by `/data/rc.local`, including
@@ -203,3 +203,13 @@ unavailable, malformed and non-finite power readings publish invalid values;
 a valid reading of zero remains zero. A connected WebSocket alone does not make
 missing channels connected. Energy is unavailable because this bridge receives
 power measurements, not cumulative energy.
+
+
+Dependency bundles should use the checked-in hash lock:
+`python3 -m pip install --require-hashes -r requirements.lock` in the selected
+persistent environment, not the firmware filesystem. `requirements.lock` is
+included in the deployed runtime for reproducibility.
+
+The heartbeat is replaced atomically, so readers never see a partial timestamp
+and an existing symlink cannot redirect writes. It remains at
+`/tmp/dbus-emporia-vue.heartbeat`, readable by the service account.

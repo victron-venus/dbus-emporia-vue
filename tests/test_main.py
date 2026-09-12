@@ -536,6 +536,7 @@ def test_main_heartbeat_writes_file(caplog, tmp_path, monkeypatch):
 
     monkeypatch.setattr(main_mod.asyncio, "gather", fake_gather)
     monkeypatch.setattr(main_mod.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(main_mod, "write_heartbeat", MagicMock())
     monkeypatch.setattr(main_mod.os, "makedirs", MagicMock())  # no-op
 
     with patch("main.os.path.join", return_value=str(p)):
@@ -627,3 +628,18 @@ def test_network_failure_retries_without_exiting(monkeypatch, failure):
     assert 1 <= waits[0] <= 1.1
     assert 2 <= waits[1] <= 2.2
     client.set_connected.assert_called_with(False)
+
+
+def test_heartbeat_replaces_symlink_without_clobbering_target(tmp_path):
+    """A preexisting heartbeat symlink cannot redirect the timestamp write."""
+    from main import write_heartbeat
+
+    target = tmp_path / "protected.txt"
+    target.write_text("keep this content", encoding="utf-8")
+    heartbeat = tmp_path / "heartbeat"
+    heartbeat.symlink_to(target)
+    write_heartbeat(heartbeat)
+    assert target.read_text(encoding="utf-8") == "keep this content"
+    assert not heartbeat.is_symlink()
+    assert int(heartbeat.read_text(encoding="utf-8")) > 0
+    assert list(tmp_path.glob(".dbus-emporia-vue-heartbeat-*")) == []

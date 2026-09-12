@@ -28,7 +28,7 @@ fi
 LOCAL_ONLY="config.json"
 
 # Runtime items shipped at the repo root and installed at INSTALL_DIR root.
-RUNTIME_ITEMS="update.sh main.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt"
+RUNTIME_ITEMS="update.sh main.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt requirements.lock"
 
 # Reserved for obsolete runtime files from future migrations.
 STALE_TOP_LEVEL=""
