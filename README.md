@@ -163,4 +163,4 @@ ssh root@cerbo "dbus -y com.victronenergy.system /Ac/HasAcLoads GetValue"
 ## License
 
 MIT
-The heartbeat remains at `/tmp/dbus-emporia-vue.heartbeat` on Venus OS and is replaced atomically, so readers never see a partial timestamp and existing symlinks cannot redirect writes.
+The heartbeat remains at `/tmp/dbus-emporia-vue.heartbeat` on Venus OS and is replaced atomically, so readers never see a partial timestamp and existing symlinks cannot redirect writes. The timestamp is readable only by the service account.

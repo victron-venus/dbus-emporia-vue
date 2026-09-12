@@ -60,7 +60,6 @@ def write_heartbeat(path: Path | None = None) -> None:
             temporary_path = Path(temporary.name)
             temporary.write(str(int(time.time())))
             temporary.flush()
-            os.fchmod(temporary.fileno(), 0o644)
         os.replace(temporary_path, destination)
     finally:
         if temporary_path is not None:
@@ -338,7 +337,7 @@ async def main():
                 ws_client.set_connected(False)
                 await ws_client.disconnect()
             # Wait for the delay period before retrying, with jitter to avoid thundering herd
-            jitter = delay * 0.1 * secrets.SystemRandom().random()  # 10% jitter
+            jitter = delay * 0.1 * (secrets.randbelow(1_000_000) / 1_000_000)  # 10% jitter
             await asyncio.sleep(delay + jitter)
             delay = min(delay * 2, max_delay)  # Exponential backoff
 
