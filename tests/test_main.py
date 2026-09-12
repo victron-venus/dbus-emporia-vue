@@ -535,6 +535,7 @@ def test_main_heartbeat_writes_file(caplog, tmp_path, monkeypatch):
 
     monkeypatch.setattr(main_mod.asyncio, "gather", fake_gather)
     monkeypatch.setattr(main_mod.asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(main_mod, "write_heartbeat", lambda: None)
     monkeypatch.setattr(main_mod.os, "makedirs", MagicMock())  # no-op
 
     with patch("main.os.path.join", return_value=str(p)):
@@ -580,3 +581,18 @@ def test_shutdown_cleans_up(monkeypatch, tmp_path):
                 asyncio.run(main())
     # ALS constructed → main() reached the registration phase without crashing.
     ALS.assert_called_once()
+
+
+def test_heartbeat_replaces_symlink_without_clobbering_target(tmp_path):
+    """A preexisting heartbeat symlink cannot redirect the timestamp write."""
+    from main import write_heartbeat
+
+    target = tmp_path / "protected.txt"
+    target.write_text("keep this content", encoding="utf-8")
+    heartbeat = tmp_path / "heartbeat"
+    heartbeat.symlink_to(target)
+    write_heartbeat(heartbeat)
+    assert target.read_text(encoding="utf-8") == "keep this content"
+    assert not heartbeat.is_symlink()
+    assert int(heartbeat.read_text(encoding="utf-8")) > 0
+    assert list(tmp_path.glob(".dbus-emporia-vue-heartbeat-*")) == []
