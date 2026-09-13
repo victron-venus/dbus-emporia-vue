@@ -14,3 +14,8 @@ terraform-github-victron/
 terraform-github-victron
 *.backup
 .coverage
+
+# Local validation and candidate packaging
+.venv-ci/
+release-dist/
+bandit-results.json

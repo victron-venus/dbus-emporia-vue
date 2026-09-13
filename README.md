@@ -2,6 +2,12 @@
 
 A Python service for Victron Venus OS (Cerbo GX) that reads power measurements from Home Assistant via WebSocket API and registers individual AC loads on the Venus OS DBus system.
 
+<!-- ci-release-process:start -->
+## Release process
+
+See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and stable promotion rules, and the [operator runbook](docs/release-workflow.md) for local commands.
+<!-- ci-release-process:end -->
+
 ## Features
 
 - Connects to Home Assistant via WebSocket API with long-lived access token authentication
