@@ -2,6 +2,7 @@
 
 import json
 import math
+from datetime import datetime
 
 
 def parse_power(state: str | None) -> float | None:
@@ -9,7 +10,7 @@ def parse_power(state: str | None) -> float | None:
 
     Returns None for unavailable, malformed or non-finite states.
     """
-    if state in (None, "", "unavailable", "unknown"):
+    if isinstance(state, bool) or state in (None, "", "unavailable", "unknown"):
         return None
     try:
         value = float(state)  # type: ignore[arg-type]
@@ -46,3 +47,22 @@ def parse_initial_state(entity: dict) -> tuple[str | None, float | None]:
     entity_id = entity.get("entity_id")
     state = entity.get("state")
     return entity_id, parse_power(state)
+
+
+def parse_submeter_state(entity: dict) -> tuple[float | None, float | None]:
+    """Read signed watts and the HA source timestamp, never the fetch time."""
+    power = parse_power(entity.get("state"))
+    unit = (entity.get("attributes") or {}).get("unit_of_measurement")
+    if unit == "kW" and power is not None:
+        power *= 1000
+    elif unit != "W":
+        power = None
+    raw_time = entity.get("last_reported") or entity.get("last_updated")
+    if not isinstance(raw_time, str):
+        return power, None
+    try:
+        dt = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
+        timestamp = dt.timestamp() if dt.tzinfo is not None else None
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        timestamp = None
+    return power, timestamp

@@ -1,6 +1,8 @@
 """Hardware-free tests for parse_ha.py — HA WebSocket payload → D-Bus power mapping."""
 
-from parse_ha import parse_ha_state_change, parse_initial_state, parse_power
+import pytest
+
+from parse_ha import parse_ha_state_change, parse_initial_state, parse_power, parse_submeter_state
 
 # ---------------------------------------------------------------------------
 # parse_power
@@ -160,3 +162,43 @@ class TestParseInitialState:
 def test_nonfinite_power_is_unavailable():
     for value in ("nan", "inf", "-inf"):
         assert parse_power(value) is None
+
+
+@pytest.mark.parametrize("value", [True, False, "nan", "inf", "-inf", "unknown"])
+def test_invalid_numeric_states_are_unavailable(value):
+    assert parse_power(value) is None
+
+
+@pytest.mark.parametrize("unit,power", [("W", -1.5), ("kW", -1500.0), ("kWh", None), (None, None)])
+def test_submeter_requires_power_units_and_preserves_export_sign(unit, power):
+    assert parse_submeter_state(
+        {
+            "state": "-1.5",
+            "attributes": {"unit_of_measurement": unit},
+            "last_updated": "1970-01-01T00:16:40Z",
+        }
+    ) == (power, 1000.0)
+
+
+def test_submeter_prefers_last_reported_for_unchanged_values():
+    assert parse_submeter_state(
+        {
+            "state": "0",
+            "attributes": {"unit_of_measurement": "W"},
+            "last_reported": "1970-01-01T00:16:45+00:00",
+            "last_updated": "1970-01-01T00:16:40+00:00",
+        }
+    ) == (0.0, 1005.0)
+
+
+@pytest.mark.parametrize(
+    "timestamp", [None, "bad", "2026-09-14T01:00:00", 1000, "99999999999-01-01"]
+)
+def test_submeter_requires_a_timezone_aware_ha_timestamp(timestamp):
+    assert parse_submeter_state(
+        {
+            "state": "1",
+            "attributes": {"unit_of_measurement": "W"},
+            "last_reported": timestamp,
+        }
+    ) == (1.0, None)

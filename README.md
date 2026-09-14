@@ -16,6 +16,7 @@ See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and s
 - Registers each channel as a `com.victronenergy.acload.*` service on DBus using the standard `com.victronenergy.BusItem` interface (via a vendored copy of `aiovelib`)
 - Assigns unique DeviceInstance numbers (configurable per channel) to avoid conflicts
 - Tracks HA and sensor availability: channels are marked `Connected=0` when their sensor is unavailable or the WebSocket link is down
+- Optionally marks one configured aggregate channel as a signed grid submeter for a separate controller to use as a fallback
 - Provides example configuration and easy installation
 - Can be installed via Venus OS PackageManager (using SetupHelper) – same pattern as `dbus-mqtt-battery`, `dbus-tasmota-pv`, `inverter-control`
 
@@ -71,6 +72,10 @@ Edit `config.json` with the following structure:
       "position": 0
     }
   ],
+  "submeter": {
+    "channel": "sensor.emporia_channel_1_power",
+    "stale_after_seconds": 30
+  },
   "log_level": "INFO"
 }
 ```
@@ -87,6 +92,15 @@ Edit `config.json` with the following structure:
     - `0` = AC output → shown under **Essential Loads** in the GUI
     - `1` = AC input → shown under **AC Loads** in the GUI
 - `log_level`: `INFO` (default), `DEBUG` or `ERROR`
+- `submeter`: optional. Set it to `null` to disable the role, or select exactly
+  one `ha_entity_id` already listed in `channels`. The selected AC-load service
+  publishes the standard Victron AC energy-meter identity (`/Role=acload`,
+  `/AllowedRoles`, `/Position`, `/Serial`, `/NrOfPhases`, and `/RefreshTime`),
+  plus `/LastUpdate` and `/Source/EntityId` for freshness and provenance.
+  `/Ac/Power` remains the signed aggregate value and is mirrored to L1 because
+  the source has no independent per-phase measurements.
+  The service disconnects and clears power after `stale_after_seconds` without
+  a fresh source timestamp.
 
 ### How to verify free DeviceInstance numbers
 
@@ -143,7 +157,9 @@ ssh root@cerbo "dbus -y com.victronenergy.system /Ac/HasAcLoads GetValue"
 
 ## Notes
 
-- This service does NOT register a Grid Meter. It is intended for individual submetering channels from an Emporia Vue device.
+- This service does not register another `com.victronenergy.grid` meter. The
+  optional selected channel remains `com.victronenergy.acload.*`, with the
+  standard `acload` role and position used by Victron energy meters.
 - Make sure the DeviceInstance numbers (instance) do not conflict with existing Victron devices. Use the verification method above to pick a free range.
 - Because the subscription uses HA state *triggers*, idle channels (whose reading does not change) keep their last known value and are still reported as connected to HA.
 
