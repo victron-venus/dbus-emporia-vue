@@ -46,7 +46,13 @@ for _p in (
         sys.path.insert(0, _p)
         break
 
-from aiovelib.service import DoubleItem, IntegerItem, Service, TextItem  # noqa: E402
+from aiovelib.service import (  # noqa: E402
+    DoubleItem,
+    IntegerItem,
+    Service,
+    TextArrayItem,
+    TextItem,
+)
 
 
 def write_heartbeat(path: Path | None = None) -> None:
@@ -130,8 +136,7 @@ class AcLoadService:
         self._service.add_item(TextItem("/Mgmt/Connection", "Home Assistant"))
         self._service.add_item(IntegerItem("/DeviceInstance", instance))
         self._service.add_item(IntegerItem("/ProductId", PRODUCT_ID))
-        product = "Emporia Vue Submeter" if submeter else "Emporia Vue AC Load"
-        self._service.add_item(TextItem("/ProductName", product))
+        self._service.add_item(TextItem("/ProductName", "Emporia Vue AC Load"))
         self._service.add_item(TextItem("/CustomName", custom_name))
         self._service.add_item(TextItem("/FirmwareVersion", VERSION))
         self._service.add_item(IntegerItem("/Position", position))
@@ -142,7 +147,13 @@ class AcLoadService:
         self._service.add_item(DoubleItem("/Ac/L1/Power", None))
         self._service.add_item(DoubleItem("/Ac/Energy/Forward", None))
         if submeter:
-            self._service.add_item(IntegerItem("/IsSubmeter", 1))
+            # Match Victron's AC energy-meter profile. Selection as the
+            # controller's backup remains separate and explicit.
+            self._service.add_item(TextItem("/Role", "acload"))
+            self._service.add_item(TextArrayItem("/AllowedRoles", ["acload"]))
+            self._service.add_item(TextItem("/Serial", f"emporia:{submeter['channel']}"))
+            self._service.add_item(IntegerItem("/NrOfPhases", 1))
+            self._service.add_item(IntegerItem("/RefreshTime", 5000))
             self._service.add_item(DoubleItem("/LastUpdate", None))
             self._service.add_item(TextItem("/Source/EntityId", submeter["channel"]))
 
@@ -197,7 +208,9 @@ class AcLoadService:
         self._fresh_until = time.monotonic() + max_age - max(0, age)
         with self._service as s:
             s["/Ac/Power"] = power
-            s["/Ac/L1/Power"] = None  # Aggregate input has no phase breakdown.
+            # Victron's AC-load meter profile needs a phase power. Home is an
+            # aggregate source, so its signed total is represented on L1 too.
+            s["/Ac/L1/Power"] = power
             s["/LastUpdate"] = timestamp
             s[PATH_CONNECTED] = 1
             s[PATH_STATUS] = 0

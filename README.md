@@ -88,9 +88,11 @@ Edit `config.json` with the following structure:
 - `log_level`: `INFO` (default), `DEBUG` or `ERROR`
 - `submeter`: optional. Set it to `null` to disable the role, or select exactly
   one `ha_entity_id` already listed in `channels`. The selected AC-load service
-  adds `/IsSubmeter=1`, `/LastUpdate`, and `/Source/EntityId`; `/Ac/Power`
-  remains the signed aggregate value. Its phase path is intentionally invalid
-  because an aggregate HA entity has no independent per-phase measurements.
+  publishes the standard Victron AC energy-meter identity (`/Role=acload`,
+  `/AllowedRoles`, `/Position`, `/Serial`, `/NrOfPhases`, and `/RefreshTime`),
+  plus `/LastUpdate` and `/Source/EntityId` for freshness and provenance.
+  `/Ac/Power` remains the signed aggregate value and is mirrored to L1 because
+  the source has no independent per-phase measurements.
   The service disconnects and clears power after `stale_after_seconds` without
   a fresh source timestamp.
 
@@ -150,8 +152,8 @@ ssh root@cerbo "dbus -y com.victronenergy.system /Ac/HasAcLoads GetValue"
 ## Notes
 
 - This service does not register another `com.victronenergy.grid` meter. The
-  optional selected channel remains `com.victronenergy.acload.*` and carries
-  explicit submeter metadata for consumers that opt into it.
+  optional selected channel remains `com.victronenergy.acload.*`, with the
+  standard `acload` role and position used by Victron energy meters.
 - Make sure the DeviceInstance numbers (instance) do not conflict with existing Victron devices. Use the verification method above to pick a free range.
 - Because the subscription uses HA state *triggers*, idle channels (whose reading does not change) keep their last known value and are still reported as connected to HA.
 
