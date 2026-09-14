@@ -1,0 +1,16 @@
+{
+  "name": "dbus-emporia-vue",
+  "include": [
+    "main.py",
+    "parse_ha.py",
+    "ha_config_gen.py",
+    "aiovelib",
+    "setup",
+    "version",
+    "config.json.example",
+    "requirements.txt",
+    "requirements.lock",
+    "README.md",
+    "LICENSE"
+  ]
+}

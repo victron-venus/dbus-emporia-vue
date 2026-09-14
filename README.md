@@ -2,6 +2,12 @@
 
 A Python service for Victron Venus OS (Cerbo GX) that reads power measurements from Home Assistant via WebSocket API and registers individual AC loads on the Venus OS DBus system.
 
+<!-- ci-release-process:start -->
+## Release process
+
+See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and stable promotion rules, and the [operator runbook](docs/release-workflow.md) for local commands.
+<!-- ci-release-process:end -->
+
 ## Features
 
 - Connects to Home Assistant via WebSocket API with long-lived access token authentication
@@ -186,11 +192,17 @@ still running after twenty-five seconds. Unexpected service links, real `/servic
 directories or legacy firmware copies require a separate migration before
 updating; the updater leaves them untouched.
 
+SIGTERM and SIGINT cancel and join the WebSocket and heartbeat workers before
+releasing channel services. WebSocket close and D-Bus release are bounded;
+each channel's private bus is disconnected even if name release fails. Normal
+shutdown does not raise `SystemExit` in a background task.
+
 Service definitions persist under `/data/dbus-emporia-vue/service/dbus-emporia-vue`.
 `/service/dbus-emporia-vue` is a symlink recreated by `/data/rc.local`, including
-when that script already ends with `exit 0`. The logger recreates its volatile
-`/var/log/dbus-emporia-vue` directory and rotates four 25 KB files. Heartbeats
-also live on volatile storage. Runtime data does not require writes to the
+when that script already ends with `exit 0`. The logger recreates its
+`/var/log/dbus-emporia-vue` directory and rotates four 25 KB files. On the audited
+Venus image `/var/log` resolves to persistent `/data/log`, so rotation bounds flash
+usage. Heartbeats live on volatile storage. Runtime data does not require writes to the
 read-only firmware filesystem. Firmware updates can replace system Python
 packages; check dependencies after each update before assuming the service is
 healthy. The installer does not run `pip` or upgrade system packages.
@@ -232,6 +244,20 @@ unavailable, malformed and non-finite power readings publish invalid values;
 a valid reading of zero remains zero. A connected WebSocket alone does not make
 missing channels connected. Energy is unavailable because this bridge receives
 power measurements, not cumulative energy.
+
+Initial loading preserves state-trigger updates received while `get_states`
+is in flight. A snapshot replaces an interleaved event only when both HA state
+objects provide `last_updated` and identify the snapshot as newer; otherwise
+the already received event wins. This comparison is scoped to initial loading,
+so it cannot reject later events after an HA clock adjustment. The existing
+50-message initialization cap and 30-second connection deadline remain intact.
+Regressions cover older/newer snapshots, unavailable power, measured zero,
+missing timestamps and a failed initial query. The state timestamps follow the
+[Home Assistant WebSocket API](https://developers.home-assistant.io/docs/api/websocket/).
+
+A stable channel is not disconnected merely because its value does not change.
+WebSocket availability and HA state timestamps do not independently verify the
+physical Emporia sensor or its upstream integration.
 
 
 Dependency bundles should use the checked-in hash lock:

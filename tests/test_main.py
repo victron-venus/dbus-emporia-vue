@@ -3,7 +3,10 @@
 import asyncio
 import json
 import os
+import signal
+import subprocess
 import sys
+import textwrap
 import types
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -643,3 +646,175 @@ def test_heartbeat_replaces_symlink_without_clobbering_target(tmp_path):
     assert not heartbeat.is_symlink()
     assert int(heartbeat.read_text(encoding="utf-8")) > 0
     assert list(tmp_path.glob(".dbus-emporia-vue-heartbeat-*")) == []
+
+
+@pytest.mark.parametrize(
+    "event_state,event_time,snapshot_time,expected",
+    [
+        ("100", "2026-09-12T10:00:02+00:00", "2026-09-12T10:00:01+00:00", 100.0),
+        ("100", "2026-09-12T10:00:01+00:00", "2026-09-12T10:00:02+00:00", 50.0),
+        ("unavailable", "2026-09-12T10:00:02+00:00", "2026-09-12T10:00:01+00:00", None),
+        ("0", "2026-09-12T10:00:02+00:00", "2026-09-12T10:00:01+00:00", 0.0),
+        ("100", None, None, 100.0),
+    ],
+)
+def test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event(
+    event_state, event_time, snapshot_time, expected
+):
+    """HA timestamps resolve overlap without restoring stale or invalid values."""
+    from main import HaWebSocketClient  # pylint: disable=import-outside-toplevel
+
+    service = MagicMock()
+    client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
+    event = {
+        "type": "event",
+        "event": {
+            "variables": {
+                "trigger": {
+                    "entity_id": "sensor.x",
+                    "to_state": {"state": event_state, "last_updated": event_time},
+                }
+            }
+        },
+    }
+    result = {
+        "id": 1,
+        "type": "result",
+        "success": True,
+        "result": [
+            {"entity_id": "sensor.x", "state": "50", "last_updated": snapshot_time},
+        ],
+    }
+    client.websocket = AsyncMock()
+    client.websocket.recv.side_effect = [json.dumps(event), json.dumps(result)]
+    asyncio.run(client.fetch_initial_states())
+    assert service.update_power.call_args.args[0] == expected
+
+
+def test_interleaved_event_is_retained_when_initial_snapshot_fails():
+    """A failed initial query must not discard an already received zero value."""
+    from main import HaWebSocketClient  # pylint: disable=import-outside-toplevel
+
+    service = MagicMock()
+    client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
+    client.websocket = AsyncMock()
+    client.websocket.recv.side_effect = [
+        json.dumps(
+            {
+                "type": "event",
+                "event": {
+                    "variables": {
+                        "trigger": {
+                            "entity_id": "sensor.x",
+                            "to_state": {"state": "0"},
+                        }
+                    }
+                },
+            }
+        ),
+        json.dumps({"id": 1, "type": "result", "success": False, "error": {"code": "test"}}),
+    ]
+    asyncio.run(client.fetch_initial_states())
+    service.update_power.assert_called_once_with(0.0)
+
+
+@pytest.mark.parametrize("stop_signal", [signal.SIGTERM, signal.SIGINT])
+@pytest.mark.parametrize("disconnect_error", [False, True])
+def test_real_signal_exits_without_unretrieved_tasks(stop_signal, disconnect_error, tmp_path):
+    """Run the actual signal wiring in a child with all network/bus I/O stubbed."""
+    config_path = _write_config(tmp_path)
+    script = textwrap.dedent(
+        """
+        import asyncio, os, signal, sys
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from tests.test_main import _stub_aiovelib
+        _stub_aiovelib.__wrapped__()
+        import main
+        buses = [MagicMock(), MagicMock()]
+        remaining = iter(buses)
+        def make_bus(*args, **kwargs):
+            return SimpleNamespace(connect=AsyncMock(return_value=next(remaining)))
+        async def connect():
+            loop = asyncio.get_running_loop()
+            loop.call_later(0.02, os.kill, os.getpid(), int(sys.argv[2]))
+            await asyncio.Event().wait()
+        close_error = RuntimeError('unexpected close failure') if sys.argv[3] == 'True' else None
+        client = SimpleNamespace(connect=connect, listen=AsyncMock(),
+                                 disconnect=AsyncMock(side_effect=close_error),
+                                 set_connected=MagicMock())
+        async def run():
+            errors = []
+            asyncio.get_running_loop().set_exception_handler(
+                lambda loop, context: errors.append(context))
+            with patch.object(main, 'load_config', return_value=main.load_config(sys.argv[1])), \
+                 patch.object(main, 'MessageBus', side_effect=make_bus), \
+                 patch.object(main, 'HaWebSocketClient', return_value=client), \
+                 patch.object(main, 'write_heartbeat', MagicMock()):
+                await asyncio.wait_for(main.main(), timeout=3)
+            await asyncio.sleep(0)
+            assert not errors, errors
+            assert all(bus.disconnect.call_count == 1 for bus in buses)
+            assert client.disconnect.await_count >= 1
+            assert not [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+            assert not asyncio.get_running_loop()._signal_handlers
+        asyncio.run(run())
+        print('CLEAN_SHUTDOWN')
+        """
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            script,
+            str(config_path),
+            str(int(stop_signal)),
+            str(disconnect_error),
+        ],
+        cwd=os.path.dirname(os.path.dirname(__file__)),
+        capture_output=True,
+        text=True,
+        timeout=8,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "CLEAN_SHUTDOWN" in result.stdout, result.stderr
+    assert "Task exception was never retrieved" not in result.stderr
+    assert "SystemExit" not in result.stderr
+    assert "AttributeError" not in result.stderr
+    if disconnect_error:
+        assert "Failed to close Home Assistant connection" in result.stderr
+    else:
+        assert "Traceback" not in result.stderr
+
+
+def test_failed_service_release_still_disconnects_its_bus():
+    from main import AcLoadService
+
+    bus = MagicMock()
+    service = AcLoadService(bus, "com.victronenergy.acload.test", 71, "Test", 0)
+    service._service.close = AsyncMock(side_effect=RuntimeError("release failed"))
+    with pytest.raises(RuntimeError, match="release failed"):
+        asyncio.run(service.close())
+    bus.disconnect.assert_called_once()
+
+
+def test_timed_out_service_release_disconnects_bus_without_pending_tasks():
+    """The shutdown deadline still disconnects a service blocked on name release."""
+    from main import AcLoadService
+
+    bus = MagicMock()
+    service = AcLoadService(bus, "com.victronenergy.acload.test", 71, "Test", 0)
+
+    async def never_releases():
+        await asyncio.Event().wait()
+
+    service._service.close = never_releases
+
+    async def check():
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(service.close(), timeout=0.01)
+        bus.disconnect.assert_called_once()
+        assert not [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
+
+    asyncio.run(check())
