@@ -58,6 +58,8 @@ def parse_submeter_state(entity: dict) -> tuple[float | None, float | None]:
     elif unit != "W":
         power = None
     raw_time = entity.get("last_reported") or entity.get("last_updated")
+    if not isinstance(raw_time, str):
+        return power, None
     try:
         dt = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
         timestamp = dt.timestamp() if dt.tzinfo is not None else None

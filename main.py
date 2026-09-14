@@ -201,10 +201,13 @@ class AcLoadService:
             return  # A get_states reply must not roll back a newer trigger.
         age = time.time() - timestamp if timestamp is not None else math.inf
         max_age = self.submeter["stale_after_seconds"]
+        if -5 <= age <= max_age:
+            # Unavailable and invalid-unit events also supersede older polls.
+            # Do not let a future-dated payload poison the ordering watermark.
+            self._source_time = timestamp
         if power is None or not math.isfinite(power) or not -5 <= age <= max_age:
             self.invalidate()
             return
-        self._source_time = timestamp
         self._fresh_until = time.monotonic() + max_age - max(0, age)
         with self._service as s:
             s["/Ac/Power"] = power

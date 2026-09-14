@@ -8,6 +8,7 @@ import subprocess
 import sys
 import textwrap
 import types
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -45,7 +46,7 @@ def _stub_aiovelib():
             self.items = {}
 
         def add_item(self, item):
-            self.items[len(self.items)] = item
+            self.items[item.args[0]] = item.args[1]
 
         async def register(self):
             pass
@@ -69,6 +70,7 @@ def _stub_aiovelib():
     svc_mod.DoubleItem = _FakeItem
     svc_mod.IntegerItem = _FakeItem
     svc_mod.TextItem = _FakeItem
+    svc_mod.TextArrayItem = _FakeItem
 
     # Place under the project-local aiovelib/ dir
     proj_aiovelib = os.path.join(os.path.dirname(os.path.dirname(__file__)), "aiovelib")
@@ -227,7 +229,7 @@ class TestHaWebSocketClient:
             }
         )
         asyncio.run(c.handle_message(msg))
-        c.channel_map["sensor.x"].update_power.assert_called_once_with(500.0)
+        c.channel_map["sensor.x"].update_entity.assert_called_once_with({"state": "500.0"})
 
     def test_handle_message_unknown_entity_noop(self):
         svc = MagicMock()
@@ -246,7 +248,7 @@ class TestHaWebSocketClient:
             }
         )
         asyncio.run(c.handle_message(msg))
-        svc.update_power.assert_not_called()
+        svc.update_entity.assert_not_called()
 
     def test_handle_message_invalid_json_logs_error(self):
         c = self._make()
@@ -257,7 +259,7 @@ class TestHaWebSocketClient:
         c = self._make(channel_map={"sensor.x": MagicMock()})
         msg = json.dumps({"type": "result", "result": []})
         asyncio.run(c.handle_message(msg))
-        c.channel_map["sensor.x"].update_power.assert_not_called()
+        c.channel_map["sensor.x"].update_entity.assert_not_called()
 
     def test_set_connected_propagates_to_services(self):
         s1, s2 = MagicMock(), MagicMock()
@@ -330,7 +332,7 @@ class TestHaWebSocketClientConnect:
 
         asyncio.run(c.connect())
 
-        svc.update_power.assert_called_once_with(42.0)
+        svc.update_entity.assert_called_once_with({"entity_id": "sensor.x", "state": "42.0"})
         # Connection alone must not mark missing or unavailable sensors live.
         svc.set_connected.assert_not_called()
 
@@ -662,9 +664,9 @@ def test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event(
     event_state, event_time, snapshot_time, expected
 ):
     """HA timestamps resolve overlap without restoring stale or invalid values."""
-    from main import HaWebSocketClient  # pylint: disable=import-outside-toplevel
+    from main import AcLoadService, HaWebSocketClient  # pylint: disable=import-outside-toplevel
 
-    service = MagicMock()
+    service = AcLoadService(MagicMock(), "com.victronenergy.acload.x", 71, "X", 0)
     client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
     event = {
         "type": "event",
@@ -688,14 +690,14 @@ def test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event(
     client.websocket = AsyncMock()
     client.websocket.recv.side_effect = [json.dumps(event), json.dumps(result)]
     asyncio.run(client.fetch_initial_states())
-    assert service.update_power.call_args.args[0] == expected
+    assert service._service["/Ac/Power"] == expected
 
 
 def test_interleaved_event_is_retained_when_initial_snapshot_fails():
     """A failed initial query must not discard an already received zero value."""
-    from main import HaWebSocketClient  # pylint: disable=import-outside-toplevel
+    from main import AcLoadService, HaWebSocketClient  # pylint: disable=import-outside-toplevel
 
-    service = MagicMock()
+    service = AcLoadService(MagicMock(), "com.victronenergy.acload.x", 71, "X", 0)
     client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
     client.websocket = AsyncMock()
     client.websocket.recv.side_effect = [
@@ -715,7 +717,8 @@ def test_interleaved_event_is_retained_when_initial_snapshot_fails():
         json.dumps({"id": 1, "type": "result", "success": False, "error": {"code": "test"}}),
     ]
     asyncio.run(client.fetch_initial_states())
-    service.update_power.assert_called_once_with(0.0)
+    assert service._service["/Ac/Power"] == 0.0
+    assert service._service["/Connected"] == 1
 
 
 @pytest.mark.parametrize("stop_signal", [signal.SIGTERM, signal.SIGINT])
@@ -818,3 +821,240 @@ def test_timed_out_service_release_disconnects_bus_without_pending_tasks():
         assert not [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
 
     asyncio.run(check())
+
+
+def _submeter_state(power="-125", timestamp=1000, unit="W"):
+    return {
+        "entity_id": "sensor.a",
+        "state": power,
+        "attributes": {"unit_of_measurement": unit},
+        "last_reported": datetime.fromtimestamp(timestamp, UTC).isoformat(),
+    }
+
+
+@pytest.fixture
+def submeter(monkeypatch):
+    from main import AcLoadService
+
+    clock = types.SimpleNamespace(wall=1000.0, monotonic=50.0)
+    monkeypatch.setattr("main.time.time", lambda: clock.wall)
+    monkeypatch.setattr("main.time.monotonic", lambda: clock.monotonic)
+    service = AcLoadService(
+        MagicMock(),
+        "com.victronenergy.acload.a",
+        71,
+        "Main supply",
+        0,
+        {"channel": "sensor.a", "stale_after_seconds": 30.0},
+    )
+    return service, clock
+
+
+@pytest.mark.parametrize("selection", [None, {"channel": "sensor.b"}])
+def test_submeter_selection_is_optional_and_uses_configured_channel(selection):
+    from main import selected_submeter
+
+    config = {"channels": CHANNELS_CFG, "submeter": selection}
+    expected = {"channel": "sensor.b", "stale_after_seconds": 30.0} if selection else None
+    assert selected_submeter(config) == expected
+    assert selected_submeter({"channels": CHANNELS_CFG}) is None
+
+
+@pytest.mark.parametrize(
+    "selection,channels",
+    [
+        (True, CHANNELS_CFG),
+        ({"channel": "sensor.missing"}, CHANNELS_CFG),
+        ({"channel": 71}, CHANNELS_CFG),
+        ({"channel": "sensor.a"}, [CHANNELS_CFG[0], CHANNELS_CFG[0]]),
+        (
+            {"channel": "sensor.a"},
+            [dict(CHANNELS_CFG[0], service_name="com.victronenergy.grid.a")],
+        ),
+        *[
+            ({"channel": "sensor.a", "stale_after_seconds": age}, CHANNELS_CFG)
+            for age in (True, "30", 9, float("inf"), float("nan"))
+        ],
+    ],
+)
+def test_invalid_submeter_selection_rejected(selection, channels):
+    from main import selected_submeter
+
+    with pytest.raises(ValueError):
+        selected_submeter({"channels": channels, "submeter": selection})
+
+
+def test_selected_channel_exposes_standard_acload_profile(submeter):
+    from main import AcLoadService
+
+    service, _ = submeter
+    items = service._service.items
+    assert service.name == "com.victronenergy.acload.a"
+    assert items["/Role"] == "acload"
+    assert items["/AllowedRoles"] == ["acload"]
+    assert items["/Position"] == 0
+    assert items["/IsGenericEnergyMeter"] == 1
+    assert items["/NrOfPhases"] == 1
+    assert items["/Serial"] == "emporia:sensor.a"
+    assert items["/Source/EntityId"] == "sensor.a"
+    assert items["/RefreshTime"] == 5000
+    assert items["/Ac/Power"] is None
+    ordinary = AcLoadService(MagicMock(), "com.victronenergy.acload.b", 72, "B", 0)
+    assert "/Source/EntityId" not in ordinary._service.items
+    assert "/LastUpdate" not in ordinary._service.items
+
+
+@pytest.mark.parametrize(
+    "power,unit,expected", [("-125", "W", -125.0), ("0", "W", 0.0), ("1.2", "kW", 1200.0)]
+)
+def test_submeter_preserves_signed_watts_and_source_time(submeter, power, unit, expected):
+    service, _ = submeter
+    service.update_entity(_submeter_state(power, unit=unit))
+    assert service._service["/Ac/Power"] == expected
+    assert service._service["/Ac/L1/Power"] == expected
+    assert service._service["/LastUpdate"] == 1000.0
+    assert service._service["/Connected"] == 1
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {},
+        _submeter_state("unavailable"),
+        _submeter_state("NaN"),
+        _submeter_state("inf"),
+        _submeter_state("1e308", unit="kW"),
+        _submeter_state(unit="kWh"),
+        _submeter_state(timestamp=969),
+        _submeter_state(timestamp=1006),
+    ],
+)
+def test_submeter_invalid_or_stale_reading_clears_previous_power(submeter, state):
+    service, clock = submeter
+    clock.wall = 960
+    service.update_entity(_submeter_state(timestamp=960))
+    assert service._service["/Connected"] == 1
+    clock.wall = 1000
+    service.update_entity(state)
+    assert service._service["/Ac/Power"] is None
+    assert service._service["/Ac/L1/Power"] is None
+    assert service._service["/LastUpdate"] is None
+    assert service._service["/Connected"] == 0
+
+
+def test_repeated_poll_does_not_make_an_old_source_sample_fresh(submeter):
+    service, clock = submeter
+    service.update_entity(_submeter_state())
+    clock.wall += 29
+    clock.monotonic += 29
+    service.update_entity(_submeter_state())
+    assert service._service["/Connected"] == 1
+    clock.wall += 1
+    clock.monotonic += 1
+    service.expire()
+    assert service._service["/Connected"] == 0
+    assert service._service["/Ac/Power"] is None
+
+
+def test_older_poll_cannot_undo_a_newer_unavailable_event(submeter):
+    service, clock = submeter
+    service.update_entity(_submeter_state(timestamp=995))
+    service.update_entity(_submeter_state("unavailable", timestamp=1000))
+    service.update_entity(_submeter_state(timestamp=998))
+    assert service._service["/Connected"] == 0
+    assert service._service["/Ac/Power"] is None
+    clock.wall += 2
+    service.update_entity(_submeter_state(timestamp=1002))
+    assert service._service["/Connected"] == 1
+
+
+def test_ha_disconnect_immediately_invalidates_selected_submeter(submeter):
+    service, _ = submeter
+    service.update_entity(_submeter_state())
+    service.set_connected(False)
+    assert service._service["/Connected"] == 0
+    assert service._service["/Ac/Power"] is None
+    assert service._service["/LastUpdate"] is None
+
+
+@pytest.mark.parametrize("result", [{"success": False}, {"success": True, "result": []}])
+def test_failed_or_missing_refresh_invalidates_only_selected_channel(submeter, result):
+    from main import AcLoadService, HaWebSocketClient
+
+    service, _ = submeter
+    service.update_entity(_submeter_state())
+    ordinary = AcLoadService(MagicMock(), "com.victronenergy.acload.b", 72, "B", 0)
+    ordinary.update_power(200)
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service, "sensor.b": ordinary})
+    client._submeter_request = 2
+    asyncio.run(client.handle_message(json.dumps(dict(result, id=2, type="result"))))
+    assert service._service["/Connected"] == 0
+    assert ordinary._service["/Connected"] == 1
+    assert ordinary._service["/Ac/Power"] == 200
+    assert client._submeter_request is None
+
+
+def test_refresh_uses_ha_timestamp_even_when_power_is_unchanged(submeter):
+    from main import HaWebSocketClient
+
+    service, clock = submeter
+    service.update_entity(_submeter_state())
+    clock.wall += 5
+    clock.monotonic += 5
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service})
+    client._submeter_request = 2
+    asyncio.run(
+        client.handle_message(
+            json.dumps(
+                {
+                    "id": 2,
+                    "type": "result",
+                    "success": True,
+                    "result": [_submeter_state(timestamp=1005)],
+                }
+            )
+        )
+    )
+    assert service._service["/LastUpdate"] == 1005.0
+    assert service._service["/Ac/Power"] == -125.0
+
+
+@pytest.mark.parametrize("send_failure", [False, True])
+def test_refresh_polls_every_five_seconds_and_invalidates_unanswered_queries(
+    submeter, monkeypatch, send_failure
+):
+    from main import HaWebSocketClient
+
+    service, _ = submeter
+    service.update_entity(_submeter_state())
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service})
+    client.websocket = AsyncMock()
+    if send_failure:
+        client.websocket.send.side_effect = OSError("offline")
+    waits = []
+
+    async def tick(delay):
+        waits.append(delay)
+        if len(waits) == 3:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr("main.asyncio.sleep", tick)
+    if send_failure:
+        asyncio.run(client.refresh_submeter())
+    else:
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(client.refresh_submeter())
+    assert waits == [5] * len(waits)
+    assert json.loads(client.websocket.send.call_args.args[0])["type"] == "get_states"
+    assert service._service["/Connected"] == 0
+
+
+def test_refresh_disabled_without_selected_channel():
+    from main import HaWebSocketClient
+
+    client = HaWebSocketClient(
+        "ws://ha", "token", {"sensor.a": types.SimpleNamespace(submeter=None)}
+    )
+    client.websocket = AsyncMock()
+    asyncio.run(client.refresh_submeter())
+    client.websocket.send.assert_not_called()
