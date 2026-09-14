@@ -81,7 +81,7 @@ PRODUCT_ID = 0xFFFF
 PATH_CONNECTED = "/Connected"
 PATH_STATUS = "/Status"
 
-DEFAULT_CONFIG = {
+DEFAULT_CONFIG: dict[str, object] = {
     # User-overridable Home Assistant LAN example, including its placeholder IP.
     "ha_url": "ws://192.168.1.50:8123/api/websocket",  # NOSONAR(S5332, S1313)
     "ha_token": "",
