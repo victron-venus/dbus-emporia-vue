@@ -8,13 +8,17 @@ standard ``com.victronenergy.BusItem`` interface (aiovelib).
 """
 
 import asyncio
+import contextlib
 import json
 import logging
+import math
 import os
 import signal
 import sys
+from datetime import datetime
 
 import websockets
+from websockets.exceptions import ConnectionClosed, WebSocketException
 
 try:
     from dbus_fast import BusType
@@ -28,7 +32,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from parse_ha import parse_ha_state_change, parse_initial_state
+from parse_ha import parse_ha_state_change, parse_initial_state, parse_submeter_state
 
 _here = os.path.dirname(os.path.abspath(__file__))
 
@@ -77,6 +81,7 @@ DEFAULT_CONFIG = {
     "ha_token": "",
     "channels": [],
     "log_level": "INFO",
+    "submeter": None,
 }
 
 logging.basicConfig(
@@ -89,6 +94,15 @@ for _name in ("websockets", "websockets.client", "websockets.protocol"):
     _mod = logging.getLogger(_name)
     _mod.setLevel(logging.CRITICAL)
     _mod.propagate = False
+
+
+def _state_updated_at(state):
+    """Read HA's timestamp only for ordering startup snapshot/event overlap."""
+    try:
+        value = datetime.fromisoformat(state.get("last_updated"))
+        return value if value.tzinfo is not None else None
+    except (AttributeError, TypeError, ValueError):
+        return None
 
 
 def read_version():
@@ -105,15 +119,19 @@ VERSION = read_version()
 class AcLoadService:
     """A com.victronenergy.acload.* service backed by an aiovelib Service."""
 
-    def __init__(self, bus, service_name, instance, custom_name, position):
+    def __init__(self, bus, service_name, instance, custom_name, position, submeter=None):
         self._bus = bus
+        self.submeter = submeter
+        self._source_time = None
+        self._fresh_until = 0.0
         self._service = Service(bus, service_name)
         self._service.add_item(TextItem("/Mgmt/ProcessName", os.path.basename(__file__)))
         self._service.add_item(TextItem("/Mgmt/ProcessVersion", VERSION))
         self._service.add_item(TextItem("/Mgmt/Connection", "Home Assistant"))
         self._service.add_item(IntegerItem("/DeviceInstance", instance))
         self._service.add_item(IntegerItem("/ProductId", PRODUCT_ID))
-        self._service.add_item(TextItem("/ProductName", "Emporia Vue AC Load"))
+        product = "Emporia Vue Submeter" if submeter else "Emporia Vue AC Load"
+        self._service.add_item(TextItem("/ProductName", product))
         self._service.add_item(TextItem("/CustomName", custom_name))
         self._service.add_item(TextItem("/FirmwareVersion", VERSION))
         self._service.add_item(IntegerItem("/Position", position))
@@ -123,6 +141,10 @@ class AcLoadService:
         self._service.add_item(DoubleItem("/Ac/Power", None))
         self._service.add_item(DoubleItem("/Ac/L1/Power", None))
         self._service.add_item(DoubleItem("/Ac/Energy/Forward", None))
+        if submeter:
+            self._service.add_item(IntegerItem("/IsSubmeter", 1))
+            self._service.add_item(DoubleItem("/LastUpdate", None))
+            self._service.add_item(TextItem("/Source/EntityId", submeter["channel"]))
 
     @property
     def name(self):
@@ -132,10 +154,11 @@ class AcLoadService:
         await self._service.register()
 
     async def close(self):
-        await self._service.close()
-        # Each service owns its D-Bus connection (one com.victronenergy.*
-        # name per connection, every service exports BusItem at "/").
-        self._bus.disconnect()
+        try:
+            await self._service.close()
+        finally:
+            # Each service owns its connection, including failed name release.
+            self._bus.disconnect()
 
     def update_power(self, power):
         with self._service as s:
@@ -145,9 +168,52 @@ class AcLoadService:
             s[PATH_STATUS] = 0 if power is not None else 1
 
     def set_connected(self, connected):
+        if self.submeter and not connected:
+            self.invalidate()
+            return
         with self._service as s:
             s[PATH_CONNECTED] = 1 if connected else 0
             s[PATH_STATUS] = 0 if connected else 1
+
+    def update_entity(self, entity):
+        """Keep a selected aggregate channel distinct from invented phase data."""
+        if not self.submeter:
+            _, power = parse_initial_state(entity)
+            self.update_power(power)
+            return
+        power, timestamp = parse_submeter_state(entity)
+        if (
+            timestamp is not None
+            and self._source_time is not None
+            and timestamp < self._source_time
+        ):
+            return  # A get_states reply must not roll back a newer trigger.
+        age = time.time() - timestamp if timestamp is not None else math.inf
+        max_age = self.submeter["stale_after_seconds"]
+        if power is None or not math.isfinite(power) or not -5 <= age <= max_age:
+            self.invalidate()
+            return
+        self._source_time = timestamp
+        self._fresh_until = time.monotonic() + max_age - max(0, age)
+        with self._service as s:
+            s["/Ac/Power"] = power
+            s["/Ac/L1/Power"] = None  # Aggregate input has no phase breakdown.
+            s["/LastUpdate"] = timestamp
+            s[PATH_CONNECTED] = 1
+            s[PATH_STATUS] = 0
+
+    def invalidate(self):
+        self._fresh_until = 0.0
+        with self._service as s:
+            s["/Ac/Power"] = None
+            s["/Ac/L1/Power"] = None
+            s["/LastUpdate"] = None
+            s[PATH_CONNECTED] = 0
+            s[PATH_STATUS] = 1
+
+    def expire(self):
+        if self.submeter and time.monotonic() >= self._fresh_until:
+            self.invalidate()
 
 
 class HaWebSocketClient:
@@ -159,6 +225,7 @@ class HaWebSocketClient:
         self.channel_map = channel_map
         self.websocket = None
         self._message_id = 1
+        self._submeter_request = None
 
     async def connect(self):
         logger.info("Connecting to Home Assistant at %s", self.url)
@@ -204,10 +271,15 @@ class HaWebSocketClient:
         # Skip trigger events that may arrive before the get_states reply.
         request_id = request["id"]
         response = None
+        event_updates = {}
         for _ in range(50):
             message = json.loads(await self.websocket.recv())
             if message.get("type") == "event":
                 await self.handle_message(json.dumps(message))
+                trigger = message.get("event", {}).get("variables", {}).get("trigger", {})
+                entity_id = trigger.get("entity_id")
+                if entity_id in self.channel_map:
+                    event_updates[entity_id] = _state_updated_at(trigger.get("to_state"))
             if message.get("id") == request_id and ("result" in message or "error" in message):
                 response = message
                 break
@@ -216,10 +288,17 @@ class HaWebSocketClient:
             return
         count = 0
         for entity in response.get("result", []):
-            entity_id, power = parse_initial_state(entity)
+            entity_id = entity.get("entity_id")
             if entity_id not in self.channel_map:
                 continue
-            self.channel_map[entity_id].update_power(power)
+            if entity_id in event_updates:
+                event_time = event_updates[entity_id]
+                snapshot_time = _state_updated_at(entity)
+                # Interleaved events have already been applied. Replace only
+                # when HA explicitly identifies this snapshot as newer.
+                if event_time is None or snapshot_time is None or event_time >= snapshot_time:
+                    continue
+            self.channel_map[entity_id].update_entity(entity)
             count += 1
         logger.info("Loaded initial state for %d entities", count)
 
@@ -228,23 +307,58 @@ class HaWebSocketClient:
             service.set_connected(connected)
 
     async def listen(self):
+        refresh = asyncio.create_task(self.refresh_submeter())
         try:
             async for message in self.websocket:
                 await self.handle_message(message)
-        except websockets.exceptions.ConnectionClosed:
+        except ConnectionClosed:
             logger.warning("Home Assistant WebSocket connection closed")
         finally:
+            refresh.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await refresh
+            self._submeter_request = None
             self.set_connected(False)
+
+    async def refresh_submeter(self):
+        """Revalidate unchanged values using HA's last_reported timestamp."""
+        selected = [s for s in self.channel_map.values() if s.submeter]
+        if not selected:
+            return
+        while True:
+            await asyncio.sleep(5)
+            if self._submeter_request is not None:
+                for service in selected:
+                    service.invalidate()
+            request_id = self._message_id
+            self._message_id += 1
+            self._submeter_request = request_id
+            try:
+                await self.websocket.send(json.dumps({"id": request_id, "type": "get_states"}))
+            except (OSError, WebSocketException):
+                for service in selected:
+                    service.invalidate()
+                return
 
     async def handle_message(self, message):
         try:
+            data = json.loads(message)
+            if self._submeter_request is not None and data.get("id") == self._submeter_request:
+                self._submeter_request = None
+                states = data.get("result", []) if data.get("success") is True else []
+                by_id = {s.get("entity_id"): s for s in states if isinstance(s, dict)}
+                for entity_id, service in self.channel_map.items():
+                    if service.submeter:
+                        service.update_entity(by_id.get(entity_id, {}))
+                return
             entity_id, power = parse_ha_state_change(message)
             if entity_id is None:
                 return
             service = self.channel_map.get(entity_id)
             if service is None:
                 return
-            service.update_power(power)
+            entity = data.get("event", {}).get("variables", {}).get("trigger", {}).get("to_state")
+            service.update_entity(entity or {})
             logger.debug("Updated %s to %s W", entity_id, power)
         except json.JSONDecodeError:
             logger.exception("Invalid JSON received: %s", message[:200])
@@ -252,14 +366,38 @@ class HaWebSocketClient:
             logger.exception("Error processing message")
 
     async def disconnect(self):
-        if self.websocket:
-            await self.websocket.close()
-            self.websocket = None
+        websocket, self.websocket = self.websocket, None
+        if websocket:
+            await asyncio.wait_for(websocket.close(), timeout=5)
 
 
 def load_config(path):
     with open(path) as f:
         return json.load(f)
+
+
+def selected_submeter(config):
+    """Optional selection from configured channels; no site names in code."""
+    selection = config.get("submeter")
+    if selection is None:
+        return None
+    if not isinstance(selection, dict):
+        raise ValueError("submeter must be null or an object with channel")
+    channel = selection.get("channel")
+    matches = [c for c in config.get("channels", []) if c.get("ha_entity_id") == channel]
+    if not isinstance(channel, str) or len(matches) != 1:
+        raise ValueError("submeter.channel must identify exactly one configured HA channel")
+    if not matches[0].get("service_name", "").startswith("com.victronenergy.acload."):
+        raise ValueError("submeter channel must use a com.victronenergy.acload service")
+    age = selection.get("stale_after_seconds", 30)
+    if (
+        isinstance(age, bool)
+        or not isinstance(age, (int, float))
+        or not math.isfinite(age)
+        or age < 10
+    ):
+        raise ValueError("submeter.stale_after_seconds must be a finite number >= 10")
+    return {"channel": channel, "stale_after_seconds": float(age)}
 
 
 async def run_websocket_client(ws_client):
@@ -278,12 +416,15 @@ async def run_websocket_client(ws_client):
             TimeoutError,
             RuntimeError,
             json.JSONDecodeError,
-            websockets.exceptions.WebSocketException,
+            WebSocketException,
         ) as exc:
             logger.warning("Home Assistant unavailable: %s; retrying in %s s", exc, delay)
         finally:
             ws_client.set_connected(False)
-            await ws_client.disconnect()
+            try:
+                await ws_client.disconnect()
+            except (OSError, TimeoutError, RuntimeError, WebSocketException):
+                logger.exception("Failed to close Home Assistant connection")
         # Wait for the delay period before retrying, with jitter to avoid thundering herd
         jitter = delay * 0.1 * (secrets.randbelow(1_000_000) / 1_000_000)  # 10% jitter
         await asyncio.sleep(delay + jitter)
@@ -306,6 +447,11 @@ async def main():
     ha_url = config.get("ha_url", DEFAULT_CONFIG["ha_url"])
     ha_token = config.get("ha_token", DEFAULT_CONFIG["ha_token"])
     channels_config = config.get("channels", DEFAULT_CONFIG["channels"])
+    try:
+        submeter = selected_submeter(config)
+    except ValueError as exc:
+        logger.error("Invalid submeter configuration: %s", exc)
+        return
 
     if not ha_token or ha_token == "YOUR_LONG_LIVED_ACCESS_TOKEN":
         logger.error("Please set a valid long-lived access token in config.json")
@@ -331,7 +477,8 @@ async def main():
         # exports the BusItem interface at "/", so sharing a single bus
         # between services raises "already exported on this bus".
         bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
-        service = AcLoadService(bus, service_name, instance, custom_name, position)
+        selection = submeter if submeter and submeter["channel"] == entity_id else None
+        service = AcLoadService(bus, service_name, instance, custom_name, position, selection)
         try:
             await service.register()
         except Exception:  # a broken channel must not kill startup
@@ -358,25 +505,70 @@ async def main():
                 await asyncio.to_thread(write_heartbeat)
             except OSError:
                 logger.exception("Failed to write heartbeat file")
-            await asyncio.sleep(5)  # Update every 5 seconds
-
-    async def shutdown():
-        logger.info("Shutting down...")
-        await ws_client.disconnect()
-        for service in services.values():
-            await service.close()
-        # Disconnect the shared bus
-        bus.disconnect()
-        sys.exit(0)
+            for _ in range(5):
+                for service in services.values():
+                    service.expire()
+                await asyncio.sleep(1)
 
     loop = asyncio.get_running_loop()
+    main_task = asyncio.current_task()
+    stopping = False
+
+    def request_shutdown():
+        nonlocal stopping
+        if not stopping:
+            stopping = True
+            logger.info("Shutting down...")
+            if main_task is not None:
+                main_task.cancel()
+
+    installed_signals = []
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
-            loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown()))
+            loop.add_signal_handler(sig, request_shutdown)
+            installed_signals.append(sig)
         except NotImplementedError:
             pass
 
-    await asyncio.gather(run_websocket_client(ws_client), heartbeat_task())
+    tasks = [
+        asyncio.create_task(run_websocket_client(ws_client)),
+        asyncio.create_task(heartbeat_task()),
+    ]
+    try:
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        if not stopping:
+            raise
+    finally:
+        # Stop and retrieve workers before releasing their D-Bus resources.
+        for task in tasks:
+            task.cancel()
+        try:
+            await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5)
+        except TimeoutError:
+            logger.exception("Timed out stopping background tasks")
+        finally:
+            try:
+                await asyncio.wait_for(ws_client.disconnect(), timeout=5)
+            except Exception:  # cleanup must continue even after an unexpected close failure
+                logger.exception("Failed to close Home Assistant connection")
+            finally:
+                try:
+                    results = await asyncio.wait_for(
+                        asyncio.gather(
+                            *(service.close() for service in services.values()),
+                            return_exceptions=True,
+                        ),
+                        timeout=5,
+                    )
+                    for result in results:
+                        if isinstance(result, Exception):
+                            logger.error("Failed to release D-Bus service: %s", result)
+                except TimeoutError:
+                    logger.exception("Timed out releasing D-Bus services")
+                finally:
+                    for sig in installed_signals:
+                        loop.remove_signal_handler(sig)
 
 
 if __name__ == "__main__":
