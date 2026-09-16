@@ -74,6 +74,11 @@ The driver creates and refreshes `emporia-tokens.json` with mode `0600`. Direct
 mode needs internet access and the dependencies listed in the README. It does
 not need an HA URL or token.
 
+For token-only authentication, remove `credentials_file` from the configuration
+and keep a valid token file. If `credentials_file` is configured, that file must
+exist even when cached tokens are available. Alternatively, omit the key and set
+`EMPORIA_USERNAME` and `EMPORIA_PASSWORD` in the service environment.
+
 `emporia_import_channel` and `emporia_export_channel` are optional. Use them only
 when the device provides those channels. They add energy values to the same
 main-meter service; they do not create extra power meters. Additional circuit

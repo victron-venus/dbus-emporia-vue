@@ -43,9 +43,21 @@ Copy `config.json.example` to `config.json` and configure the channel mappings:
 }
 ```
 
-Create the credentials file directly on the GX device with `username` and
-`password` fields. Restrict credentials and token files to mode `0600`.
-`credentials_file` is optional when a valid token file is already present.
+Create `emporia-credentials.json` directly on the GX device:
+
+```json
+{
+  "username": "your-emporia-email@example.com",
+  "password": "YOUR_EMPORIA_PASSWORD"
+}
+```
+
+Restrict credentials and token files to mode `0600`. The driver creates and
+refreshes the token file automatically. For token-only authentication, remove
+the `credentials_file` key and provide a valid token file. A configured
+credentials file must exist even when cached tokens are available.
+Alternatively, omit `credentials_file` and set `EMPORIA_USERNAME` and
+`EMPORIA_PASSWORD` in the service environment.
 Keep these files private; deployments do not upload them. Relative paths are
 resolved beside `config.json`.
 
