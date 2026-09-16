@@ -1,9 +1,8 @@
 # Home Assistant package: /config/packages/emporia_mqtt.yaml
 # Replace every PORTAL_ID with the Cerbo VRM Portal ID. Match instances 70/71
 # and the victron/ prefix to your driver configuration and broker bridge.
-# Both power sensors work in either source mode. Other sensors need emporia mode.
+# Use with this scenario's source: emporia driver configuration.
 # Remove the optional import/export sensors if directional channels are not mapped.
-# Never configure this package's entities as the driver's HA input entities.
 
 automation:
   - id: emporia_PORTAL_ID_mqtt_keepalive

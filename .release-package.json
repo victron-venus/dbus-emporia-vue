@@ -17,6 +17,8 @@
     "requirements.txt",
     "requirements.lock",
     "README.md",
+    "docs/installation.md",
+    "docs/configuration.md",
     "docs/home-assistant-mqtt.md",
     "docs/examples",
     "LICENSE"

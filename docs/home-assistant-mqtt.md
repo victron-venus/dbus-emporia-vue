@@ -1,29 +1,33 @@
-# Home Assistant through Cerbo GX MQTT
+# Scenario 3 reference: Emporia API to Home Assistant through GX MQTT
 
-Use the MQTT broker already connected to Home Assistant to receive this driver's
-measurements from Cerbo GX. A Mosquitto bridge forwards GX notifications into that
-broker and sends read requests back to the GX device.
+Use this guide to send Emporia readings from a GX device to your own Home
+Assistant through its existing MQTT broker. Start with the shorter
+[scenario 3 setup](examples/3-emporia-api-to-home-assistant/README.md); this page
+explains the bridge, HA package and energy behavior in detail.
 
 ```text
-Emporia API -------------------------+
-                                    | one selected source
-HA Emporia integration -- WebSocket -+
-                                    v
-                           dbus-emporia-vue on GX
-                                    |
-                                  D-Bus
-                                    |
-                            Venus OS MQTT broker
-                                    |
-                              MQTT bridge
-                                    |
-                            Home Assistant broker
-                                    |
-                             HA MQTT sensors
+Emporia Cloud API
+        |
+  dbus-emporia-vue on GX (source: emporia)
+        |
+      D-Bus
+        |
+  Venus OS MQTT broker
+        |
+    MQTT bridge
+        |
+  Existing Home Assistant broker
+        |
+    HA MQTT sensors
 ```
 
-`source: "emporia"` connects only to Emporia. `source: "home_assistant"` connects
-only to HA. There are no fallback requests or automatic source changes.
+The driver reads only the Emporia API. Venus OS publishes its D-Bus values to
+MQTT; the driver has no separate MQTT publisher or HA discovery service. This is
+the same `emporia` source as scenario 2, with an MQTT output path to HA. It needs
+no HA API token or HA Emporia integration.
+
+To read an existing HA Emporia integration into GX instead, follow
+[scenario 1](examples/1-from-home-assistant/README.md).
 
 ## 1. Prerequisites and example values
 
@@ -43,12 +47,11 @@ only to HA. There are no fallback requests or automatic source changes.
 The examples target Venus OS with dbus-flashmq. The driver does not publish HA
 MQTT discovery messages; the YAML package below defines the HA entities.
 
-## 2. Configure one driver source
+## 2. Configure the Emporia API source
 
-### Emporia API
-
-Start with [config.emporia.json](examples/config.emporia.json). It defines a main
-meter at instance `70` and a heat-pump circuit at instance `71`. Replace device ID
+Start with
+[config.json.example](examples/3-emporia-api-to-home-assistant/config.json.example).
+It defines a main meter at instance `70` and a heat-pump circuit at instance `71`. Replace device ID
 `123456` and channel strings with your actual Emporia mappings. Keep existing
 `id`, `service_name` and `instance` values when updating an installation; the
 instance becomes part of the MQTT topic.
@@ -71,8 +74,9 @@ chmod 600 /data/dbus-emporia-vue/emporia-credentials.json
 ```
 
 The driver creates and refreshes `emporia-tokens.json` with mode `0600`. Direct
-mode needs internet access and the dependencies listed in the README. It does
-not need an HA URL or token.
+mode needs internet access and the dependencies in the
+[installation guide](installation.md#prepare-the-package). It does not need an
+HA URL or token.
 
 For token-only authentication, remove `credentials_file` from the configuration
 and keep a valid token file. If `credentials_file` is configured, that file must
@@ -84,26 +88,10 @@ when the device provides those channels. They add energy values to the same
 main-meter service; they do not create extra power meters. Additional circuit
 entries need unique IDs, service names and instances.
 
-### Home Assistant integration
+### Apply the configuration
 
-Use [config.home-assistant.json](examples/config.home-assistant.json). Replace the
-HA WebSocket URL, long-lived access token and power entity IDs. The source entities
-must belong to the Emporia integration and must have supported power units.
-Protect `config.json` with mode `0600` because it contains the HA token.
-
-This mode forwards power. It does not create `/Emporia/Energy/*`, `/Emporia/DeviceId`,
-`/Emporia/Channel` or `/Source/Type`. `/LastUpdate` exists only for a configured
-submeter in this mode. Keep the power sensors from the HA package and remove its
-direct-mode sensors. Energy already provided by the HA Emporia integration can
-continue to be used directly in HA.
-
-Never set `ha_entity_id` to an MQTT sensor produced by this driver. That creates
-a loop: HA MQTT sensor → driver → GX MQTT → same HA sensor. Use separate names
-for the original integration entities and the returned MQTT entities.
-
-### Apply the selected source
-
-For an installed service, restart after saving the configuration:
+For a first installation, finish [Start the service](installation.md#start-the-service).
+For an already installed service, restart after saving the configuration:
 
 ```sh
 svc -t /service/dbus-emporia-vue
@@ -112,9 +100,8 @@ tail -n 40 /var/log/dbus-emporia-vue/current
 dbus -y com.victronenergy.acload.emporia_ch1 / GetItems
 ```
 
-Check `/Connected` and `/Ac/Power`. In direct mode also check `/Source/Type`,
-`/LastUpdate` and the energy paths. Switching modes requires changing `source`
-and restarting; MQTT service identities can stay the same.
+Check `/Connected: 1`, a numeric `/Ac/Power`, `/Source/Type: "emporia"`,
+`/LastUpdate` and the energy paths.
 
 ## 3. Reuse or configure the MQTT bridge
 
@@ -130,8 +117,9 @@ Check that both directions exist. Receiving notifications alone does not let HA
 send keepalive or read requests. No `W/` rule is needed for this guide. Preserve
 any existing write routes used by other applications.
 
-For a new bridge, use [mosquitto-cerbo.conf](examples/mosquitto-cerbo.conf). It
-limits the N/R routes to one portal ID. Install it in an `include_dir` loaded by
+For a new bridge, use
+[mosquitto-cerbo.conf](examples/3-emporia-api-to-home-assistant/mosquitto-cerbo.conf).
+It limits the N/R routes to one portal ID. Install it in an `include_dir` loaded by
 the **main HA broker**, not on the GX device. Replace `CERBO_IP` and `PORTAL_ID`.
 Port `1883` assumes that GX permits plain local MQTT on the trusted LAN; adapt
 the transport to the GX listener you actually enabled.
@@ -227,9 +215,11 @@ come from `instance`, not the Emporia channel number or D-Bus service suffix.
 
 ## 5. Add the Home Assistant package
 
-Copy [home-assistant-emporia.yaml](examples/home-assistant-emporia.yaml) to
-`/config/packages/emporia_mqtt.yaml` on the HA host. Replace all `PORTAL_ID`
-placeholders and adapt instances and names. The example provides:
+Copy
+[home-assistant-emporia.yaml](examples/3-emporia-api-to-home-assistant/home-assistant-emporia.yaml)
+to `/config/packages/emporia_mqtt.yaml` on the HA host. Replace all `PORTAL_ID`
+placeholders and adapt instances and names. The example provides 12 sensors and
+one automation:
 
 - Main-meter and circuit power sensors.
 - Circuit daily and monthly energy.
@@ -262,9 +252,7 @@ new MQTT entities in **Settings → Devices & services → Entities**. A `unique
 allows later UI customization; it does not force a specific entity ID.
 
 To add a circuit, copy the instance-71 sensor entries and change their topic
-instance, `unique_id` and name. Keep unique IDs stable thereafter. In HA-source
-mode keep only sensors whose paths are available in that mode, as described in
-section 2.
+instance, `unique_id` and name. Keep unique IDs stable thereafter.
 
 ### Keepalive and unchanged readings
 
@@ -292,9 +280,8 @@ already provides the refresh.
 
 ### Availability and energy freshness
 
-Power uses `/Connected` plus MQTT expiration. Direct mode also invalidates stale
-power inside the driver. HA-source mode follows the source entity and WebSocket
-connection; ordinary channels do not gain the direct-mode timestamp checks.
+Power uses `/Connected` plus MQTT expiration. The driver also invalidates stale
+Emporia power before publishing it to D-Bus.
 
 Energy uses its own `Updated` path, independent of `/Connected`. With the default
 poll intervals, the validity limits are 1,830 seconds for daily energy and 7,230
@@ -359,9 +346,9 @@ sensor:
       minutes: 5
 ```
 
-This works with either driver source and estimates energy from received power;
-it cannot reconstruct missing power during outages. Keep it separate from the
-cloud period readings. Use separate nonnegative import/export flows for grid
+This estimates energy from received power; it cannot reconstruct missing power
+during outages. Keep it separate from the cloud period readings. Use separate
+nonnegative import/export flows for grid
 accounting, not a signed net-power sensor. See the
 [HA Integral helper](https://www.home-assistant.io/integrations/integration/) and
 [Energy dashboard requirements](https://www.home-assistant.io/docs/energy/faq/).
@@ -374,11 +361,11 @@ accounting, not a signed net-power sensor. See the
   A TCP/MQTT connection alone does not keep GX telemetry active.
 - **Stable zero becomes unavailable:** restore the full periodic snapshot. Zero
   is valid and must remain zero; suppressing republish can hide unchanged values.
-- **Power is null or `/Connected` is `0`:** inspect driver logs and the selected
-  source. MQTT cannot repair an unavailable upstream reading.
-- **Power works but energy is missing:** confirm direct mode and device/channel
-  mappings. Import/export fields require their optional channel mappings. HA
-  source mode forwards power only.
+- **Power is null or `/Connected` is `0`:** inspect driver logs and Emporia
+  connectivity. MQTT cannot repair an unavailable upstream reading.
+- **Power works but energy is missing:** confirm `source: "emporia"` and the
+  device/channel mappings. Import/export fields require their optional channel
+  mappings.
 - **Energy becomes unavailable:** check its `Updated` value, clock alignment and
   configured polling interval. A fresh MQTT snapshot does not make an old source
   timestamp fresh.
@@ -386,8 +373,8 @@ accounting, not a signed net-power sensor. See the
   IDs. This driver does not announce HA discovery configurations.
 - **Energy is absent from the Energy dashboard:** use suitable statistics semantics
   or the Integral helper; do not assign counter semantics solely to make it appear.
-- **Duplicate readings or loops:** check for multiple bridges, duplicate YAML
-  entities and HA source entities that reference this driver's MQTT output.
+- **Duplicate readings:** check for multiple bridges or duplicate YAML entities.
+  Keep `source: "emporia"`; MQTT sensors are the output of this scenario.
 
 Removing the HA package removes these manually configured entities after a
 configuration reload/restart. Do not remove a shared MQTT bridge or keepalive

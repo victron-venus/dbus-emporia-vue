@@ -1,0 +1,14 @@
+{
+  "source": "home_assistant",
+  "ha_url": "ws://192.168.1.50:8123/api/websocket",
+  "ha_token": "YOUR_LONG_LIVED_ACCESS_TOKEN",
+  "channels": [
+    {
+      "id": "channel_1",
+      "ha_entity_id": "sensor.heat_pump_power_1s",
+      "service_name": "com.victronenergy.acload.emporia_ch1",
+      "instance": 71,
+      "custom_name": "Heat Pump"
+    }
+  ]
+}
