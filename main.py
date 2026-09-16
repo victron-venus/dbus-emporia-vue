@@ -190,6 +190,9 @@ class AcLoadService:
             period = ENERGY_PATHS[field]
             self._service.add_item(DoubleItem(f"/Emporia/Energy/{period}", None))
             self._service.add_item(DoubleItem(f"/Emporia/Energy/{period}Updated", None))
+            self._service.add_item(
+                TextItem(f"/Emporia/Energy/{period}Sample", '{"value":null,"timestamp":null}')
+            )
 
     def publish_measurement(self, sample, source):
         with self._service as s:
@@ -211,6 +214,10 @@ class AcLoadService:
         with self._service as s:
             s[f"/Emporia/Energy/{period}"] = value
             s[f"/Emporia/Energy/{period}Updated"] = timestamp
+            # Keep energy and its source timestamp atomic for MQTT consumers.
+            s[f"/Emporia/Energy/{period}Sample"] = json.dumps(
+                {"value": value, "timestamp": timestamp}, separators=(",", ":")
+            )
 
     def set_connected(self, connected):
         if self.submeter and not connected:

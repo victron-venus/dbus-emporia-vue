@@ -128,6 +128,75 @@ class TestAcLoadService:
         assert svc._service["/Connected"] == 1
         assert svc._service["/Status"] == 0
 
+    @pytest.mark.parametrize("directions", [(), ("import",), ("export",), ("import", "export")])
+    def test_energy_samples_exist_only_for_configured_directions(self, directions):
+        svc = self._make()
+        channel = {"emporia_device_gid": 1, "emporia_channel": "1"}
+        for direction in directions:
+            channel[f"emporia_{direction}_channel"] = direction
+        svc.configure_emporia(channel)
+        expected = {"/Emporia/Energy/DaySample", "/Emporia/Energy/MonthSample"}
+        for direction in directions:
+            expected.update(
+                f"/Emporia/Energy/{direction.title()}/{period}Sample" for period in ("Day", "Month")
+            )
+        samples = {path for path in svc._service.items if path.endswith("Sample")}
+        assert samples == expected
+        assert all(svc._service[path] == '{"value":null,"timestamp":null}' for path in samples)
+
+    @pytest.mark.parametrize(
+        ("field", "path"),
+        [
+            ("energy_day", "/Emporia/Energy/Day"),
+            ("energy_month", "/Emporia/Energy/Month"),
+            ("energy_import_day", "/Emporia/Energy/Import/Day"),
+            ("energy_import_month", "/Emporia/Energy/Import/Month"),
+            ("energy_export_day", "/Emporia/Energy/Export/Day"),
+            ("energy_export_month", "/Emporia/Energy/Export/Month"),
+        ],
+    )
+    def test_energy_sample_preserves_pair_through_reset_clear_and_expiry(
+        self, monkeypatch, field, path
+    ):
+        from sources import EmporiaChannel
+
+        svc = self._make()
+        svc.configure_emporia(
+            {
+                "emporia_device_gid": 1,
+                "emporia_channel": "1",
+                "emporia_import_channel": "MainsFromGrid",
+                "emporia_export_channel": "MainsToGrid",
+            }
+        )
+        clock = {"wall": 1800000000, "monotonic": 100}
+        monkeypatch.setattr("sources.time.time", lambda: clock["wall"])
+        monkeypatch.setattr("sources.time.monotonic", lambda: clock["monotonic"])
+        channel = EmporiaChannel(
+            svc,
+            {"stale_after_seconds": 30, "day_interval_seconds": 60, "month_interval_seconds": 600},
+            energy_fields=svc.energy_fields,
+        )
+
+        def assert_pair(value, timestamp):
+            sample = svc._service[f"{path}Sample"]
+            assert json.loads(sample) == {"value": value, "timestamp": timestamp}
+            assert " " not in sample
+            assert svc._service[path] == value
+            assert svc._service[f"{path}Updated"] == timestamp
+
+        assert_pair(None, None)
+        for value in (12.5, 0, None, 3.25):
+            clock["wall"] += 1
+            clock["monotonic"] += 1
+            channel.update_energy(field, value, clock["wall"])
+            assert_pair(value, clock["wall"] if value is not None else None)
+
+        clock["monotonic"] += 2000
+        channel.refresh()
+        assert_pair(None, None)
+        assert svc._service["/Ac/Energy/Forward"] is None
+
     def test_set_connected_true(self):
         svc = self._make()
         svc.set_connected(True)

@@ -103,9 +103,11 @@ also expose:
 - `/Emporia/Energy/Day` and `/Emporia/Energy/Month`: period energy in kWh.
 - `/Emporia/Energy/DayUpdated` and `/Emporia/Energy/MonthUpdated`: energy
   timestamps, in Unix seconds.
+- `/Emporia/Energy/DaySample` and `/Emporia/Energy/MonthSample`: JSON strings
+  containing the energy `value` and its `timestamp` together.
 - `/Emporia/Energy/Import/Day`, `/Emporia/Energy/Import/Month`,
   `/Emporia/Energy/Export/Day` and `/Emporia/Energy/Export/Month`: optional
-  import and export energy in kWh, each with an `Updated` timestamp path.
+  import and export energy in kWh, each with `Updated` and `Sample` paths.
 
 Daily and monthly values reset at period boundaries. They are not lifetime
 counters; `/Ac/Energy/Forward` stays unavailable.

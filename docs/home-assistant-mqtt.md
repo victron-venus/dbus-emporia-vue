@@ -301,6 +301,21 @@ The templates preserve null or empty messages as unknown/unavailable instead of
 turning them into zero. The expiration and availability options are described in
 the [HA MQTT sensor documentation](https://www.home-assistant.io/integrations/sensor.mqtt/).
 
+For consumers that need the energy and its timestamp in one message, each energy
+path also has a `Sample` variant, such as `Emporia/Energy/DaySample` or
+`Emporia/Energy/Import/MonthSample`. Its MQTT `value` contains a JSON string:
+
+```json
+{"value": "{\"value\":4.218,\"timestamp\":1789544900.0}"}
+```
+
+Decode the inner JSON with `value_json.value | from_json`. The inner `value` is
+kWh and `timestamp` is the corresponding source timestamp. Both become null
+when the reading expires. This keeps the pair consistent even during a period
+reset. When supplying `last_reset_value_template` for an existing energy sensor,
+derive its reset boundary from this source timestamp, the meter's time zone and
+its period settings. Do not derive it from the time an MQTT snapshot is replayed.
+
 ## 6. Energy dashboard and totals
 
 `Emporia/Energy/Day` and `Month` are current-period readings. They reset on the
