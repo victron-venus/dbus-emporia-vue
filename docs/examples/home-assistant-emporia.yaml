@@ -1,0 +1,213 @@
+# Home Assistant package: /config/packages/emporia_mqtt.yaml
+# Replace every PORTAL_ID with the Cerbo VRM Portal ID. Match instances 70/71
+# and the victron/ prefix to your driver configuration and broker bridge.
+# Both power sensors work in either source mode. Other sensors need emporia mode.
+# Remove the optional import/export sensors if directional channels are not mapped.
+# Never configure this package's entities as the driver's HA input entities.
+
+automation:
+  - id: emporia_PORTAL_ID_mqtt_keepalive
+    alias: "Emporia Cerbo MQTT keepalive"
+    mode: single
+    triggers:
+      - trigger: homeassistant
+        event: start
+      - trigger: mqtt
+        topic: "homeassistant/status"
+        payload: "online"
+      - trigger: time_pattern
+        seconds: "/30"
+    actions:
+      - action: mqtt.publish
+        data:
+          topic: "victron/R/PORTAL_ID/keepalive"
+          # Request a full snapshot, including unchanged readings. Do not use
+          # suppress-republish with the sensors' 90-second transport expiry.
+          payload: "{}"
+          qos: 0
+          retain: false
+
+mqtt:
+  sensor:
+    - name: "Power"
+      default_entity_id: sensor.emporia_main_power_mqtt
+      unique_id: emporia_PORTAL_ID_70_power
+      device:
+        identifiers: [emporia_PORTAL_ID_70]
+        name: "Emporia Main"
+        manufacturer: "Emporia"
+        model: "Vue via Cerbo GX"
+      state_topic: "victron/N/PORTAL_ID/acload/70/Ac/Power"
+      # Null or a removed service remains unknown; a measured zero stays zero.
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      availability_topic: "victron/N/PORTAL_ID/acload/70/Connected"
+      availability_template: >-
+        {{ 'online' if value_json is defined and value_json.value | default(none) == 1 else 'offline' }}
+      expire_after: 90
+
+    - name: "Power"
+      default_entity_id: sensor.emporia_heat_pump_power_mqtt
+      unique_id: emporia_PORTAL_ID_71_power
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+        name: "Emporia Heat Pump"
+        manufacturer: "Emporia"
+        model: "Vue via Cerbo GX"
+      state_topic: "victron/N/PORTAL_ID/acload/71/Ac/Power"
+      # JSON null remains unknown; a measured zero remains zero.
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "W"
+      device_class: power
+      state_class: measurement
+      availability_topic: "victron/N/PORTAL_ID/acload/71/Connected"
+      availability_template: >-
+        {{ 'online' if value_json is defined and value_json.value | default(none) == 1 else 'offline' }}
+      expire_after: 90
+
+    # Direct-mode period totals may be signed and can decrease. They intentionally
+    # omit state_class and are display sensors, not Energy dashboard counters.
+    # Freshness limits assume day_interval_seconds=900 and month_interval_seconds=3600.
+    # Energy availability is independent of the latest power reading's Connected flag.
+    - name: "Energy Today"
+      default_entity_id: sensor.emporia_heat_pump_energy_today
+      unique_id: emporia_PORTAL_ID_71_energy_day
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+      state_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/Day"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      availability_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/DayUpdated"
+      availability_template: >-
+        {% set stamp = value_json.value | default(none) if value_json is defined else none %}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 1830 else 'offline' }}
+      expire_after: 90
+
+    - name: "Energy This Month"
+      default_entity_id: sensor.emporia_heat_pump_energy_this_month
+      unique_id: emporia_PORTAL_ID_71_energy_month
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+      state_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/Month"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      availability_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/MonthUpdated"
+      availability_template: >-
+        {% set stamp = value_json.value | default(none) if value_json is defined else none %}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 7230 else 'offline' }}
+      expire_after: 90
+
+    - name: "Power Updated"
+      default_entity_id: sensor.emporia_heat_pump_power_updated
+      unique_id: emporia_PORTAL_ID_71_power_updated
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+      state_topic: "victron/N/PORTAL_ID/acload/71/LastUpdate"
+      value_template: >-
+        {{ as_datetime(value_json.value, none) if value_json is defined and value_json.value is defined else none }}
+      device_class: timestamp
+      entity_category: diagnostic
+      expire_after: 90
+
+    - name: "Power Source"
+      default_entity_id: sensor.emporia_heat_pump_power_source
+      unique_id: emporia_PORTAL_ID_71_power_source
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+      state_topic: "victron/N/PORTAL_ID/acload/71/Source/Type"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      entity_category: diagnostic
+      expire_after: 90
+
+    - name: "Daily Energy Updated"
+      default_entity_id: sensor.emporia_heat_pump_daily_energy_updated
+      unique_id: emporia_PORTAL_ID_71_energy_day_updated
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+      state_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/DayUpdated"
+      value_template: >-
+        {{ as_datetime(value_json.value, none) if value_json is defined and value_json.value is defined else none }}
+      device_class: timestamp
+      entity_category: diagnostic
+      expire_after: 90
+
+    - name: "Monthly Energy Updated"
+      default_entity_id: sensor.emporia_heat_pump_monthly_energy_updated
+      unique_id: emporia_PORTAL_ID_71_energy_month_updated
+      device:
+        identifiers: [emporia_PORTAL_ID_71]
+      state_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/MonthUpdated"
+      value_template: >-
+        {{ as_datetime(value_json.value, none) if value_json is defined and value_json.value is defined else none }}
+      device_class: timestamp
+      entity_category: diagnostic
+      expire_after: 90
+
+    # Optional direct-mode main-meter totals. Instance 70 must have
+    # emporia_import_channel and emporia_export_channel configured.
+    # Add state_class: total_increasing only to verified nonnegative counters
+    # that increase within each period and decrease only at a period reset.
+    # For Energy dashboard use one period per direction, not both day and month.
+    - name: "Imported Energy Today"
+      default_entity_id: sensor.emporia_main_imported_energy_today
+      unique_id: emporia_PORTAL_ID_70_energy_import_day
+      device:
+        identifiers: [emporia_PORTAL_ID_70]
+      state_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Import/Day"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Import/DayUpdated"
+      availability_template: >-
+        {% set stamp = value_json.value | default(none) if value_json is defined else none %}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 1830 else 'offline' }}
+      expire_after: 90
+
+    - name: "Imported Energy This Month"
+      default_entity_id: sensor.emporia_main_imported_energy_this_month
+      unique_id: emporia_PORTAL_ID_70_energy_import_month
+      device:
+        identifiers: [emporia_PORTAL_ID_70]
+      state_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Import/Month"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Import/MonthUpdated"
+      availability_template: >-
+        {% set stamp = value_json.value | default(none) if value_json is defined else none %}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 7230 else 'offline' }}
+      expire_after: 90
+
+    - name: "Exported Energy Today"
+      default_entity_id: sensor.emporia_main_exported_energy_today
+      unique_id: emporia_PORTAL_ID_70_energy_export_day
+      device:
+        identifiers: [emporia_PORTAL_ID_70]
+      state_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Export/Day"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Export/DayUpdated"
+      availability_template: >-
+        {% set stamp = value_json.value | default(none) if value_json is defined else none %}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 1830 else 'offline' }}
+      expire_after: 90
+
+    - name: "Exported Energy This Month"
+      default_entity_id: sensor.emporia_main_exported_energy_this_month
+      unique_id: emporia_PORTAL_ID_70_energy_export_month
+      device:
+        identifiers: [emporia_PORTAL_ID_70]
+      state_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Export/Month"
+      value_template: "{{ value_json.value | default(none) if value_json is defined else none }}"
+      unit_of_measurement: "kWh"
+      device_class: energy
+      availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Export/MonthUpdated"
+      availability_template: >-
+        {% set stamp = value_json.value | default(none) if value_json is defined else none %}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 7230 else 'offline' }}
+      expire_after: 90

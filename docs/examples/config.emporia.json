@@ -1,0 +1,37 @@
+{
+  "source": "emporia",
+  "emporia": {
+    "credentials_file": "emporia-credentials.json",
+    "token_file": "emporia-tokens.json",
+    "poll_interval_seconds": 3,
+    "day_interval_seconds": 900,
+    "month_interval_seconds": 3600,
+    "timeout_seconds": 10,
+    "stale_after_seconds": 30,
+    "solar_invert": true
+  },
+  "channels": [
+    {
+      "id": "main",
+      "emporia_device_gid": 123456,
+      "emporia_channel": "1,2,3",
+      "emporia_import_channel": "MainsFromGrid",
+      "emporia_export_channel": "MainsToGrid",
+      "service_name": "com.victronenergy.acload.emporia_main",
+      "instance": 70,
+      "custom_name": "Emporia Main",
+      "position": 0
+    },
+    {
+      "id": "heat_pump",
+      "emporia_device_gid": 123456,
+      "emporia_channel": "1",
+      "service_name": "com.victronenergy.acload.emporia_ch1",
+      "instance": 71,
+      "custom_name": "Heat Pump",
+      "position": 0
+    }
+  ],
+  "submeter": null,
+  "log_level": "INFO"
+}

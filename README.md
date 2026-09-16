@@ -89,6 +89,10 @@ before use. The command overwrites the local file.
 
 ## D-Bus and MQTT
 
+See [Home Assistant through Cerbo GX MQTT](docs/home-assistant-mqtt.md) for the
+broker bridge, source configuration, ready-to-use HA package, availability,
+energy dashboard options and troubleshooting.
+
 Channel services expose standard power paths `/Ac/Power`, `/Ac/L1/Power`,
 `/Connected`, `/CustomName` and `/DeviceInstance`. Directly mapped channels
 also expose:
