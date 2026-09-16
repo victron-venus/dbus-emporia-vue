@@ -68,7 +68,7 @@ mqtt:
 
     # Direct-mode period totals may be signed and can decrease. They intentionally
     # omit state_class and are display sensors, not Energy dashboard counters.
-    # Freshness limits assume day_interval_seconds=900 and month_interval_seconds=3600.
+    # Freshness limits assume day_interval_seconds=1800 and month_interval_seconds=21600.
     # Energy availability is independent of the latest power reading's Connected flag.
     - name: "Energy Today"
       default_entity_id: sensor.emporia_heat_pump_energy_today
@@ -82,7 +82,7 @@ mqtt:
       availability_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/DayUpdated"
       availability_template: >-
         {% set stamp = value_json.value | default(none) if value_json is defined else none %}
-        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 1830 else 'offline' }}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 3630 else 'offline' }}
       expire_after: 90
 
     - name: "Energy This Month"
@@ -97,7 +97,7 @@ mqtt:
       availability_topic: "victron/N/PORTAL_ID/acload/71/Emporia/Energy/MonthUpdated"
       availability_template: >-
         {% set stamp = value_json.value | default(none) if value_json is defined else none %}
-        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 7230 else 'offline' }}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 43230 else 'offline' }}
       expire_after: 90
 
     - name: "Power Updated"
@@ -163,7 +163,7 @@ mqtt:
       availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Import/DayUpdated"
       availability_template: >-
         {% set stamp = value_json.value | default(none) if value_json is defined else none %}
-        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 1830 else 'offline' }}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 3630 else 'offline' }}
       expire_after: 90
 
     - name: "Imported Energy This Month"
@@ -178,7 +178,7 @@ mqtt:
       availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Import/MonthUpdated"
       availability_template: >-
         {% set stamp = value_json.value | default(none) if value_json is defined else none %}
-        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 7230 else 'offline' }}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 43230 else 'offline' }}
       expire_after: 90
 
     - name: "Exported Energy Today"
@@ -193,7 +193,7 @@ mqtt:
       availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Export/DayUpdated"
       availability_template: >-
         {% set stamp = value_json.value | default(none) if value_json is defined else none %}
-        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 1830 else 'offline' }}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 3630 else 'offline' }}
       expire_after: 90
 
     - name: "Exported Energy This Month"
@@ -208,5 +208,5 @@ mqtt:
       availability_topic: "victron/N/PORTAL_ID/acload/70/Emporia/Energy/Export/MonthUpdated"
       availability_template: >-
         {% set stamp = value_json.value | default(none) if value_json is defined else none %}
-        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 7230 else 'offline' }}
+        {{ 'online' if stamp is number and 0 <= as_timestamp(now()) - stamp < 43230 else 'offline' }}
       expire_after: 90

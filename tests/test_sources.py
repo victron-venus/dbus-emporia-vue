@@ -84,7 +84,10 @@ def test_energy_refresh_does_not_extend_power_and_accepts_reset(clock):
     state.update_energy("energy_day", 10, 1000)
     assert state.service.publish_energy.call_args_list[-2].args == ("energy_day", None, None)
     state.update_energy("energy_day", 1, 1031)
-    clock[0] += 1900
+    clock[0] += 3629
+    state.refresh()
+    assert state.service.publish_energy.call_args_list[-2].args == ("energy_day", 1, 1031)
+    clock[0] += 1
     state.refresh()
     assert state.service.publish_energy.call_args_list[-2].args == ("energy_day", None, None)
 

@@ -95,8 +95,9 @@ channel and its matching HA sensor entries with unique IDs and GX instances.
 
 In HA, the new MQTT power sensors should be numeric, including zero when a
 circuit is idle. The circuit's Power Source diagnostic should show `emporia`.
-Daily and monthly energy arrive at their own polling intervals. The MQTT
-keepalive refreshes cached GX readings; it does not request more cloud readings.
+Daily energy refreshes every 30 minutes and monthly energy every 6 hours by
+default. The MQTT keepalive refreshes cached GX readings; it does not request
+more cloud readings.
 
 The example creates new MQTT entities. It does not replace an existing HA
 Emporia integration or preserve its entity IDs automatically. Update dashboard

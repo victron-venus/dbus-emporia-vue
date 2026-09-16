@@ -46,8 +46,8 @@ def emporia_config(config):
     result = {
         "token_file": "emporia-tokens.json",
         "poll_interval_seconds": 3,
-        "day_interval_seconds": 900,
-        "month_interval_seconds": 3600,
+        "day_interval_seconds": 1800,
+        "month_interval_seconds": 21600,
         "timeout_seconds": 10,
         "stale_after_seconds": 30,
         "status_interval_seconds": 15,

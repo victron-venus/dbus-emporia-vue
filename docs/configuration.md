@@ -113,8 +113,8 @@ instances. The minimal examples omit defaults and optional fields.
 Direct API settings live inside `emporia`. Defaults are:
 
 - `poll_interval_seconds`: `3` for power.
-- `day_interval_seconds`: `900` for daily energy.
-- `month_interval_seconds`: `3600` for monthly energy.
+- `day_interval_seconds`: `1800` (30 minutes) for daily energy.
+- `month_interval_seconds`: `21600` (6 hours) for monthly energy.
 - `timeout_seconds`: `10` for cloud requests.
 - `stale_after_seconds`: `30` for power freshness; must exceed the power interval.
 - `status_interval_seconds`: `15` for meter connection status.

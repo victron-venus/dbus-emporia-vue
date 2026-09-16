@@ -37,6 +37,9 @@ You need your Emporia account, internet access and the device/channel IDs. This
 setup provides power, daily energy and monthly energy. HA and an MQTT bridge are
 not required.
 
+By default, power refreshes every 3 seconds, daily energy every 30 minutes and
+monthly energy every 6 hours.
+
 [Setup instructions](docs/examples/2-from-emporia-api/README.md) ·
 [GX config](docs/examples/2-from-emporia-api/config.json.example) ·
 [Credentials template](docs/examples/2-from-emporia-api/emporia-credentials.json.example)

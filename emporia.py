@@ -96,8 +96,8 @@ class EmporiaClient:
         self.unavailable = unavailable
         self.publish_energy = publish_energy
         self.poll_interval = config.get("poll_interval_seconds", 3.0)
-        self.day_interval = config.get("day_interval_seconds", 900.0)
-        self.month_interval = config.get("month_interval_seconds", 3600.0)
+        self.day_interval = config.get("day_interval_seconds", 1800.0)
+        self.month_interval = config.get("month_interval_seconds", 21600.0)
         self.status_interval = config.get("status_interval_seconds", 15.0)
         self.status_max_age = config.get("status_stale_after_seconds", 30.0)
         self.timeout = config.get("timeout_seconds", 10.0)

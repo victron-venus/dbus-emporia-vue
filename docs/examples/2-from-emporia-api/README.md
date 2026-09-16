@@ -67,8 +67,8 @@ Check `/Connected=1`, `/Source/Type=emporia`, current `/LastUpdate` and numeric
 the credentials, device/channel mapping, internet access and
 `/var/log/dbus-emporia-vue/current`.
 
-Power updates every 3 seconds by default; daily energy every 15 minutes and
-monthly energy every hour. These energy readings are period totals, not
+Power updates every 3 seconds by default; daily energy every 30 minutes and
+monthly energy every 6 hours. These energy readings are period totals, not
 lifetime counters.
 
 To add more channels, copy the channel object and give each one a distinct

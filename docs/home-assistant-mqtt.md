@@ -284,7 +284,7 @@ Power uses `/Connected` plus MQTT expiration. The driver also invalidates stale
 Emporia power before publishing it to D-Bus.
 
 Energy uses its own `Updated` path, independent of `/Connected`. With the default
-poll intervals, the validity limits are 1,830 seconds for daily energy and 7,230
+poll intervals, the validity limits are 3,630 seconds for daily energy and 43,230
 seconds for monthly energy. If you change an energy poll interval, change the
 matching YAML age limit to `2 * interval + 30`. Keep GX and HA clocks synchronized.
 An energy value can remain valid while current power is unavailable.
