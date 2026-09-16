@@ -24,11 +24,11 @@ if [ "$INSTALL_DIR" != "/data/dbus-emporia-vue" ]; then
     exit 2
 fi
 
-# Device-local files that must never be overwritten by an update.
+# Device-local configuration is preserved; credential and token files are never copied.
 LOCAL_ONLY="config.json"
 
 # Runtime items shipped at the repo root and installed at INSTALL_DIR root.
-RUNTIME_ITEMS="update.sh main.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt requirements.lock"
+RUNTIME_ITEMS="update.sh main.py emporia.py sources.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt requirements.lock"
 
 # Reserved for obsolete runtime files from future migrations.
 STALE_TOP_LEVEL=""
@@ -37,11 +37,28 @@ sep() { echo "=== dbus-emporia-vue update: $*"; }
 
 # Fail before stopping the existing service if the firmware lacks dependencies.
 # Provision packages separately; never modify the system Python during an update.
-PYTHONDONTWRITEBYTECODE=1 python3 - <<'PYTHON'
+export PYTHONPATH="$INSTALL_DIR/vendor${PYTHONPATH:+:$PYTHONPATH}"
+CHECK_CONFIG="$INSTALL_DIR/config.json"
+if [ "${PUSH_LOCAL_CONFIG:-0}" = "1" ] && [ -f "$SRC_DIR/config.json" ]; then
+    CHECK_CONFIG="$SRC_DIR/config.json"
+fi
+PYTHONDONTWRITEBYTECODE=1 python3 - "$CHECK_CONFIG" <<'PYTHON'
+import json
 import sys
+from pathlib import Path
+
 if sys.version_info < (3, 11):
     raise SystemExit("Python 3.11 or newer is required")
 import dbus_fast, websockets
+
+config_path = Path(sys.argv[1])
+if config_path.is_file():
+    config = json.loads(config_path.read_text())
+    source = config.get("source", "home_assistant")
+    if source not in {"emporia", "home_assistant"}:
+        raise SystemExit("source must be emporia or home_assistant")
+    if source == "emporia":
+        import pyemvue, botocore
 PYTHON
 
 command -v svc >/dev/null

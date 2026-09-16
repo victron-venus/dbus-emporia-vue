@@ -1,22 +1,34 @@
 {
-  "ha_url": "ws://192.168.1.50:8123/api/websocket",
-  "ha_token": "YOUR_LONG_LIVED_ACCESS_TOKEN",
+  "source": "emporia",
+  "emporia": {
+    "token_file": "emporia-tokens.json",
+    "credentials_file": "emporia-credentials.json",
+    "poll_interval_seconds": 3,
+    "day_interval_seconds": 900,
+    "month_interval_seconds": 3600,
+    "timeout_seconds": 10,
+    "stale_after_seconds": 30,
+    "solar_invert": true
+  },
   "channels": [
     {
-      "ha_entity_id": "sensor.emporia_channel_1_power",
+      "id": "channel_1",
+      "emporia_device_gid": 123456,
+      "emporia_channel": "1",
       "service_name": "com.victronenergy.acload.emporia_ch1",
       "instance": 71,
       "custom_name": "Heat Pump",
       "position": 0
     },
     {
-      "ha_entity_id": "sensor.emporia_channel_2_power",
+      "id": "channel_2",
+      "emporia_device_gid": 123456,
+      "emporia_channel": "2",
       "service_name": "com.victronenergy.acload.emporia_ch2",
       "instance": 72,
       "custom_name": "Water Heater",
       "position": 0
     }
-    // Add more channels as needed...
   ],
   "submeter": null,
   "log_level": "INFO"

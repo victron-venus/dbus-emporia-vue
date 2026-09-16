@@ -1,5 +1,7 @@
 # Local configuration (contains secrets)
 config.json
+emporia-tokens.json
+emporia-credentials.json
 # Logs
 logs/
 # Python bytecode
@@ -16,7 +18,9 @@ terraform-github-victron
 .coverage
 
 # Local validation and candidate packaging
+.venv/
 .venv-ci/
+vendor/
 release-dist/
 bandit-results.json
 # Frozen release overlays and final build staging

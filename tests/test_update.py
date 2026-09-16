@@ -1,9 +1,12 @@
 """Exercise the real installer in a temporary Venus filesystem layout."""
 
+import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -298,3 +301,149 @@ def test_missing_dependencies_fail_before_install_changes(tmp_path):
     )
     assert result.returncode == 42
     assert "unexpected continuation" not in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("config", "needs_direct"),
+    [
+        ({}, False),
+        ({"emporia": None}, False),
+        ({"source": "home_assistant"}, False),
+        ({"source": "emporia"}, True),
+    ],
+)
+def test_direct_dependency_check_respects_installed_configuration(
+    venus, tmp_path, config, needs_direct
+):
+    """A missing direct client blocks only the selected Emporia source."""
+    install_existing_service(venus)
+    venus.config.write_text(json.dumps(config))
+    imports = tmp_path / "imports"
+    imports.mkdir()
+    (imports / "dbus_fast.py").write_text("")
+    (imports / "websockets.py").write_text("")
+    (imports / "requests.py").write_text("raise ImportError('unused HA dependency')\n")
+    (imports / "pyemvue.py").write_text("raise ImportError('direct client unavailable')\n")
+    interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
+    interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+    venus.env["PYTHONPATH"] = str(imports)
+
+    result = run_update(venus)
+
+    if needs_direct:
+        assert result.returncode != 0
+        assert "direct client unavailable" in result.stderr
+        assert not venus.calls.exists()
+    else:
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert venus.calls.exists()
+
+
+def test_direct_dependency_check_uses_pushed_configuration(venus, tmp_path):
+    """Check the incoming configuration before replacing a healthy HA service."""
+    venus.config.write_text('{"source": "home_assistant"}')
+    release = tmp_path / "release"
+    copy_payload(venus, release)
+    (release / "config.json").write_text('{"source": "emporia"}')
+    imports = tmp_path / "imports"
+    imports.mkdir()
+    (imports / "dbus_fast.py").write_text("")
+    (imports / "websockets.py").write_text("")
+    (imports / "requests.py").write_text("raise ImportError('unused HA dependency')\n")
+    (imports / "pyemvue.py").write_text("raise ImportError('direct client unavailable')\n")
+    interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
+    interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+    venus.env.update(PYTHONPATH=str(imports), PUSH_LOCAL_CONFIG="1")
+
+    result = run_update(venus, release)
+
+    assert result.returncode != 0
+    assert "direct client unavailable" in result.stderr
+    assert not venus.calls.exists()
+    assert json.loads(venus.config.read_text())["source"] == "home_assistant"
+
+
+@pytest.mark.parametrize("in_place", [False, True])
+def test_updates_leave_credentials_and_tokens_untouched(venus, tmp_path, in_place):
+    """Only runtime paths are replaced, including with custom secret filenames."""
+    secrets = {}
+    for name in ("emporia-tokens.json", "emporia-credentials.json", "custom-auth.json"):
+        path = venus.install / name
+        path.write_text("device-local authentication")
+        path.chmod(0o600)
+        secrets[path] = path.stat()
+    source = venus.install
+    if not in_place:
+        source = tmp_path / "release"
+        copy_payload(venus, source)
+        for path in secrets:
+            (source / path.name).write_text("must not replace device credentials")
+
+    result = run_update(venus, source)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    for path, before in secrets.items():
+        assert path.read_text() == "device-local authentication"
+        assert path.stat().st_ino == before.st_ino
+        assert path.stat().st_mode == before.st_mode
+
+
+def test_updater_loads_and_preserves_device_vendor_dependencies(venus, tmp_path):
+    """Check dependencies from persistent storage without copying over them."""
+    venus.config.write_text('{"source": "emporia"}')
+    vendor = venus.install / "vendor"
+    vendor.mkdir()
+    imports = tmp_path / "imports"
+    imports.mkdir()
+    for name in ("dbus_fast", "websockets", "pyemvue", "botocore"):
+        (vendor / f"{name}.py").write_text("# device dependency\n")
+        (imports / f"{name}.py").write_text("raise ImportError('wrong dependency path')\n")
+    before = {path: path.stat() for path in vendor.iterdir()}
+    interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
+    interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+    venus.env["PYTHONPATH"] = str(imports)
+    release = tmp_path / "release"
+    copy_payload(venus, release)
+    (release / "vendor").mkdir()
+    (release / "vendor" / "pyemvue.py").write_text("raise ImportError('release dependency')\n")
+
+    result = run_update(venus, release)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert_directory_metadata(before)
+    assert set(vendor.iterdir()) == set(before)
+    assert (vendor / "pyemvue.py").read_text() == "# device dependency\n"
+
+
+@pytest.mark.parametrize("existing_pythonpath", [False, True])
+def test_service_loads_vendor_and_preserves_existing_pythonpath(
+    venus, tmp_path, existing_pythonpath
+):
+    """The service resolves the same persistent dependencies as the updater."""
+    vendor = venus.install / "vendor"
+    vendor.mkdir()
+    (vendor / "device_dependency.py").write_text("VALUE = 'device vendor'\n")
+    source = "import device_dependency\nprint(device_dependency.VALUE)\n"
+    venus.env.pop("PYTHONPATH", None)
+    if existing_pythonpath:
+        imports = tmp_path / "imports"
+        imports.mkdir()
+        (imports / "device_dependency.py").write_text(
+            "raise ImportError('wrong dependency path')\n"
+        )
+        (imports / "ambient_dependency.py").write_text("VALUE = 'existing path'\n")
+        source += "import ambient_dependency\nprint(ambient_dependency.VALUE)\n"
+        venus.env["PYTHONPATH"] = str(imports)
+    (venus.install / "main.py").write_text(source)
+    interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
+    interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+    script = (venus.repo / "services/dbus-emporia-vue/run").read_text()
+    script = script.replace("/data/dbus-emporia-vue", str(venus.install))
+
+    result = subprocess.run(
+        ["sh", "-c", script], env=venus.env, capture_output=True, text=True, check=False, timeout=10
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    expected = ["device vendor", "existing path"] if existing_pythonpath else ["device vendor"]
+    assert result.stdout.splitlines() == expected
