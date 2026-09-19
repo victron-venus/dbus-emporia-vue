@@ -2,7 +2,7 @@
 #
 # Deploy dbus-emporia-vue to Venus OS
 #
-# Packs the local repository (minus VCS/CI/cache cruft), streams it to the
+# Packs the declared runtime and optional config.json, streams them to the
 # device and runs the repo's own self-update script (update.sh) there, so all
 # install logic lives in exactly one place - the same path the auto-deploy
 # webhook uses for release tarballs.
@@ -29,7 +29,7 @@ echo ""
 
 # Check local syntax before shipping (fail fast on the dev machine)
 echo ">>> Checking Python syntax..."
-python3 -m py_compile "$SCRIPT_DIR/main.py" "$SCRIPT_DIR/parse_ha.py"
+python3 -m py_compile "$SCRIPT_DIR/main.py" "$SCRIPT_DIR/emporia.py" "$SCRIPT_DIR/sources.py" "$SCRIPT_DIR/parse_ha.py"
 echo "    Syntax OK"
 
 # Optional workstation configuration generation; an existing device config is
@@ -38,26 +38,35 @@ if [[ ! -f "$SCRIPT_DIR/config.json" && -n "${HA_URL:-}" && -n "${HA_TOKEN:-}" ]
     (cd "$SCRIPT_DIR" && python3 ha_config_gen.py)
 fi
 
-# Package the repo and run update.sh on the device. `set -e` on the remote
+# Package the runtime and run update.sh on the device. `set -e` on the remote
 # aborts the whole chain if update.sh fails, so the deploy is atomic-ish.
 #
-echo ">>> Streaming repository to $SSH_HOST and running update.sh..."
+PAYLOAD_FILES="$(mktemp)"
+trap 'rm -f "$PAYLOAD_FILES"' EXIT
+python3 - "$SCRIPT_DIR" "$PAYLOAD_FILES" <<'PYTHON'
+import json
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+sys.path.insert(0, str(root / "scripts"))
+from package_release import package_inputs
+
+_, selected = package_inputs(root, json.loads((root / ".release-package.json").read_text()))
+if (root / "config.json").is_file():
+    selected.append("config.json")
+for name in selected:
+    path = root / name
+    if path.is_symlink() or not path.is_file():
+        raise SystemExit(f"Refusing non-regular runtime input: {name}")
+Path(sys.argv[2]).write_bytes(b"".join(("./" + name).encode() + b"\0" for name in selected))
+PYTHON
+echo ">>> Streaming runtime to $SSH_HOST and running update.sh..."
 # macOS bsdtar otherwise writes AppleDouble (._*) and pax LIBARCHIVE.xattr.*
 # headers (com.apple.provenance) that Venus/busybox tar warns about on extract.
 COPYFILE_DISABLE=1 tar \
     --no-xattrs \
-    --exclude='.git' \
-    --exclude='__pycache__' \
-    --exclude='*.pyc' \
-    --exclude='.pytest_cache' \
-    --exclude='.ruff_cache' \
-    --exclude='.coverage' \
-    --exclude='logs' \
-    --exclude='*.egg-info' \
-    --exclude='.venv' \
-    --exclude='build' \
-    --exclude='.mcp.json' \
-    -czf - -C "$SCRIPT_DIR" . \
+    -czf - -C "$SCRIPT_DIR" --null -T "$PAYLOAD_FILES" \
     | ssh "$SSH_HOST" "set -e; rm -rf $DEPLOY_DIR; mkdir -p $DEPLOY_DIR; \
         tar -xz -C $DEPLOY_DIR --strip-components=1; \
         PUSH_LOCAL_CONFIG=1 sh $DEPLOY_DIR/update.sh; \

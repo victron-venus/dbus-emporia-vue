@@ -128,6 +128,75 @@ class TestAcLoadService:
         assert svc._service["/Connected"] == 1
         assert svc._service["/Status"] == 0
 
+    @pytest.mark.parametrize("directions", [(), ("import",), ("export",), ("import", "export")])
+    def test_energy_samples_exist_only_for_configured_directions(self, directions):
+        svc = self._make()
+        channel = {"emporia_device_gid": 1, "emporia_channel": "1"}
+        for direction in directions:
+            channel[f"emporia_{direction}_channel"] = direction
+        svc.configure_emporia(channel)
+        expected = {"/Emporia/Energy/DaySample", "/Emporia/Energy/MonthSample"}
+        for direction in directions:
+            expected.update(
+                f"/Emporia/Energy/{direction.title()}/{period}Sample" for period in ("Day", "Month")
+            )
+        samples = {path for path in svc._service.items if path.endswith("Sample")}
+        assert samples == expected
+        assert all(svc._service[path] == '{"value":null,"timestamp":null}' for path in samples)
+
+    @pytest.mark.parametrize(
+        ("field", "path"),
+        [
+            ("energy_day", "/Emporia/Energy/Day"),
+            ("energy_month", "/Emporia/Energy/Month"),
+            ("energy_import_day", "/Emporia/Energy/Import/Day"),
+            ("energy_import_month", "/Emporia/Energy/Import/Month"),
+            ("energy_export_day", "/Emporia/Energy/Export/Day"),
+            ("energy_export_month", "/Emporia/Energy/Export/Month"),
+        ],
+    )
+    def test_energy_sample_preserves_pair_through_reset_clear_and_expiry(
+        self, monkeypatch, field, path
+    ):
+        from sources import EmporiaChannel
+
+        svc = self._make()
+        svc.configure_emporia(
+            {
+                "emporia_device_gid": 1,
+                "emporia_channel": "1",
+                "emporia_import_channel": "MainsFromGrid",
+                "emporia_export_channel": "MainsToGrid",
+            }
+        )
+        clock = {"wall": 1800000000, "monotonic": 100}
+        monkeypatch.setattr("sources.time.time", lambda: clock["wall"])
+        monkeypatch.setattr("sources.time.monotonic", lambda: clock["monotonic"])
+        channel = EmporiaChannel(
+            svc,
+            {"stale_after_seconds": 30, "day_interval_seconds": 60, "month_interval_seconds": 600},
+            energy_fields=svc.energy_fields,
+        )
+
+        def assert_pair(value, timestamp):
+            sample = svc._service[f"{path}Sample"]
+            assert json.loads(sample) == {"value": value, "timestamp": timestamp}
+            assert " " not in sample
+            assert svc._service[path] == value
+            assert svc._service[f"{path}Updated"] == timestamp
+
+        assert_pair(None, None)
+        for value in (12.5, 0, None, 3.25):
+            clock["wall"] += 1
+            clock["monotonic"] += 1
+            channel.update_energy(field, value, clock["wall"])
+            assert_pair(value, clock["wall"] if value is not None else None)
+
+        clock["monotonic"] += 2000
+        channel.refresh()
+        assert_pair(None, None)
+        assert svc._service["/Ac/Energy/Forward"] is None
+
     def test_set_connected_true(self):
         svc = self._make()
         svc.set_connected(True)
@@ -1058,3 +1127,118 @@ def test_refresh_disabled_without_selected_channel():
     client.websocket = AsyncMock()
     asyncio.run(client.refresh_submeter())
     client.websocket.send.assert_not_called()
+
+
+def test_direct_mode_never_constructs_ha_client(tmp_path, monkeypatch):
+    import emporia
+    import main as app
+    from sources import Measurement
+
+    cfg = [
+        {
+            **CHANNELS_CFG[0],
+            "id": "circuit",
+            "emporia_device_gid": 1,
+            "emporia_channel": "1",
+            "emporia_import_channel": "MainsFromGrid",
+        }
+    ]
+    cfg[0].pop("ha_entity_id")
+    _write_config(
+        tmp_path,
+        source="emporia",
+        emporia={},
+        channels=cfg,
+        ha_token="",
+        submeter={"channel": "circuit", "stale_after_seconds": 30},
+    )
+    monkeypatch.setattr(app, "_here", str(tmp_path))
+    monkeypatch.setattr(app, "write_heartbeat", lambda: None)
+    monkeypatch.setattr(
+        app, "HaWebSocketClient", MagicMock(side_effect=AssertionError("HA started"))
+    )
+    monkeypatch.setattr(
+        app,
+        "MessageBus",
+        MagicMock(return_value=MagicMock(connect=AsyncMock(return_value=MagicMock()))),
+    )
+    original_service, services = app.AcLoadService, []
+
+    def service(*args):
+        instance = original_service(*args)
+        services.append(instance)
+        return instance
+
+    monkeypatch.setattr(app, "AcLoadService", service)
+
+    async def exercise():
+        ready = asyncio.Event()
+
+        class Client:
+            def __init__(self, config, channels, publish, unavailable, publish_energy):
+                assert channels[0]["id"] == "circuit"
+                assert config["token_file"] == str(tmp_path / "emporia-tokens.json")
+                self.publish, self.unavailable, self.energy = publish, unavailable, publish_energy
+
+            async def run(self):
+                now = app.time.time()
+                self.publish({"circuit": Measurement(-125, now)})
+                self.energy(
+                    {"circuit": {"energy_day": 3, "energy_import_day": 4, "timestamp": now}}
+                )
+                ready.set()
+                await asyncio.Event().wait()
+
+        monkeypatch.setattr(emporia, "EmporiaClient", Client)
+        task = asyncio.create_task(app.main())
+        await asyncio.wait_for(ready.wait(), 2)
+        try:
+            items = services[0]._service.items
+            assert items["/Ac/Power"] == -125
+            assert items["/Connected"] == 1
+            assert items["/Source/Type"] == "emporia"
+            assert items["/Emporia/Energy/Day"] == 3
+            assert items["/Emporia/Energy/Import/Day"] == 4
+            assert items["/Ac/Energy/Forward"] is None
+        finally:
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+
+    asyncio.run(exercise())
+    app.HaWebSocketClient.assert_not_called()
+    services[0]._bus.disconnect.assert_called_once()
+
+
+def test_ha_mode_never_constructs_emporia_client(tmp_path, monkeypatch):
+    import emporia
+    import main as app
+
+    _write_config(tmp_path, source="home_assistant", emporia={"credentials_file": "unused"})
+    monkeypatch.setattr(app, "_here", str(tmp_path))
+    monkeypatch.setattr(app, "write_heartbeat", lambda: None)
+    monkeypatch.setattr(
+        app,
+        "MessageBus",
+        MagicMock(return_value=MagicMock(connect=AsyncMock(return_value=MagicMock()))),
+    )
+    cloud = MagicMock(side_effect=AssertionError("Emporia started"))
+    monkeypatch.setattr(emporia, "EmporiaClient", cloud)
+
+    async def exercise():
+        ready = asyncio.Event()
+
+        async def ha_client(client):
+            assert set(client.channel_map) == {"sensor.a", "sensor.b"}
+            ready.set()
+            await asyncio.Event().wait()
+
+        monkeypatch.setattr(app, "run_websocket_client", ha_client)
+        task = asyncio.create_task(app.main())
+        await asyncio.wait_for(ready.wait(), 2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(exercise())
+    cloud.assert_not_called()

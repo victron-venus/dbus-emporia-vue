@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Expose Emporia Vue channels as Victron AC Loads on the Venus OS D-Bus.
-
-Connects to Home Assistant over WebSocket, subscribes to state changes of
-exactly the configured Emporia power sensors via ``subscribe_trigger`` and
-publishes each channel as a ``com.victronenergy.acload.*`` service using the
-standard ``com.victronenergy.BusItem`` interface (aiovelib).
-"""
+"""Expose Emporia power and energy from the configured source on D-Bus."""
 
 import asyncio
 import contextlib
@@ -33,6 +27,7 @@ import time
 from pathlib import Path
 
 from parse_ha import parse_ha_state_change, parse_initial_state, parse_submeter_state
+from sources import ENERGY_PATHS, EmporiaChannel, channel_id, emporia_config
 
 _here = os.path.dirname(os.path.abspath(__file__))
 
@@ -177,6 +172,52 @@ class AcLoadService:
             s["/Ac/L1/Power"] = power
             s[PATH_CONNECTED] = 1 if power is not None else 0
             s[PATH_STATUS] = 0 if power is not None else 1
+
+    def configure_emporia(self, channel, poll_interval=3):
+        self._direct_refresh_ms = int(poll_interval * 1000)
+        self._service.add_item(TextItem("/Source/Type", "unavailable"))
+        self._service.add_item(TextItem("/Emporia/DeviceId", str(channel["emporia_device_gid"])))
+        self._service.add_item(TextItem("/Emporia/Channel", channel["emporia_channel"]))
+        if not self.submeter:
+            self._service.add_item(DoubleItem("/LastUpdate", None))
+        self.energy_fields = ["energy_day", "energy_month"]
+        for direction in ("import", "export"):
+            if channel.get(f"emporia_{direction}_channel"):
+                self.energy_fields.extend(
+                    f"energy_{direction}_{period}" for period in ("day", "month")
+                )
+        for field in self.energy_fields:
+            period = ENERGY_PATHS[field]
+            self._service.add_item(DoubleItem(f"/Emporia/Energy/{period}", None))
+            self._service.add_item(DoubleItem(f"/Emporia/Energy/{period}Updated", None))
+            self._service.add_item(
+                TextItem(f"/Emporia/Energy/{period}Sample", '{"value":null,"timestamp":null}')
+            )
+
+    def publish_measurement(self, sample, source):
+        with self._service as s:
+            s["/Ac/Power"] = sample.power if sample else None
+            s["/Ac/L1/Power"] = sample.power if sample else None
+            s["/LastUpdate"] = sample.timestamp if sample else None
+            s["/Source/Type"] = source
+            s["/Mgmt/Connection"] = {
+                "emporia": "Emporia API",
+                "unavailable": "Unavailable",
+            }[source]
+            if self.submeter:
+                s["/RefreshTime"] = self._direct_refresh_ms
+            s[PATH_CONNECTED] = 1 if sample else 0
+            s[PATH_STATUS] = 0 if sample else 1
+
+    def publish_energy(self, field, value, timestamp):
+        period = ENERGY_PATHS[field]
+        with self._service as s:
+            s[f"/Emporia/Energy/{period}"] = value
+            s[f"/Emporia/Energy/{period}Updated"] = timestamp
+            # Keep energy and its source timestamp atomic for MQTT consumers.
+            s[f"/Emporia/Energy/{period}Sample"] = json.dumps(
+                {"value": value, "timestamp": timestamp}, separators=(",", ":")
+            )
 
     def set_connected(self, connected):
         if self.submeter and not connected:
@@ -400,9 +441,9 @@ def selected_submeter(config):
     if not isinstance(selection, dict):
         raise ValueError("submeter must be null or an object with channel")
     channel = selection.get("channel")
-    matches = [c for c in config.get("channels", []) if c.get("ha_entity_id") == channel]
+    matches = [c for c in config.get("channels", []) if channel_id(c) == channel]
     if not isinstance(channel, str) or len(matches) != 1:
-        raise ValueError("submeter.channel must identify exactly one configured HA channel")
+        raise ValueError("submeter.channel must identify exactly one configured channel")
     if not matches[0].get("service_name", "").startswith("com.victronenergy.acload."):
         raise ValueError("submeter channel must use a com.victronenergy.acload service")
     age = selection.get("stale_after_seconds", 30)
@@ -465,11 +506,12 @@ async def main():
     channels_config = config.get("channels", DEFAULT_CONFIG["channels"])
     try:
         submeter = selected_submeter(config)
+        direct = emporia_config(config)
     except ValueError as exc:
-        logger.error("Invalid submeter configuration: %s", exc)
+        logger.error("Invalid source configuration: %s", exc)
         return
 
-    if not ha_token or ha_token == "YOUR_LONG_LIVED_ACCESS_TOKEN":
+    if not direct and (not ha_token or ha_token == "YOUR_LONG_LIVED_ACCESS_TOKEN"):
         logger.error("Please set a valid long-lived access token in config.json")
         return
 
@@ -479,7 +521,7 @@ async def main():
 
     services = {}
     for chan in channels_config:
-        entity_id = chan.get("ha_entity_id")
+        entity_id = channel_id(chan) if direct else chan.get("ha_entity_id")
         service_name = chan.get("service_name")
         instance = chan.get("instance")
         custom_name = chan.get("custom_name")
@@ -493,8 +535,10 @@ async def main():
         # exports the BusItem interface at "/", so sharing a single bus
         # between services raises "already exported on this bus".
         bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
-        selection = submeter if submeter and submeter["channel"] == entity_id else None
+        selection = submeter if submeter and submeter["channel"] == channel_id(chan) else None
         service = AcLoadService(bus, service_name, instance, custom_name, position, selection)
+        if direct:
+            service.configure_emporia(chan, direct["poll_interval_seconds"])
         try:
             await service.register()
         except Exception:  # a broken channel must not kill startup
@@ -513,7 +557,61 @@ async def main():
         logger.error("No services could be registered")
         return
 
-    ws_client = HaWebSocketClient(ha_url, ha_token, services)
+    direct_channels = {}
+    ws_client = None
+    cloud_client = None
+    if direct:
+        from emporia import EmporiaClient
+
+        for key in ("token_file", "credentials_file"):
+            if key in direct:
+                direct[key] = str(Path(_here) / direct[key])
+        active_channels = [
+            {**c, "id": channel_id(c)} for c in channels_config if channel_id(c) in services
+        ]
+        for channel in active_channels:
+            identity = channel["id"]
+            selected_age = (
+                submeter["stale_after_seconds"]
+                if submeter and submeter["channel"] == identity
+                else None
+            )
+            direct_channels[identity] = EmporiaChannel(
+                services[identity],
+                direct,
+                selected_age,
+                services[identity].energy_fields,
+            )
+
+        def publish_power(measurements):
+            for identity, sample in measurements.items():
+                if identity in direct_channels:
+                    direct_channels[identity].update(sample)
+
+        def cloud_unavailable():
+            for channel in direct_channels.values():
+                channel.unavailable()
+
+        def publish_energy(measurements):
+            for identity, reading in measurements.items():
+                if identity in direct_channels:
+                    for field in ENERGY_PATHS:
+                        if field in reading:
+                            direct_channels[identity].update_energy(
+                                field,
+                                reading[field],
+                                reading.get("timestamp"),
+                            )
+
+        cloud_client = EmporiaClient(
+            direct,
+            active_channels,
+            publish_power,
+            cloud_unavailable,
+            publish_energy=publish_energy,
+        )
+    else:
+        ws_client = HaWebSocketClient(ha_url, ha_token, services)
 
     async def heartbeat_task():
         while True:
@@ -522,8 +620,12 @@ async def main():
             except OSError:
                 logger.exception("Failed to write heartbeat file")
             for _ in range(5):
-                for service in services.values():
-                    service.expire()
+                if direct_channels:
+                    for channel in direct_channels.values():
+                        channel.refresh()
+                else:
+                    for service in services.values():
+                        service.expire()
                 await asyncio.sleep(1)
 
     loop = asyncio.get_running_loop()
@@ -546,10 +648,11 @@ async def main():
         except NotImplementedError:
             pass
 
-    tasks = [
-        asyncio.create_task(run_websocket_client(ws_client)),
-        asyncio.create_task(heartbeat_task()),
-    ]
+    tasks = [asyncio.create_task(heartbeat_task())]
+    if ws_client:
+        tasks.insert(0, asyncio.create_task(run_websocket_client(ws_client)))
+    if cloud_client:
+        tasks.append(asyncio.create_task(cloud_client.run()))
     try:
         await asyncio.gather(*tasks)
     except asyncio.CancelledError:
@@ -565,7 +668,8 @@ async def main():
             logger.exception("Timed out stopping background tasks")
         finally:
             try:
-                await asyncio.wait_for(ws_client.disconnect(), timeout=5)
+                if ws_client:
+                    await asyncio.wait_for(ws_client.disconnect(), timeout=5)
             except Exception:  # cleanup must continue even after an unexpected close failure
                 logger.exception("Failed to close Home Assistant connection")
             finally:

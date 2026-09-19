@@ -1,4 +1,5 @@
 #!/bin/sh
 cd /data/dbus-emporia-vue || exit 1
+export PYTHONPATH="$PWD/vendor${PYTHONPATH:+:$PYTHONPATH}"
 exec 2>&1
 exec python3 main.py

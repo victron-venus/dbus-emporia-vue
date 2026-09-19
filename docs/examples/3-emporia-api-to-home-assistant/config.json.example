@@ -6,7 +6,17 @@
   },
   "channels": [
     {
-      "id": "channel_1",
+      "id": "main",
+      "emporia_device_gid": 123456,
+      "emporia_channel": "1,2,3",
+      "emporia_import_channel": "MainsFromGrid",
+      "emporia_export_channel": "MainsToGrid",
+      "service_name": "com.victronenergy.acload.emporia_main",
+      "instance": 70,
+      "custom_name": "Emporia Main"
+    },
+    {
+      "id": "heat_pump",
       "emporia_device_gid": 123456,
       "emporia_channel": "1",
       "service_name": "com.victronenergy.acload.emporia_ch1",

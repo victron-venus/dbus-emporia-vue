@@ -2,15 +2,25 @@
   "name": "dbus-emporia-vue",
   "include": [
     "main.py",
+    "emporia.py",
+    "sources.py",
     "parse_ha.py",
     "ha_config_gen.py",
     "aiovelib",
     "setup",
+    "update.sh",
+    "services",
+    "register-package.sh",
+    "gitHubInfo",
     "version",
     "config.json.example",
     "requirements.txt",
     "requirements.lock",
     "README.md",
+    "docs/installation.md",
+    "docs/configuration.md",
+    "docs/home-assistant-mqtt.md",
+    "docs/examples",
     "LICENSE"
   ]
 }
