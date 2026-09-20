@@ -21,6 +21,7 @@
     "docs/configuration.md",
     "docs/home-assistant-mqtt.md",
     "docs/examples",
-    "LICENSE"
+    "LICENSE",
+    ".python-version"
   ]
 }

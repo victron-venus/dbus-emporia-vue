@@ -8,6 +8,15 @@ The service runs on Venus OS. Each configured circuit becomes a Victron AC-load
 service with its own name and device instance. Consumers such as Inverter Desktop
 can display those loads.
 
+## Python runtime
+
+Native Venus OS packages target **Python 3.12.x**. The audited Cerbo on Venus OS
+v3.75 reports Python **3.12.13**; the [official Venus OS v3.79 manifest](https://updates.victronenergy.com/feeds/venus/release/sdk/venus-scarthgap-x86_64-arm-cortexa8hf-neon-toolchain-v3.79.target.manifest)
+also ships 3.12.13. Local development and CI use `.python-version` / Python
+3.12.13. Regenerate both requirements locks with `--python-version 3.12.13`. The installer accepts 3.12 patch updates and rejects other minor versions
+before stopping the running service. Use the firmware's system interpreter
+and its matching D-Bus/GI libraries on the device; do not replace the OS Python.
+
 ## Choose your setup
 
 ### 1. Get readings from Home Assistant
@@ -66,7 +75,7 @@ to the selected source. To change it, edit `source` and restart the service.
 
 ## Before you start
 
-- A GX device running Venus OS with Python 3.11+ and SSH access is required.
+- A GX device running Venus OS with Python 3.12.x and SSH access is required.
 - Emporia API access is cloud-based and requires internet access on GX.
 - Configuration is manual: choose the circuits and keep their device instances
   unique. Existing installations should retain their service names and instances.

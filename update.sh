@@ -47,8 +47,8 @@ import json
 import sys
 from pathlib import Path
 
-if sys.version_info < (3, 11):
-    raise SystemExit("Python 3.11 or newer is required")
+if sys.version_info[:2] != (3, 12):
+    raise SystemExit("Venus OS system Python 3.12.x is required")
 import dbus_fast, websockets
 
 config_path = Path(sys.argv[1])
