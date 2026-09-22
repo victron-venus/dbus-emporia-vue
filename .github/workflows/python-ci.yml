@@ -2,10 +2,6 @@ name: CI
 
 on:
   workflow_call:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -54,3 +50,4 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+    timeout-minutes: 30
