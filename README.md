@@ -126,3 +126,9 @@ See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and s
 ## License
 
 MIT
+
+## Tariff reference export
+
+Use [the read-only tariff exporter](docs/tariff-export.md) to seed the dashboard
+editor from the configured Emporia device. Utility-plan schedules still need
+to be copied from the app; an ID alone is never treated as a flat price.
