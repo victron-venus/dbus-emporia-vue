@@ -5,6 +5,16 @@ from datetime import UTC, datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
+def _time_zone(value):
+    if not isinstance(value, str) or not value:
+        raise ValueError("Emporia did not provide a time zone")
+    try:
+        ZoneInfo(value)
+    except ZoneInfoNotFoundError as error:
+        raise ValueError("Emporia returned an unknown time zone") from error
+    return value
+
+
 def tariff_reference(properties: dict, currency: str) -> dict:
     """Do not turn a utility plan's placeholder flat price into a TOU schedule."""
     if not isinstance(properties, dict):
@@ -16,13 +26,7 @@ def tariff_reference(properties: dict, currency: str) -> dict:
         or not currency.isalpha()
     ):
         raise ValueError("Currency must be a three-letter code")
-    timezone = properties.get("timeZone")
-    try:
-        if not isinstance(timezone, str) or not timezone:
-            raise ValueError("Emporia did not provide a time zone")
-        ZoneInfo(timezone)
-    except ZoneInfoNotFoundError as error:
-        raise ValueError("Emporia returned an unknown time zone") from error
+    timezone = _time_zone(properties.get("timeZone"))
     utility = properties.get("utilityRateGid")
     if utility is not None and (isinstance(utility, bool) or not isinstance(utility, (int, str))):
         raise ValueError("Invalid Emporia utility rate identifier")

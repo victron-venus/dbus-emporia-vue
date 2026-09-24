@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -16,6 +17,13 @@ from sources import emporia_config  # noqa: E402
 from tariff_export import read_tariff_reference  # noqa: E402
 
 
+def export_path(filename: str) -> Path:
+    """Confine generated exports to a JSON basename in the working directory."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}\.json", filename):
+        raise ValueError("Choose a JSON filename without directory components")
+    return Path.cwd() / filename
+
+
 def main():
     """Write a sanitized reference from the configured Emporia device."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -26,12 +34,12 @@ def main():
     )
     parser.add_argument(
         "--output",
-        type=Path,
         required=True,
-        help="New JSON file; existing files are never overwritten",
+        help="New JSON filename in the current directory; paths and existing files are refused",
     )
     args = parser.parse_args()
     try:
+        destination = export_path(args.output)
         configuration = args.config.resolve()
         data = json.loads(configuration.read_text())
         config = emporia_config(data)
@@ -44,7 +52,7 @@ def main():
                 config[key] = str(configuration.parent / config[key])
         client = EmporiaClient(config, data["channels"], lambda *_: None, lambda: None)
         result = read_tariff_reference(client, args.device_gid, args.currency)
-        descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "w") as output:
             json.dump(result, output, indent=2)
             output.write("\n")

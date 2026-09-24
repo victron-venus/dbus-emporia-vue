@@ -6,12 +6,14 @@ Run it on the machine that already holds the driver's configuration and tokens:
 
 ```sh
 python3 scripts/export_tariff.py --config /path/to/config.json \
-  --device-gid 12345 --currency USD --output /tmp/emporia-tariff.json
+  --device-gid 12345 --currency USD --output emporia-tariff.json
 ```
 
 Use the actual configured device ID and the currency shown in the Emporia app.
 Import the resulting JSON with **Import tariff**. The exporter refuses to
 replace an existing file and never includes credentials or address fields.
+The output must be a JSON filename without directory components; the file is
+created in the current working directory with owner-only permissions.
 
 A nonempty `utilityRateGid` identifies a selected utility plan; the available
 PyEmVue device-properties contract does not provide the plan's time-of-use

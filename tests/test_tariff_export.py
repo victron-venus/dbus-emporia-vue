@@ -1,8 +1,12 @@
+import json
+import stat
+import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
+from scripts import export_tariff
 from tariff_export import read_tariff_reference, tariff_reference
 
 
@@ -39,8 +43,9 @@ def test_utility_plan_never_imports_placeholder_flat_rate():
 
 @pytest.mark.parametrize("rate", [True, "31", float("nan"), float("inf")])
 def test_invalid_flat_rates_fail_closed(rate):
+    source = properties(usageCentPerKwHour=rate)
     with pytest.raises(ValueError):
-        tariff_reference(properties(usageCentPerKwHour=rate), "USD")
+        tariff_reference(source, "USD")
 
 
 def test_missing_rate_is_not_free_and_zero_is_preserved():
@@ -56,3 +61,45 @@ def test_export_only_reads_selected_configured_device():
     auth.request.assert_called_once_with("get", "devices/42/locationProperties")
     with pytest.raises(ValueError):
         read_tariff_reference(client, 43, "USD")
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["../export.json", "/tmp/export.json", "nested/export.json", "tokens", "..\\export.json"],
+)
+def test_export_filename_cannot_escape_working_directory(filename):
+    with pytest.raises(ValueError):
+        export_tariff.export_path(filename)
+
+
+def test_cli_writes_private_export_and_preserves_existing_file(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"channels": []}))
+    monkeypatch.setattr(export_tariff, "emporia_config", lambda _: {})
+    monkeypatch.setattr(export_tariff, "EmporiaClient", Mock())
+    monkeypatch.setattr(
+        export_tariff, "read_tariff_reference", lambda *_: tariff_reference(properties(), "USD")
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "export_tariff.py",
+            "--config",
+            str(config),
+            "--device-gid",
+            "42",
+            "--currency",
+            "USD",
+            "--output",
+            "export.json",
+        ],
+    )
+    assert export_tariff.main() == 0
+    output = tmp_path / "export.json"
+    original = output.read_bytes()
+    assert json.loads(original)["flatRate"] == 0.31
+    assert stat.S_IMODE(output.stat().st_mode) == 0o600
+    assert export_tariff.main() == 1
+    assert output.read_bytes() == original
