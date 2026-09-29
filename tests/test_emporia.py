@@ -755,3 +755,108 @@ def test_energy_failure_does_not_mark_power_unavailable(caplog):
     monitor.publish.assert_called_once_with({})
     monitor.unavailable.assert_not_called()
     assert "secret" not in caplog.text
+
+
+def run_energy_worker(monkeypatch, monitor, duration, fetch_energy):
+    """Drive the real worker with a monotonic clock and no sleeping or API calls."""
+    now = [0.0]
+    power_calls = []
+    energy_calls = {"day": [], "month": []}
+    waits = []
+    monkeypatch.setattr("emporia.time.monotonic", lambda: now[0])
+    monitor.poll_interval = 1
+
+    def power():
+        power_calls.append(now[0])
+        return {}
+
+    def energy(period):
+        energy_calls[period].append(now[0])
+        return fetch_energy(period, len(energy_calls[period]))
+
+    def wait(delay):
+        waits.append(delay)
+        assert delay > 0, "the worker must not busy-loop"
+        now[0] += delay
+        if now[0] >= duration:
+            monitor._stop.set()
+
+    monitor.poll_power = power
+    monitor.poll_energy = energy
+    monitor._stop.wait = wait
+    monitor._work(lambda callback, *args: callback(*args))
+    return power_calls, energy_calls, waits
+
+
+@pytest.mark.parametrize("failed_period", ["day", "month"])
+def test_energy_transient_failure_recovers_without_delaying_power_or_other_period(
+    monkeypatch, failed_period
+):
+    monitor = client()
+
+    def energy(period, attempt):
+        if period == failed_period and attempt == 1:
+            raise OSError("temporary outage")
+        return {period: attempt}
+
+    power, attempts, waits = run_energy_worker(monkeypatch, monitor, 12, energy)
+    assert attempts[failed_period] == [0, 5]
+    assert attempts[{"day": "month", "month": "day"}[failed_period]] == [0]
+    assert power == list(range(12))
+    assert waits == [1] * 12
+    monitor.unavailable.assert_not_called()
+    assert monitor.publish_energy.call_count == 2
+
+
+def test_energy_repeated_failures_use_capped_backoff_and_preserve_power(monkeypatch):
+    monitor = client()
+
+    def energy(period, _attempt):
+        if period == "day":
+            raise OSError("outage")
+        return {}
+
+    power, attempts, waits = run_energy_worker(monkeypatch, monitor, 1000, energy)
+    assert attempts["day"] == [0, 5, 15, 35, 75, 155, 315, 615, 915]
+    assert attempts["month"] == [0]
+    assert power == list(range(1000))
+    assert waits == [1] * 1000
+    monitor.unavailable.assert_not_called()
+
+
+def test_energy_success_restores_normal_cadence_and_resets_backoff(monkeypatch):
+    monitor = client(config={"day_interval_seconds": 20})
+
+    def energy(period, attempt):
+        if period == "day" and attempt in (1, 2, 4):
+            raise OSError("intermittent outage")
+        return {}
+
+    _, attempts, _ = run_energy_worker(monkeypatch, monitor, 45, energy)
+    assert attempts["day"] == [0, 5, 15, 35, 40]
+    assert attempts["month"] == [0]
+
+
+def test_energy_error_retry_never_outpaces_short_configured_intervals(monkeypatch):
+    monitor = client(config={"day_interval_seconds": 3, "month_interval_seconds": 2})
+
+    def energy(_period, _attempt):
+        raise OSError("outage")
+
+    _, attempts, _ = run_energy_worker(monkeypatch, monitor, 8, energy)
+    assert attempts["day"] == [0, 3, 6]
+    assert attempts["month"] == [0, 2, 4, 6]
+
+
+def test_cancellation_during_failed_energy_stops_next_period_and_retries(monkeypatch):
+    monitor = client()
+
+    def energy(_period, _attempt):
+        monitor._stop.set()
+        raise OSError("canceled request")
+
+    power, attempts, _ = run_energy_worker(monkeypatch, monitor, 20, energy)
+    assert power == [0]
+    assert attempts == {"day": [0], "month": []}
+    monitor.publish_energy.assert_not_called()
+    monitor.unavailable.assert_not_called()

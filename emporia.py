@@ -367,6 +367,7 @@ class EmporiaClient:
     def _work(self, emit: Callable) -> None:
         next_energy = {"day": 0.0, "month": 0.0}
         energy_intervals = {"day": self.day_interval, "month": self.month_interval}
+        energy_failures = {"day": 0, "month": 0}
         failures = 0
         while not self._stop.is_set():
             started = time.monotonic()
@@ -393,7 +394,16 @@ class EmporiaClient:
                         emit(self.publish_energy, self.poll_energy(period))
                     except Exception as error:  # noqa: BLE001 - Energy does not gate power.
                         LOG.warning("Emporia %s request failed (%s)", period, type(error).__name__)
-                    next_energy[period] = time.monotonic() + energy_intervals[period]
+                        energy_failures[period] += 1
+                        delay = min(
+                            energy_intervals[period],
+                            300.0,
+                            max(5.0, self.poll_interval) * 2 ** min(energy_failures[period] - 1, 6),
+                        )
+                    else:
+                        energy_failures[period] = 0
+                        delay = energy_intervals[period]
+                    next_energy[period] = time.monotonic() + delay
             self._stop.wait(max(0.0, self.poll_interval - (time.monotonic() - started)))
 
     async def run(self) -> None:
