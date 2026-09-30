@@ -36,7 +36,7 @@
         "member": "dbus-emporia-vue/version"
       }
     ],
-    "toolkit_revision": "9fa406fa1d76bc2ceb1a54ad6ffe6211662242a2"
+    "toolkit_revision": "f23f592060f0b4c028d0b91edff0fa10b14df50f"
   },
   "single_entry_ci": true
 }
