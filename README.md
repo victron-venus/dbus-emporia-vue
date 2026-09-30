@@ -17,6 +17,19 @@ also ships 3.12.13. Local development and CI use `.python-version` / Python
 before stopping the running service. Use the firmware's system interpreter
 and its matching D-Bus/GI libraries on the device; do not replace the OS Python.
 
+After changing either requirements manifest, regenerate the installer lock first,
+then constrain the CI lock to those same runtime versions:
+
+```sh
+uv pip compile requirements.txt -o requirements.lock --python-version 3.12.13 --generate-hashes
+uv pip compile requirements.txt requirements-dev.txt -c requirements.lock -o requirements-dev.lock --python-version 3.12.13 --generate-hashes
+bash scripts/ci.sh --install
+bash scripts/ci.sh
+```
+
+The required test suite rejects locks that no longer satisfy the manifests or
+use different runtime versions or hashes for CI and the installer.
+
 ## Choose your setup
 
 ### 1. Get readings from Home Assistant
@@ -48,6 +61,10 @@ not required.
 
 By default, power refreshes every 3 seconds, daily energy every 30 minutes and
 monthly energy every 6 hours.
+Failed energy reads retry independently with exponential backoff, with a default
+initial delay of 5 seconds and a cap of 5 minutes or the configured normal interval,
+whichever is shorter. Retries run on the next power-polling cycle after that delay.
+Successful reads restore the normal interval; power polling continues.
 
 [Setup instructions](docs/examples/2-from-emporia-api/README.md) ·
 [GX config](docs/examples/2-from-emporia-api/config.json.example) ·
