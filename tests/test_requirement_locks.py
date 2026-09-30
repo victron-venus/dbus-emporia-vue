@@ -20,18 +20,24 @@ def locked_requirements(filename):
         if line.startswith("--hash=sha256:"):
             assert hashes is not None, f"{filename}: hash without a package"
             digest = line.removeprefix("--hash=sha256:")
-            assert len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)
+            assert len(digest) == 64
+            assert all(c in "0123456789abcdef" for c in digest)
             hashes.add(digest)
             continue
         requirement = Requirement(line)
-        assert requirement.marker is None and requirement.url is None and not requirement.extras
+        assert requirement.marker is None
+        assert requirement.url is None
+        assert not requirement.extras
         pins = list(requirement.specifier)
-        assert len(pins) == 1 and pins[0].operator == "==" and "*" not in pins[0].version
+        assert len(pins) == 1
+        assert pins[0].operator == "=="
+        assert "*" not in pins[0].version
         name = canonicalize_name(requirement.name)
         assert name not in packages, f"{filename}: duplicate package {name}"
         hashes = set()
         packages[name] = (pins[0].version, hashes)
-    assert packages and all(hashes for _, hashes in packages.values())
+    assert packages
+    assert all(hashes for _, hashes in packages.values())
     return packages
 
 
@@ -50,7 +56,9 @@ def test_locks_satisfy_declared_dependencies(lock, manifests):
             if not line or line.startswith("#"):
                 continue
             requirement = Requirement(line)
-            assert requirement.marker is None and requirement.url is None and not requirement.extras
+            assert requirement.marker is None
+            assert requirement.url is None
+            assert not requirement.extras
             name = canonicalize_name(requirement.name)
             assert name in packages, f"{manifest}: {name} missing from {lock}"
             version, _ = packages[name]
