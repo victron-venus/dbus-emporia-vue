@@ -7,6 +7,7 @@ import signal
 import subprocess
 import sys
 import textwrap
+import threading
 import types
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -44,6 +45,9 @@ def _stub_aiovelib():
             self.bus = bus
             self.name = name
             self.items = {}
+            disconnected = asyncio.Event()
+            bus.disconnect.side_effect = disconnected.set
+            bus.wait_for_disconnect = AsyncMock(side_effect=disconnected.wait)
 
         def add_item(self, item):
             self.items[item.args[0]] = item.args[1]
@@ -736,7 +740,9 @@ def test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event(
     from main import AcLoadService, HaWebSocketClient  # pylint: disable=import-outside-toplevel
 
     service = AcLoadService(MagicMock(), "com.victronenergy.acload.x", 71, "X", 0)
-    client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
+    client = HaWebSocketClient(
+        "ws://ha.invalid", "test", {"sensor.x": service}, stale_after_seconds=None
+    )
     event = {
         "type": "event",
         "event": {
@@ -767,7 +773,9 @@ def test_interleaved_event_is_retained_when_initial_snapshot_fails():
     from main import AcLoadService, HaWebSocketClient  # pylint: disable=import-outside-toplevel
 
     service = AcLoadService(MagicMock(), "com.victronenergy.acload.x", 71, "X", 0)
-    client = HaWebSocketClient("ws://ha.invalid", "test", {"sensor.x": service})
+    client = HaWebSocketClient(
+        "ws://ha.invalid", "test", {"sensor.x": service}, stale_after_seconds=None
+    )
     client.websocket = AsyncMock()
     client.websocket.recv.side_effect = [
         json.dumps(
@@ -1046,87 +1054,404 @@ def test_ha_disconnect_immediately_invalidates_selected_submeter(submeter):
     assert service._service["/LastUpdate"] is None
 
 
-@pytest.mark.parametrize("result", [{"success": False}, {"success": True, "result": []}])
-def test_failed_or_missing_refresh_invalidates_only_selected_channel(submeter, result):
+async def _one_refresh_cycle(client):
+    """Run the production loop once, including all awaited request lifetimes."""
+    with patch("main.asyncio.sleep", new=AsyncMock(side_effect=[None, asyncio.CancelledError])):
+        with pytest.raises(asyncio.CancelledError):
+            await client.refresh_channels()
+
+
+@pytest.mark.parametrize("result", [None, {}])
+def test_failed_refresh_invalidates_only_requested_channel(submeter, result):
     from main import AcLoadService, HaWebSocketClient
 
-    service, _ = submeter
+    service, clock = submeter
     service.update_entity(_submeter_state())
     ordinary = AcLoadService(MagicMock(), "com.victronenergy.acload.b", 72, "B", 0)
-    ordinary.update_power(200)
     client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service, "sensor.b": ordinary})
-    client._submeter_request = 2
-    asyncio.run(client.handle_message(json.dumps(dict(result, id=2, type="result"))))
+    clock.wall += 16
+    clock.monotonic += 16
+    ordinary.update_entity(_submeter_state("200", timestamp=1016))
+    client.fetch_entity = AsyncMock(return_value=result)
+    asyncio.run(_one_refresh_cycle(client))
+    client.fetch_entity.assert_awaited_once_with("sensor.a")
     assert service._service["/Connected"] == 0
     assert ordinary._service["/Connected"] == 1
     assert ordinary._service["/Ac/Power"] == 200
-    assert client._submeter_request is None
 
 
-def test_refresh_uses_ha_timestamp_even_when_power_is_unchanged(submeter):
+def test_delayed_refresh_accepts_unchanged_power_and_new_source_timestamp(submeter):
     from main import HaWebSocketClient
 
     service, clock = submeter
     service.update_entity(_submeter_state())
-    clock.wall += 5
-    clock.monotonic += 5
+    clock.wall += 16
+    clock.monotonic += 16
     client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service})
-    client._submeter_request = 2
-    asyncio.run(
-        client.handle_message(
+
+    async def slow_response(entity_id):
+        assert entity_id == "sensor.a"
+        clock.wall += 6
+        clock.monotonic += 6
+        return _submeter_state(timestamp=1022)
+
+    client.fetch_entity = AsyncMock(side_effect=slow_response)
+    asyncio.run(_one_refresh_cycle(client))
+    client.fetch_entity.assert_awaited_once()
+    assert service._service["/LastUpdate"] == 1022
+    assert service._service["/Ac/Power"] == -125
+    assert service._service["/Connected"] == 1
+
+
+@pytest.mark.parametrize("event_state", ["500", "unavailable"])
+def test_rest_reply_cannot_undo_event_received_during_request(submeter, event_state):
+    from main import HaWebSocketClient
+
+    service, clock = submeter
+    service.update_entity(_submeter_state())
+    clock.wall += 16
+    clock.monotonic += 16
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service})
+
+    async def overlapped_response(entity_id):
+        await client.handle_message(
             json.dumps(
                 {
-                    "id": 2,
-                    "type": "result",
-                    "success": True,
-                    "result": [_submeter_state(timestamp=1005)],
+                    "type": "event",
+                    "event": {
+                        "variables": {
+                            "trigger": {
+                                "entity_id": entity_id,
+                                "to_state": _submeter_state(event_state, timestamp=1016),
+                            }
+                        }
+                    },
                 }
             )
         )
-    )
-    assert service._service["/LastUpdate"] == 1005.0
-    assert service._service["/Ac/Power"] == -125.0
+        return _submeter_state(timestamp=1015)
+
+    client.fetch_entity = overlapped_response
+    asyncio.run(_one_refresh_cycle(client))
+    assert service._service["/Ac/Power"] == (500 if event_state == "500" else None)
 
 
-@pytest.mark.parametrize("send_failure", [False, True])
-def test_refresh_polls_every_five_seconds_and_invalidates_unanswered_queries(
-    submeter, monkeypatch, send_failure
-):
-    from main import HaWebSocketClient
+def test_legacy_opt_out_skips_ordinary_refresh_but_keeps_submeter_policy(submeter):
+    from main import AcLoadService, HaWebSocketClient
 
     service, _ = submeter
-    service.update_entity(_submeter_state())
+    ordinary = AcLoadService(MagicMock(), "com.victronenergy.acload.b", 72, "B", 0)
+    client = HaWebSocketClient(
+        "ws://ha",
+        "token",
+        {"sensor.a": service, "sensor.b": ordinary},
+        stale_after_seconds=None,
+    )
+    ordinary.update_entity({"state": "42"})
+    client.fetch_entity = AsyncMock(return_value=_submeter_state())
+    asyncio.run(_one_refresh_cycle(client))
+    client.fetch_entity.assert_awaited_once_with("sensor.a")
+    assert ordinary._service["/Connected"] == 1
+    assert ordinary._service["/Ac/Power"] == 42
+
+
+def test_ordinary_channel_expires_source_age_and_revalidates_unchanged_value(submeter):
+    from main import AcLoadService, HaWebSocketClient
+
+    _, clock = submeter
+    service = AcLoadService(MagicMock(), "com.victronenergy.acload.b", 72, "B", 0)
     client = HaWebSocketClient("ws://ha", "token", {"sensor.a": service})
-    client.websocket = AsyncMock()
-    if send_failure:
-        client.websocket.send.side_effect = OSError("offline")
-    waits = []
+    service.update_entity(_submeter_state("0", timestamp=960))
+    assert service._service["/Connected"] == 0
+    service.update_entity(_submeter_state("0", timestamp=1000))
+    clock.wall += 16
+    clock.monotonic += 16
+    client.fetch_entity = AsyncMock(return_value=_submeter_state("0", timestamp=1016))
+    asyncio.run(_one_refresh_cycle(client))
+    assert service._service["/LastUpdate"] == 1016
+    clock.wall += 30
+    clock.monotonic += 30
+    service.expire()
+    assert service._service["/Connected"] == 0
+    assert service._service["/Ac/Power"] is None
 
-    async def tick(delay):
-        waits.append(delay)
-        if len(waits) == 3:
-            raise asyncio.CancelledError
 
-    monkeypatch.setattr("main.asyncio.sleep", tick)
-    if send_failure:
-        asyncio.run(client.refresh_submeter())
-    else:
-        with pytest.raises(asyncio.CancelledError):
-            asyncio.run(client.refresh_submeter())
-    assert waits == [5] * len(waits)
-    assert json.loads(client.websocket.send.call_args.args[0])["type"] == "get_states"
+def test_repeated_timestamp_cannot_extend_monotonic_freshness_after_clock_rollback(submeter):
+    service, clock = submeter
+    service.update_entity(_submeter_state())
+    clock.monotonic += 25
+    clock.wall += 10  # Wall clock moved backwards relative to elapsed time.
+    service.update_entity(_submeter_state())
+    clock.monotonic += 5
+    service.expire()
     assert service._service["/Connected"] == 0
 
 
-def test_refresh_disabled_without_selected_channel():
+def test_expired_monotonic_sample_is_not_briefly_republished_after_clock_rollback(submeter):
+    service, clock = submeter
+    service.update_entity(_submeter_state())
+    clock.monotonic += 31
+    clock.wall += 10
+    service.update_entity(_submeter_state())
+    # No heartbeat/expire call is needed to keep an already expired sample off.
+    assert service._service["/Connected"] == 0
+    assert service._service["/Ac/Power"] is None
+
+
+def test_startup_snapshot_survives_more_than_fifty_interleaved_events():
     from main import HaWebSocketClient
 
-    client = HaWebSocketClient(
-        "ws://ha", "token", {"sensor.a": types.SimpleNamespace(submeter=None)}
-    )
+    quiet, noisy = MagicMock(), MagicMock()
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.a": quiet, "sensor.b": noisy})
+    event = {
+        "type": "event",
+        "event": {
+            "variables": {
+                "trigger": {
+                    "entity_id": "sensor.b",
+                    "to_state": {"state": "1"},
+                }
+            }
+        },
+    }
+    result = {
+        "id": 1,
+        "type": "result",
+        "success": True,
+        "result": [{"entity_id": "sensor.a", "state": "0"}],
+    }
     client.websocket = AsyncMock()
-    asyncio.run(client.refresh_submeter())
-    client.websocket.send.assert_not_called()
+    client.websocket.recv.side_effect = [json.dumps(event)] * 60 + [json.dumps(result)]
+    asyncio.run(client.fetch_initial_states())
+    quiet.update_entity.assert_called_once_with(result["result"][0])
+    assert noisy.update_entity.call_count == 60
+
+
+@pytest.mark.parametrize(
+    "name,value",
+    [
+        ("ha_stale_after_seconds", True),
+        ("ha_stale_after_seconds", 9),
+        ("ha_stale_after_seconds", float("nan")),
+        ("ha_stale_after_seconds", "30"),
+        ("ha_request_timeout_seconds", None),
+        ("ha_request_timeout_seconds", 0),
+        ("ha_request_timeout_seconds", 31),
+        ("ha_request_timeout_seconds", float("inf")),
+    ],
+)
+def test_invalid_ha_policy_rejected(name, value):
+    from main import ha_settings
+
+    with pytest.raises(ValueError, match=name):
+        ha_settings({name: value})
+
+
+def test_ha_policy_defaults_and_explicit_legacy_opt_out():
+    from main import ha_settings
+
+    assert ha_settings({}) == {"stale_after_seconds": 30, "request_timeout_seconds": 10}
+    assert ha_settings({"ha_stale_after_seconds": None})["stale_after_seconds"] is None
+
+
+def test_rest_session_is_reused_and_requests_only_the_configured_entity(monkeypatch):
+    import requests
+
+    from main import HaWebSocketClient
+
+    session = MagicMock()
+    response = session.get.return_value.__enter__.return_value
+    response.status_code = 200
+    response.iter_content.return_value = [b'{"entity_id":"sensor.x","state":"0"}']
+    factory = MagicMock(return_value=session)
+    monkeypatch.setattr(requests, "Session", factory)
+    client = HaWebSocketClient("wss://ha/prefix/api/websocket", "token", {})
+
+    async def check():
+        for _ in range(2):
+            assert (await client.fetch_entity("sensor.x"))["state"] == "0"
+        await client.disconnect()
+
+    asyncio.run(check())
+    factory.assert_called_once()
+    assert session.get.call_count == 2
+    assert session.get.call_args.args[0] == "https://ha/prefix/api/states/sensor.x"
+    assert session.get.call_args.kwargs == {
+        "timeout": (10, 10),
+        "allow_redirects": False,
+        "stream": True,
+    }
+    session.close.assert_called_once()
+
+
+def test_cancelled_rest_request_is_drained_before_another_thread_can_start(monkeypatch):
+    import requests
+
+    from main import HaWebSocketClient
+
+    gate = threading.Event()
+    session = MagicMock()
+    response = session.get.return_value.__enter__.return_value
+    response.status_code = 200
+    response.iter_content.return_value = [b'{"entity_id":"sensor.x","state":"0"}']
+    monkeypatch.setattr(requests, "Session", lambda: session)
+    client = HaWebSocketClient("ws://ha", "token", {})
+
+    async def check():
+        started = asyncio.Event()
+        loop = asyncio.get_running_loop()
+
+        def blocked_get(*args, **kwargs):
+            loop.call_soon_threadsafe(started.set)
+            assert gate.wait(2)
+            return response
+
+        # The response is its own context manager for this blocking transport.
+        response.__enter__.return_value = response
+        session.get.side_effect = blocked_get
+        first = asyncio.create_task(client.fetch_entity("sensor.x"))
+        await asyncio.wait_for(started.wait(), 1)
+        first.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await first
+        await client.disconnect()
+        assert session.close.call_count == 0  # Never close active requests from another thread.
+        client._rest_closed = False  # The next WS connection reused this client.
+        second = asyncio.create_task(client.fetch_entity("sensor.x"))
+        await asyncio.sleep(0)
+        assert session.get.call_count == 1
+        gate.set()
+        assert (await asyncio.wait_for(second, 1))["state"] == "0"
+        assert session.get.call_count == 2
+        await client.disconnect()
+        session.close.assert_called_once()
+
+    try:
+        asyncio.run(check())
+    finally:
+        gate.set()
+
+
+def test_submeter_refresh_precedes_ordinary_channels_and_rechecks_freshness(submeter):
+    from main import AcLoadService, HaWebSocketClient
+
+    selected, clock = submeter
+    ordinary = AcLoadService(MagicMock(), "com.victronenergy.acload.b", 72, "B", 0)
+    client = HaWebSocketClient("ws://ha", "token", {"sensor.b": ordinary, "sensor.a": selected})
+
+    async def selected_reply(entity_id):
+        assert entity_id == "sensor.a"
+        # An ordinary sensor changed while the selected meter was fetched.
+        ordinary.update_entity(_submeter_state("200", timestamp=clock.wall))
+        return _submeter_state(timestamp=clock.wall)
+
+    client.fetch_entity = AsyncMock(side_effect=selected_reply)
+    asyncio.run(_one_refresh_cycle(client))
+    client.fetch_entity.assert_awaited_once_with("sensor.a")
+    assert selected._service["/Connected"] == 1
+    assert ordinary._service["/Ac/Power"] == 200
+
+
+def test_slow_ordinary_sweep_revalidates_submeter_between_requests(submeter):
+    from main import AcLoadService, HaWebSocketClient
+
+    selected, clock = submeter
+    ordinary = {
+        key: AcLoadService(MagicMock(), f"com.victronenergy.acload.{key}", index, key, 0)
+        for index, key in enumerate(("b", "c"), 72)
+    }
+    client = HaWebSocketClient("ws://ha", "token", {**ordinary, "a": selected})
+    calls = []
+
+    async def reply(entity_id):
+        calls.append(entity_id)
+        if entity_id != "a":
+            clock.monotonic += 16
+            clock.wall += 16
+        return _submeter_state(timestamp=clock.wall)
+
+    client.fetch_entity = reply
+    asyncio.run(_one_refresh_cycle(client))
+    assert calls == ["a", "b", "a", "c"]
+    assert selected._service["/LastUpdate"] == 1016
+
+
+@pytest.mark.parametrize(
+    "status,payload",
+    [
+        (404, b"{}"),
+        (302, b"{}"),
+        (200, b"not JSON"),
+        (200, b'{"entity_id":"sensor.other","state":"1"}'),
+        (200, b"x" * 262145),
+    ],
+    ids=["missing", "redirect", "invalid-json", "wrong-entity", "oversized"],
+)
+def test_rest_rejects_missing_redirected_malformed_or_oversized_states(
+    monkeypatch, status, payload
+):
+    import requests
+
+    from main import HaWebSocketClient
+
+    session = MagicMock()
+    response = session.get.return_value.__enter__.return_value
+    response.status_code = status
+    response.iter_content.return_value = [payload]
+    monkeypatch.setattr(requests, "Session", lambda: session)
+    client = HaWebSocketClient("ws://ha", "token", {})
+
+    async def check():
+        assert await client.fetch_entity("sensor.x") is None
+        await client.disconnect()
+
+    asyncio.run(check())
+    session.get.return_value.__exit__.assert_called_once()
+    session.close.assert_called_once()
+
+
+def test_shutdown_during_stalled_rest_request_exits_without_waiting_for_worker():
+    """A stuck synchronous transport cannot keep this process alive on shutdown."""
+    script = textwrap.dedent(
+        """
+        import asyncio, contextlib, threading
+        from unittest.mock import MagicMock, patch
+        from tests.test_main import _stub_aiovelib
+        _stub_aiovelib.__wrapped__()
+        from main import HaWebSocketClient
+
+        async def check():
+            started = asyncio.Event()
+            loop = asyncio.get_running_loop()
+            session = MagicMock()
+            def blocked_get(*args, **kwargs):
+                loop.call_soon_threadsafe(started.set)
+                threading.Event().wait()
+            session.get.side_effect = blocked_get
+            with patch('requests.Session', return_value=session):
+                client = HaWebSocketClient('ws://unused', 'dummy', {})
+                request = asyncio.create_task(client.fetch_entity('sensor.x'))
+                await asyncio.wait_for(started.wait(), 1)
+                request.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await request
+                await client.disconnect()
+                assert session.close.call_count == 0
+        asyncio.run(check())
+        print('CLEAN_SHUTDOWN_WITH_STALLED_REST')
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=os.path.dirname(os.path.dirname(__file__)),
+        capture_output=True,
+        text=True,
+        timeout=4,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "CLEAN_SHUTDOWN_WITH_STALLED_REST" in result.stdout
+    assert "Traceback" not in result.stderr
 
 
 def test_direct_mode_never_constructs_ha_client(tmp_path, monkeypatch):

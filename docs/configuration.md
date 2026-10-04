@@ -19,6 +19,43 @@ use `ws://` for HTTP or `wss://` for HTTPS. Each channel needs `ha_entity_id`.
 Ordinary HA channels use the numeric state as watts, so choose entities reporting
 `W`. The optional submeter also accepts `kW` and converts it to watts.
 
+HA channels now reject measurements older than 30 seconds by default. Freshness
+uses HA's `last_reported` timestamp (or `last_updated` when absent), not the time
+this driver fetched the value. Missing, invalid, future-dated or stale timestamps
+make a channel unavailable. The GX and HA clocks should be synchronized.
+
+Two optional top-level settings control this behavior:
+
+- `ha_stale_after_seconds`: maximum source age, default `30`, minimum `10`.
+  Choose a value comfortably larger than your HA integration's reporting interval.
+  Set it to `null` to retain the previous ordinary-channel behavior without age
+  checking. The selected submeter always keeps its own `stale_after_seconds` limit.
+- `ha_request_timeout_seconds`: HTTP connect and read timeout, default `10`, from
+  `1` through `30` seconds.
+
+Migration: existing configurations use the new 30-second limit automatically.
+If your integration reports less often, increase `ha_stale_after_seconds`. Prefer
+that over disabling freshness. HA versions without `last_reported` cannot prove
+that an unchanged value is still being reported; upgrade HA or explicitly choose
+the legacy ordinary-channel policy if necessary. Selecting a submeter still
+requires timestamped, fresh source data.
+
+The driver keeps its WebSocket subscription and checks every five seconds whether
+quiet channels need revalidation. When a channel has half its freshness interval
+remaining, it reads only that entity through HA's REST API. Unchanged zero or
+constant power remains valid when HA advances `last_reported`; re-reading an old
+timestamp never extends its lifetime. Changing source values require no extra
+HTTP requests. The initial WebSocket connection fetches one full state snapshot;
+periodic refreshes do not fetch all HA entities.
+
+REST uses the same host, token and URL prefix as `ha_url`, translating `ws`/`wss`
+to `http`/`https`. A reverse proxy must allow `GET /api/states/<entity_id>` as well
+as WebSockets. Requests are serialized through one reusable HTTP session. An
+outstanding slow request is awaited rather than replaced every five seconds;
+disconnect and shutdown cannot start an overlapping request or publish a late
+response. HTTP failures make the affected channel unavailable; WebSocket events
+or a subsequent successful revalidation can restore it.
+
 Protect `config.json` with mode `0600`, since it contains the access token.
 Keep the HA Emporia integration enabled and its source entities independent of
 this driver's MQTT output.
@@ -115,17 +152,26 @@ Direct API settings live inside `emporia`. Defaults are:
 - `poll_interval_seconds`: `3` for power.
 - `day_interval_seconds`: `1800` (30 minutes) for daily energy.
 - `month_interval_seconds`: `21600` (6 hours) for monthly energy.
-- `timeout_seconds`: `10` for cloud requests.
+- `timeout_seconds`: `10` for power/status requests and authentication.
+- `energy_timeout_seconds`: `3` for each energy request's connect and read
+  timeout. This does not impose a total deadline on token refresh or a response.
 - `stale_after_seconds`: `30` for power freshness; must exceed the power interval.
 - `status_interval_seconds`: `15` for meter connection status.
 - `status_stale_after_seconds`: `30`; must exceed the status interval.
 - `solar_invert`: `true` to invert channels identified as solar.
 
-The client batches channel reads and keeps current values. Energy refreshes
-independently of power; its freshness limit is twice its polling interval plus
+The client batches channel reads and reuses an HTTPS connection pool. It reads
+at most one due energy period between power polls, choosing the oldest due
+period so daily requests cannot starve monthly requests. Failed energy reads
+retry with a bounded backoff (normally 5, 10, 20 seconds, up to 5 minutes),
+instead of waiting the full daily/monthly interval. Energy's freshness limit is twice its polling interval plus
 30 seconds. Missing or stale direct readings become unavailable. Meter status
 must also be current and connected; a successful cloud response alone does not
 establish availability. A measured zero remains zero.
+
+Configured meter online/offline transitions are logged once per change. A
+successful HTTP response while the meter is offline still leaves power
+unavailable; cached energy has its own freshness limit.
 
 Changing polling intervals in setup 3 also requires updating any corresponding
 freshness thresholds in your HA templates. MQTT keepalive republishes cached GX
@@ -148,7 +194,8 @@ grid meter. Omit `submeter` or set it to `null` when not needed.
 ## Published readings
 
 All channel services expose `/Ac/Power`, `/Ac/L1/Power`, `/Connected`,
-`/CustomName` and `/DeviceInstance`. Direct mode also exposes:
+`/CustomName` and `/DeviceInstance`. HA mode also exposes `/LastUpdate` as the
+accepted source timestamp. Direct mode also exposes:
 
 - `/Source/Type`: `emporia` or `unavailable`.
 - `/LastUpdate`: power timestamp in Unix seconds.
@@ -163,7 +210,7 @@ All channel services expose `/Ac/Power`, `/Ac/L1/Power`, `/Connected`,
 
 Daily and monthly energy reset at period boundaries. They are not lifetime
 counters; `/Ac/Energy/Forward` stays unavailable. In HA-input mode, energy and
-Emporia metadata are absent; `/LastUpdate` exists only for a selected submeter.
+Emporia metadata are absent.
 
 Venus OS MQTT publishes these paths under
 `N/<portal-id>/acload/<instance>/<path>`. For example, channel 71 power is

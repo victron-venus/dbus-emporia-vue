@@ -49,7 +49,7 @@ from pathlib import Path
 
 if sys.version_info[:2] != (3, 12):
     raise SystemExit("Venus OS system Python 3.12.x is required")
-import dbus_fast, websockets
+import dbus_fast, requests, websockets
 
 config_path = Path(sys.argv[1])
 if config_path.is_file():

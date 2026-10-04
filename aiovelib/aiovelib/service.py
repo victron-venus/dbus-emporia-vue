@@ -5,10 +5,10 @@ from inspect import iscoroutinefunction
 try:
 	import dbus_fast
 except ImportError:
-	from dbus_next import Message, MessageFlag, MessageType, Variant
+	from dbus_next import Message, MessageFlag, MessageType, NameFlag, RequestNameReply, Variant
 	from dbus_next.service import ServiceInterface, method, signal
 else:
-	from dbus_fast import Message, MessageFlag, MessageType, Variant
+	from dbus_fast import Message, MessageFlag, MessageType, NameFlag, RequestNameReply, Variant
 	from dbus_fast.service import ServiceInterface, method, signal
 
 IFACE="com.victronenergy.BusItem"
@@ -185,7 +185,9 @@ class Service:
 		bus.export('/', self.interface)
 
 	async def register(self):
-		await self.bus.request_name(self.name)
+		reply = await self.bus.request_name(self.name, NameFlag.DO_NOT_QUEUE)
+		if reply not in (RequestNameReply.PRIMARY_OWNER, RequestNameReply.ALREADY_OWNER):
+			raise RuntimeError(f"D-Bus name {self.name} is unavailable: {reply.name}")
 
 	async def close(self):
 		if self._closed:
@@ -196,7 +198,8 @@ class Service:
 			path, _ = self.objects.popitem()
 			self.bus.unexport(path)
 		self.bus.unexport("/")
-		await self.bus.release_name(self.name)
+		if self.bus.connected:
+			await self.bus.release_name(self.name)
 
 	def __enter__(self):
 		l = ItemChangeCollector(self)

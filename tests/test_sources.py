@@ -106,6 +106,11 @@ def test_energy_fields_are_explicit(clock):
         None,
         True,
         {"timeout_seconds": 0},
+        {"energy_timeout_seconds": 0},
+        {"energy_timeout_seconds": True},
+        {"energy_timeout_seconds": float("nan")},
+        {"energy_timeout_seconds": float("inf")},
+        {"energy_timeout_seconds": "3"},
         {"stale_after_seconds": 3},
         {"status_interval_seconds": 30},
         {"solar_invert": 0},
@@ -122,6 +127,7 @@ def test_modes_are_exclusive_and_legacy_defaults_to_ha():
     assert emporia_config({}) is None
     assert emporia_config({"source": "home_assistant", "emporia": "ignored"}) is None
     assert settings()["poll_interval_seconds"] == 3
+    assert settings()["energy_timeout_seconds"] == 3
     with pytest.raises(ValueError):
         emporia_config({"source": "auto"})
 

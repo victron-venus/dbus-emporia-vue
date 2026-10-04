@@ -322,7 +322,7 @@ def test_direct_dependency_check_respects_installed_configuration(
     imports.mkdir()
     (imports / "dbus_fast.py").write_text("")
     (imports / "websockets.py").write_text("")
-    (imports / "requests.py").write_text("raise ImportError('unused HA dependency')\n")
+    (imports / "requests.py").write_text("")
     (imports / "pyemvue.py").write_text("raise ImportError('direct client unavailable')\n")
     interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
     interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
@@ -339,6 +339,25 @@ def test_direct_dependency_check_respects_installed_configuration(
         assert venus.calls.exists()
 
 
+def test_missing_ha_http_dependency_fails_before_stopping_service(venus, tmp_path):
+    install_existing_service(venus)
+    venus.config.write_text('{"source": "home_assistant"}')
+    imports = tmp_path / "imports"
+    imports.mkdir()
+    for name in ("dbus_fast", "websockets"):
+        (imports / f"{name}.py").write_text("")
+    (imports / "requests.py").write_text("raise ImportError('HA HTTP client unavailable')\n")
+    interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
+    interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+    venus.env["PYTHONPATH"] = str(imports)
+
+    result = run_update(venus)
+
+    assert result.returncode != 0
+    assert "HA HTTP client unavailable" in result.stderr
+    assert not venus.calls.exists()
+
+
 def test_direct_dependency_check_uses_pushed_configuration(venus, tmp_path):
     """Check the incoming configuration before replacing a healthy HA service."""
     venus.config.write_text('{"source": "home_assistant"}')
@@ -349,7 +368,7 @@ def test_direct_dependency_check_uses_pushed_configuration(venus, tmp_path):
     imports.mkdir()
     (imports / "dbus_fast.py").write_text("")
     (imports / "websockets.py").write_text("")
-    (imports / "requests.py").write_text("raise ImportError('unused HA dependency')\n")
+    (imports / "requests.py").write_text("")
     (imports / "pyemvue.py").write_text("raise ImportError('direct client unavailable')\n")
     interpreter = Path(venus.env["PATH"].split(os.pathsep)[0]) / "python3"
     interpreter.write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
@@ -395,7 +414,7 @@ def test_updater_loads_and_preserves_device_vendor_dependencies(venus, tmp_path)
     vendor.mkdir()
     imports = tmp_path / "imports"
     imports.mkdir()
-    for name in ("dbus_fast", "websockets", "pyemvue", "botocore"):
+    for name in ("dbus_fast", "requests", "websockets", "pyemvue", "botocore"):
         (vendor / f"{name}.py").write_text("# device dependency\n")
         (imports / f"{name}.py").write_text("raise ImportError('wrong dependency path')\n")
     before = {path: path.stat() for path in vendor.iterdir()}

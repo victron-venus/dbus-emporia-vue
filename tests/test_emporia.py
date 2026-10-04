@@ -1,12 +1,14 @@
 """Emporia request, conversion, authentication and worker contracts."""
 
 import asyncio
+import logging
 import os
 import stat
 import sys
 import threading
 import time
 from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -15,6 +17,7 @@ import pytest
 from emporia import (
     EmporiaClient,
     _auth_error,
+    _new_auth,
     _number,
     _read_private_json,
     _timestamp,
@@ -50,7 +53,7 @@ def usage_payload(channels, gid=10, instant=STAMP):
 
 def client(channels=None, config=None, payload=None):
     result = EmporiaClient(config or {}, channels or [channel()], Mock(), Mock(), Mock())
-    result._auth = SimpleNamespace(request=Mock(return_value=response(payload or {})))
+    result._auth = SimpleNamespace(request=Mock(return_value=response(payload or {})), close=Mock())
     result._api_template = TEMPLATE
     result._channel_info = {
         (str(item["emporia_device_gid"]), str(item["emporia_channel"])): {"type": "FiftyAmp"}
@@ -431,6 +434,7 @@ def test_status_errors_clear_validity_and_only_reset_unauthorized_sessions(auth_
     assert monitor._device_status == {}
     assert monitor._status_timestamp is None
     assert monitor._auth is (None if auth_error else auth)
+    assert auth.close.call_count == int(auth_error)
     assert "secret-token" not in caplog.text
 
 
@@ -460,6 +464,56 @@ def test_status_failures_back_off_without_accumulating_requests(monkeypatch):
         waits.append(monitor._next_status - now[0])
         now[0] = monitor._next_status
     assert waits == [15, 30, 60, 120, 240, 300, 300]
+
+
+def test_status_logs_only_configured_device_transitions_without_payload_secrets(caplog):
+    monitor = client([channel(), channel("2")])
+    caplog.set_level(logging.INFO, logger="emporia")
+    for connected in (False, False, True, True, False, False):
+        monitor._next_status = 0
+        monitor._auth.request.return_value = response(
+            {
+                "token": "secret-token",
+                "devicesConnected": [
+                    {"deviceGid": 10, "connected": connected, "password": "secret-password"},
+                    {"deviceGid": 999, "connected": not connected},
+                ],
+            }
+        )
+        monitor._refresh_status()
+    assert [record.getMessage() for record in caplog.records] == [
+        "Emporia device 10 status is offline",
+        "Emporia device 10 status is online",
+        "Emporia device 10 status is offline",
+    ]
+    assert [record.levelno for record in caplog.records] == [
+        logging.WARNING,
+        logging.INFO,
+        logging.WARNING,
+    ]
+    assert "secret" not in caplog.text
+    assert "999" not in caplog.text
+
+
+def test_status_logs_unknown_once_and_does_not_repeat_state_after_request_error(caplog):
+    monitor = client()
+    caplog.set_level(logging.INFO, logger="emporia")
+    monitor._auth.request.side_effect = [
+        response({"devicesConnected": []}),
+        response({"devicesConnected": []}),
+        TimeoutError("secret-password"),
+        response({"devicesConnected": []}),
+        response({"devicesConnected": [{"deviceGid": 10, "connected": True}]}),
+    ]
+    for _ in range(5):
+        monitor._next_status = 0
+        monitor._refresh_status()
+    assert [record.getMessage() for record in caplog.records] == [
+        "Emporia device 10 status is unknown",
+        "Emporia status request failed (TimeoutError)",
+        "Emporia device 10 status is online",
+    ]
+    assert "secret" not in caplog.text
 
 
 def test_status_connects_once_and_does_not_retry_login_for_energy(monkeypatch):
@@ -523,6 +577,7 @@ def test_private_file_requires_an_object(tmp_path):
 @pytest.fixture
 def dependencies(monkeypatch):
     auth = Mock()
+    monkeypatch.setattr("emporia._new_auth", auth)
     auth.return_value.request.return_value = response({"devices": []})
     cognito = Mock()
     config = Mock()
@@ -599,6 +654,7 @@ def test_revoked_tokens_retry_credentials(tmp_path, dependencies, monkeypatch):
     monitor = client(config={"token_file": str(path)})
     monitor._connect()
     assert dependencies.auth.call_count == 2
+    dependencies.auth.return_value.close.assert_called_once()
     dependencies.cognito.return_value.authenticate.assert_called_once_with(password="secret")
 
 
@@ -610,6 +666,7 @@ def test_metadata_failure_does_not_leave_a_partial_connection(tmp_path, dependen
     with pytest.raises(ValueError, match="device response"):
         monitor._connect()
     assert monitor._auth is None
+    dependencies.auth.return_value.close.assert_called_once()
 
 
 def test_pinned_auth_adapter_without_network(tmp_path, monkeypatch):
@@ -695,6 +752,7 @@ def test_cancellation_does_not_wait_for_or_publish_a_stalled_request():
         entered = threading.Event()
         release = threading.Event()
         monitor = client()
+        auth = monitor._auth
 
         def power():
             entered.set()
@@ -714,10 +772,12 @@ def test_cancellation_does_not_wait_for_or_publish_a_stalled_request():
             task.cancel()
             with pytest.raises(asyncio.CancelledError):
                 await asyncio.wait_for(task, 0.2)
+            auth.close.assert_not_called()
             release.set()
             await asyncio.sleep(0.03)
             monitor.publish.assert_not_called()
             monitor.publish_energy.assert_not_called()
+            auth.close.assert_called_once()
         finally:
             release.set()
             task.cancel()
@@ -727,6 +787,7 @@ def test_cancellation_does_not_wait_for_or_publish_a_stalled_request():
 
 def test_outage_backoff_is_bounded_and_logs_do_not_include_secrets(caplog):
     monitor = client()
+    auth = monitor._auth
     error = RuntimeError("password-and-token")
     error.response = SimpleNamespace(status_code=401)
     monitor.poll_power = Mock(side_effect=error)
@@ -743,6 +804,7 @@ def test_outage_backoff_is_bounded_and_logs_do_not_include_secrets(caplog):
     assert max(waits) == 300
     assert monitor.unavailable.call_count == 9
     assert monitor._auth is None
+    auth.close.assert_called_once()
     assert "password-and-token" not in caplog.text
 
 
@@ -800,8 +862,13 @@ def test_energy_transient_failure_recovers_without_delaying_power_or_other_perio
         return {period: attempt}
 
     power, attempts, waits = run_energy_worker(monkeypatch, monitor, 12, energy)
-    assert attempts[failed_period] == [0, 5]
-    assert attempts[{"day": "month", "month": "day"}[failed_period]] == [0]
+    first_attempt = {"day": 0, "month": 1}
+    other_period = {"day": "month", "month": "day"}[failed_period]
+    assert attempts[failed_period] == [
+        first_attempt[failed_period],
+        first_attempt[failed_period] + 5,
+    ]
+    assert attempts[other_period] == [first_attempt[other_period]]
     assert power == list(range(12))
     assert waits == [1] * 12
     monitor.unavailable.assert_not_called()
@@ -818,7 +885,7 @@ def test_energy_repeated_failures_use_capped_backoff_and_preserve_power(monkeypa
 
     power, attempts, waits = run_energy_worker(monkeypatch, monitor, 1000, energy)
     assert attempts["day"] == [0, 5, 15, 35, 75, 155, 315, 615, 915]
-    assert attempts["month"] == [0]
+    assert attempts["month"] == [1]
     assert power == list(range(1000))
     assert waits == [1] * 1000
     monitor.unavailable.assert_not_called()
@@ -834,7 +901,7 @@ def test_energy_success_restores_normal_cadence_and_resets_backoff(monkeypatch):
 
     _, attempts, _ = run_energy_worker(monkeypatch, monitor, 45, energy)
     assert attempts["day"] == [0, 5, 15, 35, 40]
-    assert attempts["month"] == [0]
+    assert attempts["month"] == [1]
 
 
 def test_energy_error_retry_never_outpaces_short_configured_intervals(monkeypatch):
@@ -845,7 +912,7 @@ def test_energy_error_retry_never_outpaces_short_configured_intervals(monkeypatc
 
     _, attempts, _ = run_energy_worker(monkeypatch, monitor, 8, energy)
     assert attempts["day"] == [0, 3, 6]
-    assert attempts["month"] == [0, 2, 4, 6]
+    assert attempts["month"] == [1, 4, 7]
 
 
 def test_cancellation_during_failed_energy_stops_next_period_and_retries(monkeypatch):
@@ -859,4 +926,148 @@ def test_cancellation_during_failed_energy_stops_next_period_and_retries(monkeyp
     assert power == [0]
     assert attempts == {"day": [0], "month": []}
     monitor.publish_energy.assert_not_called()
+    monitor.unavailable.assert_not_called()
+
+
+@pytest.fixture
+def http_endpoint():
+    """An HTTP/1.1 peer that counts accepted sockets, not mocked Session calls."""
+    state = SimpleNamespace(connections=0, headers=[], statuses=[])
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def setup(self):
+            super().setup()
+            state.connections += 1
+
+        def do_GET(self):
+            state.headers.append(dict(self.headers))
+            self.send_response(state.statuses.pop(0) if state.statuses else 200)
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"{}")
+
+        def log_message(self, *_args):
+            pass
+
+    with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
+        worker = threading.Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            yield f"http://127.0.0.1:{server.server_port}", state
+        finally:
+            server.shutdown()
+            worker.join(timeout=2)
+
+
+def test_pinned_auth_reuses_http_connection_preserves_headers_and_timeouts(http_endpoint):
+    host, peer = http_endpoint
+    auth = _new_auth(host=host, connect_timeout=4, read_timeout=5, max_retry_attempts=1)
+    auth.tokens = {"access_token": "offline-access", "id_token": "offline-id"}
+    auth._decode_token = lambda _token: {"exp": time.time() + 60}
+    headers = {"X-Request": "check", "authtoken": "must-be-replaced"}
+    try:
+        assert auth.session.verify is True
+        auth.session.request = Mock(wraps=auth.session.request)
+        for _ in range(3):
+            auth.request("get", "usage", headers=headers).raise_for_status()
+        assert peer.connections == 1
+        assert len(peer.headers) == 3
+        assert all(h["authtoken"] == "offline-id" for h in peer.headers)
+        assert all(h["X-Request"] == "check" for h in peer.headers)
+        assert headers["authtoken"] == "must-be-replaced"
+        assert auth.session.request.call_args.kwargs["timeout"] == (4, 5)
+        assert "verify" not in auth.session.request.call_args.kwargs
+        auth.request("get", "usage", timeout=(2, 3)).raise_for_status()
+        assert auth.session.request.call_args.kwargs["timeout"] == (2, 3)
+        assert peer.connections == 1
+    finally:
+        auth.close()
+
+
+def test_pinned_auth_refreshes_unauthorized_token_on_the_same_connection(http_endpoint):
+    host, peer = http_endpoint
+    peer.statuses = [401, 200]
+    auth = _new_auth(host=host, max_retry_attempts=1)
+    auth.tokens = {"access_token": "offline-access", "id_token": "old-id"}
+    auth._decode_token = lambda _token: {"exp": time.time() + 60}
+    auth.refresh_tokens = Mock(return_value={"access_token": "new-access", "id_token": "new-id"})
+    try:
+        auth.request("get", "usage").raise_for_status()
+        auth.refresh_tokens.assert_called_once()
+        assert [h["authtoken"] for h in peer.headers] == ["old-id", "new-id"]
+        assert peer.connections == 1
+    finally:
+        auth.close()
+
+
+def test_failed_authentication_closes_session(tmp_path, dependencies, monkeypatch):
+    monkeypatch.setenv("EMPORIA_USERNAME", "user@example.test")
+    monkeypatch.setenv("EMPORIA_PASSWORD", "secret")
+    dependencies.cognito.return_value.authenticate.side_effect = TimeoutError("offline")
+    monitor = client(config={"token_file": str(tmp_path / "tokens.json")})
+    with pytest.raises(TimeoutError):
+        monitor._connect()
+    dependencies.auth.return_value.close.assert_called_once()
+    assert monitor._auth is None
+
+
+@pytest.mark.parametrize("unauthorized", [False, True])
+def test_worker_closes_session_on_exit_and_after_energy_unauthorized(unauthorized):
+    monitor = client()
+    auth = monitor._auth
+    monitor.poll_power = Mock(return_value={})
+    monitor.poll_energy = Mock(return_value={})
+    if unauthorized:
+        error = RuntimeError("offline")
+        error.response = SimpleNamespace(status_code=401)
+        monitor.poll_energy.side_effect = error
+    monitor._stop.wait = lambda _delay: monitor._stop.set()
+    monitor._work(lambda callback, *args: callback(*args))
+    auth.close.assert_called_once()
+    assert monitor._auth is None
+    monitor.unavailable.assert_not_called()
+
+
+def test_energy_timeout_override_does_not_change_power_timeout():
+    monitor = client(
+        config={"timeout_seconds": 10, "energy_timeout_seconds": 2},
+        payload=usage_payload([{"channelNum": "1", "usage": 1}]),
+    )
+    monitor.poll_energy("day")
+    assert monitor._auth.request.call_args.kwargs["timeout"] == (2, 2)
+    monitor.poll_power()
+    assert monitor._auth.request.call_args.kwargs == {}
+    assert monitor.timeout == 10
+
+
+def test_due_energy_periods_share_turns_even_when_day_is_always_due(monkeypatch):
+    monitor = client(config={"day_interval_seconds": 1, "month_interval_seconds": 1})
+    power, attempts, _ = run_energy_worker(monkeypatch, monitor, 8, lambda *_args: {})
+    assert attempts == {"day": [0, 2, 4, 6], "month": [1, 3, 5, 7]}
+    assert power == list(range(8))
+
+
+def test_power_runs_between_slow_energy_requests(monkeypatch):
+    monitor = client()
+    now = [0.0]
+    calls = []
+    monkeypatch.setattr("emporia.time.monotonic", lambda: now[0])
+
+    def power():
+        calls.append(("power", now[0]))
+        if len(calls) == 5:
+            monitor._stop.set()
+        return {}
+
+    def energy(period):
+        calls.append((period, now[0]))
+        now[0] += 10
+        raise TimeoutError("slow endpoint")
+
+    monitor.poll_power, monitor.poll_energy = power, energy
+    monitor._stop.wait = lambda delay: now.__setitem__(0, now[0] + delay)
+    monitor._work(lambda callback, *args: callback(*args))
+    assert calls == [("power", 0), ("day", 0), ("power", 10), ("month", 10), ("power", 20)]
     monitor.unavailable.assert_not_called()

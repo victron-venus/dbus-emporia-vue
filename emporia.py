@@ -75,6 +75,28 @@ def _auth_error(error: Exception) -> bool:
     return getattr(response, "status_code", None) in (401, 403)
 
 
+def _new_auth(**settings):
+    """Keep pyemvue authentication while reusing one worker-owned HTTP pool."""
+    from pyemvue.auth import Auth
+    from requests import Session
+
+    class SessionAuth(Auth):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.session = Session()
+
+        def _do_request(self, method, path, **kwargs):
+            headers = dict(kwargs.pop("headers", None) or {})
+            headers["authtoken"] = self.tokens["id_token"]
+            kwargs.setdefault("timeout", (self.connect_timeout, self.read_timeout))
+            return self.session.request(method, f"{self.host}/{path}", headers=headers, **kwargs)
+
+        def close(self):
+            self.session.close()
+
+    return SessionAuth(**settings)
+
+
 class EmporiaClient:
     def __init__(
         self,
@@ -101,11 +123,13 @@ class EmporiaClient:
         self.status_interval = config.get("status_interval_seconds", 15.0)
         self.status_max_age = config.get("status_stale_after_seconds", 30.0)
         self.timeout = config.get("timeout_seconds", 10.0)
+        self.energy_timeout = config.get("energy_timeout_seconds", 3.0)
         self._auth: Any = None
         self._api_template = ""
         self._api_status_path = "customers/devices/status"
         self._channel_info: dict[tuple[str, str], dict] = {}
         self._device_status: dict[str, bool] = {}
+        self._reported_device_status: dict[str, bool | None] = {}
         self._status_timestamp: float | None = None
         self._next_status = 0.0
         self._status_failures = 0
@@ -127,7 +151,7 @@ class EmporiaClient:
         from botocore import UNSIGNED
         from botocore.config import Config
         from pycognito import Cognito
-        from pyemvue.auth import CLIENT_ID, USER_POOL, Auth
+        from pyemvue.auth import CLIENT_ID, USER_POOL
         from pyemvue.pyemvue import (
             API_CUSTOMER_DEVICES,
             API_DEVICES_USAGE,
@@ -135,6 +159,7 @@ class EmporiaClient:
             API_ROOT,
         )
 
+        self._reset_auth()
         self._api_template = API_DEVICES_USAGE
         self._api_status_path = API_GET_STATUS
         try:
@@ -161,7 +186,7 @@ class EmporiaClient:
             raise ValueError("Emporia tokens or credentials are required")
 
         def authenticate(use_tokens: bool):
-            auth = Auth(
+            auth = _new_auth(
                 host=API_ROOT,
                 connect_timeout=self.timeout,
                 read_timeout=self.timeout,
@@ -169,24 +194,28 @@ class EmporiaClient:
                 max_retry_attempts=1,
                 max_retry_delay=0,
             )
-            auth.cognito = Cognito(
-                USER_POOL,
-                CLIENT_ID,
-                user_pool_region="us-east-2",
-                username=username.lower() if username else None,
-                id_token=tokens.get("id_token") if use_tokens else None,
-                access_token=tokens.get("access_token") if use_tokens else None,
-                refresh_token=tokens.get("refresh_token") if use_tokens else None,
-                botocore_config=Config(
-                    signature_version=UNSIGNED,
-                    connect_timeout=self.timeout,
-                    read_timeout=self.timeout,
-                    retries={"total_max_attempts": 1},
-                ),
-            )
-            if not use_tokens:
-                auth.cognito.authenticate(password=password)
-            auth.refresh_tokens()
+            try:
+                auth.cognito = Cognito(
+                    USER_POOL,
+                    CLIENT_ID,
+                    user_pool_region="us-east-2",
+                    username=username.lower() if username else None,
+                    id_token=tokens.get("id_token") if use_tokens else None,
+                    access_token=tokens.get("access_token") if use_tokens else None,
+                    refresh_token=tokens.get("refresh_token") if use_tokens else None,
+                    botocore_config=Config(
+                        signature_version=UNSIGNED,
+                        connect_timeout=self.timeout,
+                        read_timeout=self.timeout,
+                        retries={"total_max_attempts": 1},
+                    ),
+                )
+                if not use_tokens:
+                    auth.cognito.authenticate(password=password)
+                auth.refresh_tokens()
+            except Exception:
+                auth.close()
+                raise
             return auth
 
         try:
@@ -200,8 +229,13 @@ class EmporiaClient:
             response.raise_for_status()
             self._load_channels(response.json())
         except Exception:
-            self._auth = None
+            self._reset_auth()
             raise
+
+    def _reset_auth(self) -> None:
+        auth, self._auth = self._auth, None
+        if auth is not None:
+            auth.close()
 
     def _load_channels(self, payload: dict) -> None:
         if not isinstance(payload, dict) or not isinstance(payload.get("devices"), list):
@@ -242,7 +276,7 @@ class EmporiaClient:
             return usage
         return abs(usage)
 
-    def _usage(self, scale: str) -> tuple[float | None, dict]:
+    def _usage(self, scale: str, timeout: float | None = None) -> tuple[float | None, dict]:
         if self._auth is None:
             self._connect()
         instant = datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -252,7 +286,8 @@ class EmporiaClient:
             scale=scale,
             unit="KilowattHours",
         )
-        response = self._auth.request("get", path)
+        options = {"timeout": (timeout, timeout)} if timeout is not None else {}
+        response = self._auth.request("get", path, **options)
         response.raise_for_status()
         payload = response.json().get("deviceListUsages")
         if not isinstance(payload, dict) or not isinstance(payload.get("devices"), list):
@@ -302,6 +337,21 @@ class EmporiaClient:
             self._device_status = statuses
             self._status_timestamp = time.monotonic()
             self._status_failures = 0
+            for gid in self.device_gids:
+                key = str(gid)
+                connected = statuses.get(key)
+                if key in self._reported_device_status and (
+                    self._reported_device_status[key] == connected
+                ):
+                    continue
+                self._reported_device_status[key] = connected
+                state = "online" if connected else "offline" if connected is False else "unknown"
+                LOG.log(
+                    logging.INFO if connected else logging.WARNING,
+                    "Emporia device %s status is %s",
+                    gid,
+                    state,
+                )
         except Exception as error:  # noqa: BLE001 - Unknown device status must fail closed.
             self._device_status = {}
             self._status_timestamp = None
@@ -310,7 +360,7 @@ class EmporiaClient:
                 300.0, self.status_interval * 2 ** min(self._status_failures - 1, 6)
             )
             if _auth_error(error):
-                self._auth = None
+                self._reset_auth()
             LOG.warning("Emporia status request failed (%s)", type(error).__name__)
 
     def _online(self, gid: int) -> bool:
@@ -342,7 +392,7 @@ class EmporiaClient:
 
     def poll_energy(self, period: str) -> dict[str, dict]:
         scale = {"day": "1D", "month": "1MON"}[period]
-        timestamp, readings = self._usage(scale)
+        timestamp, readings = self._usage(scale, timeout=self.energy_timeout)
         result = {}
         for channel in self.channels:
             gid, number = channel["emporia_device_gid"], str(channel["emporia_channel"])
@@ -365,6 +415,12 @@ class EmporiaClient:
         return result
 
     def _work(self, emit: Callable) -> None:
+        try:
+            self._poll_loop(emit)
+        finally:
+            self._reset_auth()
+
+    def _poll_loop(self, emit: Callable) -> None:
         next_energy = {"day": 0.0, "month": 0.0}
         energy_intervals = {"day": self.day_interval, "month": self.month_interval}
         energy_failures = {"day": 0, "month": 0}
@@ -375,7 +431,7 @@ class EmporiaClient:
                 emit(self.publish, self.poll_power())
             except Exception as error:  # noqa: BLE001 - Keep the worker running.
                 if _auth_error(error):
-                    self._auth = None
+                    self._reset_auth()
                 failures += 1
                 LOG.warning("Emporia power request failed (%s)", type(error).__name__)
                 emit(self.unavailable)
@@ -384,26 +440,30 @@ class EmporiaClient:
                 )
                 continue
             failures = 0
-            for period in ("day", "month"):
-                if self._stop.is_set():
-                    break
-                if self._auth is None and self._status_failures:
-                    continue
-                if self.publish_energy and time.monotonic() >= next_energy[period]:
-                    try:
-                        emit(self.publish_energy, self.poll_energy(period))
-                    except Exception as error:  # noqa: BLE001 - Energy does not gate power.
-                        LOG.warning("Emporia %s request failed (%s)", period, type(error).__name__)
-                        energy_failures[period] += 1
-                        delay = min(
-                            energy_intervals[period],
-                            300.0,
-                            max(5.0, self.poll_interval) * 2 ** min(energy_failures[period] - 1, 6),
-                        )
-                    else:
-                        energy_failures[period] = 0
-                        delay = energy_intervals[period]
-                    next_energy[period] = time.monotonic() + delay
+            # The oldest due period wins; return to power before another energy request.
+            period = min(next_energy, key=next_energy.__getitem__)
+            if (
+                not self._stop.is_set()
+                and not (self._auth is None and self._status_failures)
+                and self.publish_energy
+                and time.monotonic() >= next_energy[period]
+            ):
+                try:
+                    emit(self.publish_energy, self.poll_energy(period))
+                except Exception as error:  # noqa: BLE001 - Energy does not gate power.
+                    if _auth_error(error):
+                        self._reset_auth()
+                    LOG.warning("Emporia %s request failed (%s)", period, type(error).__name__)
+                    energy_failures[period] += 1
+                    delay = min(
+                        energy_intervals[period],
+                        300.0,
+                        max(5.0, self.poll_interval) * 2 ** min(energy_failures[period] - 1, 6),
+                    )
+                else:
+                    energy_failures[period] = 0
+                    delay = energy_intervals[period]
+                next_energy[period] = time.monotonic() + delay
             self._stop.wait(max(0.0, self.poll_interval - (time.monotonic() - started)))
 
     async def run(self) -> None:

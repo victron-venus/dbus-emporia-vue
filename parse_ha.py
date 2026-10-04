@@ -57,12 +57,17 @@ def parse_submeter_state(entity: dict) -> tuple[float | None, float | None]:
         power *= 1000
     elif unit != "W":
         power = None
+    return power, parse_source_timestamp(entity)
+
+
+def parse_source_timestamp(entity: dict) -> float | None:
+    """Use the source report time, including reports of unchanged values."""
     raw_time = entity.get("last_reported") or entity.get("last_updated")
     if not isinstance(raw_time, str):
-        return power, None
+        return None
     try:
         dt = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
         timestamp = dt.timestamp() if dt.tzinfo is not None else None
     except (AttributeError, TypeError, ValueError, OverflowError):
         timestamp = None
-    return power, timestamp
+    return timestamp

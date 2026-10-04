@@ -28,7 +28,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libdbus-1-dev libglib2.0-dev
+          sudo apt-get install -y dbus-daemon libdbus-1-dev libglib2.0-dev
 
       - name: Install dependencies
         run: |

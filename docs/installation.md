@@ -5,9 +5,9 @@ The steps below are shared by all three setups.
 
 ## Prepare the package
 
-You need SSH access to a GX device running Venus OS and Python 3.11 or newer.
+You need SSH access to a GX device running Venus OS and Python 3.12.x.
 Run `python3 --version` on GX to check. The service uses `dbus-fast` and
-`websockets`; direct Emporia access also uses `pyemvue` and its dependencies.
+`websockets` and `requests`; direct Emporia access also uses `pyemvue` and its dependencies.
 
 For a new installation, download the complete package archive from
 [Releases](https://github.com/victron-venus/dbus-emporia-vue/releases). Select the
