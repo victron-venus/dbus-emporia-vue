@@ -1,4 +1,4 @@
-dbus-fast>=5.0.25
+dbus-fast>=5.2.0
 websockets>=17.1
 requests
 pyemvue==0.18.9
