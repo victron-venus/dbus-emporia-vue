@@ -37,25 +37,8 @@ def channel_id(channel):
     return channel.get("id") or channel.get("ha_entity_id")
 
 
-def emporia_config(config):
-    if source_mode(config) != "emporia":
-        return None
-    raw = config.get("emporia", {})
-    if not isinstance(raw, dict):
-        raise ValueError("emporia must be an object")
-    result = {
-        "token_file": "emporia-tokens.json",
-        "poll_interval_seconds": 3,
-        "day_interval_seconds": 1800,
-        "month_interval_seconds": 21600,
-        "timeout_seconds": 10,
-        "energy_timeout_seconds": 3,
-        "stale_after_seconds": 30,
-        "status_interval_seconds": 15,
-        "status_stale_after_seconds": 30,
-        "solar_invert": True,
-        **raw,
-    }
+def _validate_emporia_settings(result):
+    """Validate timing bounds and operator-selected credential paths."""
     for key in (
         "poll_interval_seconds",
         "day_interval_seconds",
@@ -79,46 +62,78 @@ def emporia_config(config):
     for key in ("token_file", "credentials_file"):
         if key in result and (not isinstance(result[key], str) or not result[key].strip()):
             raise ValueError(f"emporia.{key} must be a nonempty path")
+
+
+def _validate_channel_identity(channel, identities, services, instances):
+    """Require independent channel, D-Bus service, and device-instance identities."""
+    identity = channel_id(channel)
+    if not isinstance(identity, str) or not identity or identity in identities:
+        raise ValueError("Each channel needs a unique id or ha_entity_id")
+    identities.add(identity)
+    service = channel.get("service_name")
+    if (
+        not isinstance(service, str)
+        or not service.startswith("com.victronenergy.acload.")
+        or service in services
+    ):
+        raise ValueError("Each channel needs a unique com.victronenergy.acload service_name")
+    services.add(service)
+    instance = channel.get("instance")
+    if (
+        isinstance(instance, bool)
+        or not isinstance(instance, int)
+        or instance < 0
+        or instance in instances
+    ):
+        raise ValueError("Each channel needs a unique nonnegative instance")
+    instances.add(instance)
+
+
+def _validate_emporia_channel(channel, devices):
+    """Validate the physical channel and its measurement projection."""
+    gid, number = channel.get("emporia_device_gid"), channel.get("emporia_channel")
+    if isinstance(gid, bool) or not isinstance(gid, int) or gid <= 0:
+        raise ValueError("Each channel needs a positive emporia_device_gid")
+    if not isinstance(number, str) or not number.strip():
+        raise ValueError("Each channel needs a nonempty emporia_channel")
+    if (gid, number) in devices:
+        raise ValueError("Duplicate Emporia channel")
+    devices.add((gid, number))
+    multiplier = channel.get("power_multiplier", 1)
+    if not finite(multiplier) or multiplier == 0:
+        raise ValueError("power_multiplier must be a finite nonzero number")
+    for key in ("emporia_import_channel", "emporia_export_channel"):
+        if key in channel and (not isinstance(channel[key], str) or not channel[key]):
+            raise ValueError(f"{key} must be a nonempty channel number")
+
+
+def emporia_config(config):
+    if source_mode(config) != "emporia":
+        return None
+    raw = config.get("emporia", {})
+    if not isinstance(raw, dict):
+        raise ValueError("emporia must be an object")
+    result = {
+        "token_file": "emporia-tokens.json",
+        "poll_interval_seconds": 3,
+        "day_interval_seconds": 1800,
+        "month_interval_seconds": 21600,
+        "timeout_seconds": 10,
+        "energy_timeout_seconds": 3,
+        "stale_after_seconds": 30,
+        "status_interval_seconds": 15,
+        "status_stale_after_seconds": 30,
+        "solar_invert": True,
+        **raw,
+    }
+    _validate_emporia_settings(result)
     channels = config.get("channels", [])
     if not isinstance(channels, list) or not all(isinstance(c, dict) for c in channels):
         raise ValueError("channels must be a list of objects")
     identities, services, instances, devices = set(), set(), set(), set()
     for channel in channels:
-        identity = channel_id(channel)
-        if not isinstance(identity, str) or not identity or identity in identities:
-            raise ValueError("Each channel needs a unique id or ha_entity_id")
-        identities.add(identity)
-        service = channel.get("service_name")
-        if (
-            not isinstance(service, str)
-            or not service.startswith("com.victronenergy.acload.")
-            or service in services
-        ):
-            raise ValueError("Each channel needs a unique com.victronenergy.acload service_name")
-        services.add(service)
-        instance = channel.get("instance")
-        if (
-            isinstance(instance, bool)
-            or not isinstance(instance, int)
-            or instance < 0
-            or instance in instances
-        ):
-            raise ValueError("Each channel needs a unique nonnegative instance")
-        instances.add(instance)
-        gid, number = channel.get("emporia_device_gid"), channel.get("emporia_channel")
-        if isinstance(gid, bool) or not isinstance(gid, int) or gid <= 0:
-            raise ValueError("Each channel needs a positive emporia_device_gid")
-        if not isinstance(number, str) or not number.strip():
-            raise ValueError("Each channel needs a nonempty emporia_channel")
-        if (gid, number) in devices:
-            raise ValueError("Duplicate Emporia channel")
-        devices.add((gid, number))
-        multiplier = channel.get("power_multiplier", 1)
-        if not finite(multiplier) or multiplier == 0:
-            raise ValueError("power_multiplier must be a finite nonzero number")
-        for key in ("emporia_import_channel", "emporia_export_channel"):
-            if key in channel and (not isinstance(channel[key], str) or not channel[key]):
-                raise ValueError(f"{key} must be a nonempty channel number")
+        _validate_channel_identity(channel, identities, services, instances)
+        _validate_emporia_channel(channel, devices)
     return result
 
 
