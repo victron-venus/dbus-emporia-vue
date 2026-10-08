@@ -589,7 +589,7 @@ class ReleaseNotesTests(unittest.TestCase):
             "\\-",
             "_",
             "1234567890.",
-            "١.",
+            "\u0661.",
             ">     -",
             "-     +",
             ">     ---",
