@@ -41,6 +41,58 @@ def _timestamp(value: Any) -> float | None:
         return None
 
 
+def _collect_channel_usage(
+    gid: Any,
+    channels: list,
+    devices: list,
+    readings: dict[tuple[str, str], float | None],
+) -> None:
+    for channel in channels:
+        if not isinstance(channel, dict):
+            continue
+        if isinstance(channel.get("nestedDevices"), list):
+            devices.extend(channel["nestedDevices"])
+        readings[(str(gid), str(channel.get("channelNum")))] = _number(channel.get("usage"))
+
+
+def _usage_readings(payload: Any) -> tuple[float | None, dict]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("devices"), list):
+        raise ValueError("Invalid Emporia usage response")
+    timestamp = _timestamp(payload.get("instant"))
+    readings: dict[tuple[str, str], float | None] = {}
+    devices = list(payload["devices"])
+    while devices:
+        device = devices.pop()
+        if not isinstance(device, dict):
+            continue
+        gid = device.get("deviceGid")
+        channels = device.get("channelUsages")
+        if not isinstance(channels, list):
+            continue
+        _collect_channel_usage(gid, channels, devices, readings)
+    return timestamp, readings
+
+
+def _status_readings(payload: Any) -> dict[str, bool]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("devicesConnected"), list):
+        raise ValueError("Invalid Emporia status response")
+    statuses = {}
+    for device in payload["devicesConnected"]:
+        if (
+            isinstance(device, dict)
+            and device.get("deviceGid") is not None
+            and isinstance(device.get("connected"), bool)
+        ):
+            statuses[str(device["deviceGid"])] = device["connected"]
+    return statuses
+
+
+def _connection_state(connected: bool | None) -> str:
+    if connected:
+        return "online"
+    return "offline" if connected is False else "unknown"
+
+
 def _read_private_json(path: str) -> dict:
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     with os.fdopen(fd, "r") as handle:
@@ -290,26 +342,7 @@ class EmporiaClient:
         response = self._auth.request("get", path, **options)
         response.raise_for_status()
         payload = response.json().get("deviceListUsages")
-        if not isinstance(payload, dict) or not isinstance(payload.get("devices"), list):
-            raise ValueError("Invalid Emporia usage response")
-        timestamp = _timestamp(payload.get("instant"))
-        readings = {}
-        devices = list(payload["devices"])
-        while devices:
-            device = devices.pop()
-            if not isinstance(device, dict):
-                continue
-            gid = device.get("deviceGid")
-            channels = device.get("channelUsages")
-            if not isinstance(channels, list):
-                continue
-            for channel in channels:
-                if not isinstance(channel, dict):
-                    continue
-                if isinstance(channel.get("nestedDevices"), list):
-                    devices.extend(channel["nestedDevices"])
-                readings[(str(gid), str(channel.get("channelNum")))] = _number(channel.get("usage"))
-        return timestamp, readings
+        return _usage_readings(payload)
 
     def _refresh_status(self) -> None:
         now = time.monotonic()
@@ -322,36 +355,11 @@ class EmporiaClient:
             response = self._auth.request("get", self._api_status_path)
             response.raise_for_status()
             payload = response.json()
-            if not isinstance(payload, dict) or not isinstance(
-                payload.get("devicesConnected"), list
-            ):
-                raise ValueError("Invalid Emporia status response")
-            statuses = {}
-            for device in payload["devicesConnected"]:
-                if (
-                    isinstance(device, dict)
-                    and device.get("deviceGid") is not None
-                    and isinstance(device.get("connected"), bool)
-                ):
-                    statuses[str(device["deviceGid"])] = device["connected"]
+            statuses = _status_readings(payload)
             self._device_status = statuses
             self._status_timestamp = time.monotonic()
             self._status_failures = 0
-            for gid in self.device_gids:
-                key = str(gid)
-                connected = statuses.get(key)
-                if key in self._reported_device_status and (
-                    self._reported_device_status[key] == connected
-                ):
-                    continue
-                self._reported_device_status[key] = connected
-                state = "online" if connected else "offline" if connected is False else "unknown"
-                LOG.log(
-                    logging.INFO if connected else logging.WARNING,
-                    "Emporia device %s status is %s",
-                    gid,
-                    state,
-                )
+            self._report_status(statuses)
         except Exception as error:  # noqa: BLE001 - Unknown device status must fail closed.
             self._device_status = {}
             self._status_timestamp = None
@@ -362,6 +370,23 @@ class EmporiaClient:
             if _auth_error(error):
                 self._reset_auth()
             LOG.warning("Emporia status request failed (%s)", type(error).__name__)
+
+    def _report_status(self, statuses: dict[str, bool]) -> None:
+        for gid in self.device_gids:
+            key = str(gid)
+            connected = statuses.get(key)
+            if key in self._reported_device_status and (
+                self._reported_device_status[key] == connected
+            ):
+                continue
+            self._reported_device_status[key] = connected
+            state = _connection_state(connected)
+            LOG.log(
+                logging.INFO if connected else logging.WARNING,
+                "Emporia device %s status is %s",
+                gid,
+                state,
+            )
 
     def _online(self, gid: int) -> bool:
         return (

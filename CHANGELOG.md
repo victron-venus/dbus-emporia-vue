@@ -8,6 +8,9 @@ Publishes Emporia/Home Assistant power channels as Victron D-Bus AC loads. The e
 
 ### Maintenance
 
+- Separate cloud usage/status parsing and device-transition logging from request
+  handling while preserving nested-device traversal, invalid-data rejection,
+  authentication recovery and retry timing.
 - Publish reviewed release notes from the exact source commit used to build each candidate, preserving build provenance.
 - Document contribution checks, confidential security reporting and the project-specific trust boundaries.
 
