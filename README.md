@@ -149,3 +149,9 @@ MIT
 Use [the read-only tariff exporter](docs/tariff-export.md) to seed the dashboard
 editor from the configured Emporia device. Utility-plan schedules still need
 to be copied from the app; an ID alone is never treated as a flat price.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for reports, development checks and pull requests,
+[SECURITY.md](SECURITY.md) for private vulnerability reporting and deployment trust boundaries,
+and the [OpenSSF evidence index](docs/openssf-evidence.md) for assessment references and remaining verification.
