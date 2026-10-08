@@ -51,6 +51,11 @@ from aiovelib.service import (  # noqa: E402
     TextItem,
 )
 
+# Shared protocol identifiers keep publication and update paths consistent.
+DBUS_POWER_PATH = "/Ac/Power"
+DBUS_L1_POWER_PATH = "/Ac/L1/Power"
+DBUS_LAST_UPDATE_PATH = "/LastUpdate"
+
 
 def write_heartbeat(path: Path | None = None) -> None:
     """Atomically replace the heartbeat without following an existing symlink."""
@@ -139,8 +144,8 @@ class AcLoadService:
         self._service.add_item(IntegerItem(PATH_CONNECTED, 0))
         self._service.add_item(IntegerItem(PATH_STATUS, 1))
         self._service.add_item(IntegerItem("/IsGenericEnergyMeter", 1))
-        self._service.add_item(DoubleItem("/Ac/Power", None))
-        self._service.add_item(DoubleItem("/Ac/L1/Power", None))
+        self._service.add_item(DoubleItem(DBUS_POWER_PATH, None))
+        self._service.add_item(DoubleItem(DBUS_L1_POWER_PATH, None))
         self._service.add_item(DoubleItem("/Ac/Energy/Forward", None))
         if submeter:
             # Match Victron's AC energy-meter profile. Selection as the
@@ -150,7 +155,7 @@ class AcLoadService:
             self._service.add_item(TextItem("/Serial", f"emporia:{submeter['channel']}"))
             self._service.add_item(IntegerItem("/NrOfPhases", 1))
             self._service.add_item(IntegerItem("/RefreshTime", 5000))
-            self._service.add_item(DoubleItem("/LastUpdate", None))
+            self._service.add_item(DoubleItem(DBUS_LAST_UPDATE_PATH, None))
             self._service.add_item(TextItem("/Source/EntityId", submeter["channel"]))
 
     @property
@@ -173,8 +178,8 @@ class AcLoadService:
 
     def update_power(self, power):
         with self._service as s:
-            s["/Ac/Power"] = power
-            s["/Ac/L1/Power"] = power
+            s[DBUS_POWER_PATH] = power
+            s[DBUS_L1_POWER_PATH] = power
             s[PATH_CONNECTED] = 1 if power is not None else 0
             s[PATH_STATUS] = 0 if power is not None else 1
 
@@ -184,7 +189,7 @@ class AcLoadService:
         self._service.add_item(TextItem("/Emporia/DeviceId", str(channel["emporia_device_gid"])))
         self._service.add_item(TextItem("/Emporia/Channel", channel["emporia_channel"]))
         if not self.submeter:
-            self._service.add_item(DoubleItem("/LastUpdate", None))
+            self._service.add_item(DoubleItem(DBUS_LAST_UPDATE_PATH, None))
         self._has_last_update = True
         self.energy_fields = ["energy_day", "energy_month"]
         for direction in ("import", "export"):
@@ -202,9 +207,9 @@ class AcLoadService:
 
     def publish_measurement(self, sample, source):
         with self._service as s:
-            s["/Ac/Power"] = sample.power if sample else None
-            s["/Ac/L1/Power"] = sample.power if sample else None
-            s["/LastUpdate"] = sample.timestamp if sample else None
+            s[DBUS_POWER_PATH] = sample.power if sample else None
+            s[DBUS_L1_POWER_PATH] = sample.power if sample else None
+            s[DBUS_LAST_UPDATE_PATH] = sample.timestamp if sample else None
             s["/Source/Type"] = source
             s["/Mgmt/Connection"] = {
                 "emporia": "Emporia API",
@@ -230,7 +235,7 @@ class AcLoadService:
         if not self.submeter:
             self._ha_stale_after = stale_after_seconds
         if not self._has_last_update:
-            self._service.add_item(DoubleItem("/LastUpdate", None))
+            self._service.add_item(DoubleItem(DBUS_LAST_UPDATE_PATH, None))
             self._has_last_update = True
 
     def needs_revalidation(self):
@@ -282,22 +287,22 @@ class AcLoadService:
                 self.invalidate()
                 return
         with self._service as s:
-            s["/Ac/Power"] = power
+            s[DBUS_POWER_PATH] = power
             # Victron's AC-load meter profile needs a phase power. Home is an
             # aggregate source, so its signed total is represented on L1 too.
-            s["/Ac/L1/Power"] = power
+            s[DBUS_L1_POWER_PATH] = power
             if self._has_last_update:
-                s["/LastUpdate"] = timestamp
+                s[DBUS_LAST_UPDATE_PATH] = timestamp
             s[PATH_CONNECTED] = 1
             s[PATH_STATUS] = 0
 
     def invalidate(self):
         self._fresh_until = 0.0
         with self._service as s:
-            s["/Ac/Power"] = None
-            s["/Ac/L1/Power"] = None
+            s[DBUS_POWER_PATH] = None
+            s[DBUS_L1_POWER_PATH] = None
             if self._has_last_update:
-                s["/LastUpdate"] = None
+                s[DBUS_LAST_UPDATE_PATH] = None
             s[PATH_CONNECTED] = 0
             s[PATH_STATUS] = 1
 

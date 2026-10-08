@@ -41,5 +41,7 @@
   "single_entry_ci": true,
   "validation_oidc_workflows": [
     "python-ci.yml"
-  ]
+  ],
+  "release_notes": "CHANGELOG.md",
+  "toolkit_revision": "ab9f337e5fa49c263c873d65c9e50dde7249af56"
 }
