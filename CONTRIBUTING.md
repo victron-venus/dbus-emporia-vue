@@ -25,6 +25,8 @@ Automated tests use mocks or controlled fixtures where available. A passing unit
 
 Sonar's automatic analysis includes the release helpers in `scripts/`. Keep executable first-party files in scope and investigate findings individually. Record the affected data flow and reproducible evidence for a demonstrated false positive; do not exclude a whole file to hide one finding. See the [supported automatic-analysis settings](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/automatic-analysis#additional-analysis-configuration).
 
+The [static-analysis review notes](docs/STATIC_ANALYSIS.md) document individual release-helper findings and their verification scope.
+
 ## Source and interfaces
 
 - [main.py](main.py)
