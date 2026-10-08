@@ -252,13 +252,22 @@ class AcLoadService:
             s[PATH_CONNECTED] = 1 if connected else 0
             s[PATH_STATUS] = 0 if connected else 1
 
+    def _entity_sample(self, entity):
+        """Read power and its source time using the selected HA meter format."""
+        if self.submeter:
+            return parse_submeter_state(entity)
+        _, power = parse_initial_state(entity)
+        return power, parse_source_timestamp(entity)
+
+    def _record_source_time(self, timestamp):
+        """Reset the monotonic deadline only when the source timestamp changes."""
+        if timestamp != self._source_time:
+            self._source_deadline = None
+        self._source_time = timestamp
+
     def update_entity(self, entity):
         """Publish source-fresh HA values and reject older REST/WS snapshots."""
-        if self.submeter:
-            power, timestamp = parse_submeter_state(entity)
-        else:
-            _, power = parse_initial_state(entity)
-            timestamp = parse_source_timestamp(entity)
+        power, timestamp = self._entity_sample(entity)
         if (
             timestamp is not None
             and self._source_time is not None
@@ -271,9 +280,7 @@ class AcLoadService:
         if timestamp is not None and -5 <= age and fresh:
             # Unavailable and invalid-unit events also supersede older polls.
             # Do not let a future-dated payload poison the ordering watermark.
-            if timestamp != self._source_time:
-                self._source_deadline = None
-            self._source_time = timestamp
+            self._record_source_time(timestamp)
         if power is None or not math.isfinite(power) or not fresh:
             self.invalidate()
             return
@@ -401,8 +408,13 @@ class HaWebSocketClient:
         if response is None or response.get("success") is not True:
             logger.warning("Could not fetch initial states: %s", (response or {}).get("error"))
             return
+        count = self._apply_initial_states(response.get("result", []), event_updates)
+        logger.info("Loaded initial state for %d entities", count)
+
+    def _apply_initial_states(self, entities, event_updates):
+        """Apply snapshots only when they supersede interleaved trigger events."""
         count = 0
-        for entity in response.get("result", []):
+        for entity in entities:
             entity_id = entity.get("entity_id")
             if entity_id not in self.channel_map:
                 continue
@@ -415,7 +427,7 @@ class HaWebSocketClient:
                     continue
             self.channel_map[entity_id].update_entity(entity)
             count += 1
-        logger.info("Loaded initial state for %d entities", count)
+        return count
 
     def set_connected(self, connected):
         for service in self.channel_map.values():
@@ -466,7 +478,7 @@ class HaWebSocketClient:
                 entity = json.loads(b"".join(chunks))
                 if not isinstance(entity, dict) or entity.get("entity_id") != entity_id:
                     raise ValueError("HA returned an unexpected entity state")
-        except (OSError, ValueError, requests.RequestException) as exc:
+        except (OSError, ValueError) as exc:
             logger.warning("Could not revalidate HA entity %s: %s", entity_id, exc)
             entity = None
         finally:
@@ -620,7 +632,6 @@ async def run_websocket_client(ws_client):
             delay = 1
         except (
             OSError,
-            TimeoutError,
             RuntimeError,
             json.JSONDecodeError,
             WebSocketException,
@@ -630,7 +641,7 @@ async def run_websocket_client(ws_client):
             ws_client.set_connected(False)
             try:
                 await ws_client.disconnect()
-            except (OSError, TimeoutError, RuntimeError, WebSocketException):
+            except (OSError, RuntimeError, WebSocketException):
                 logger.exception("Failed to close Home Assistant connection")
         # Wait for the delay period before retrying, with jitter to avoid thundering herd
         jitter = delay * 0.1 * (secrets.randbelow(1_000_000) / 1_000_000)  # 10% jitter
