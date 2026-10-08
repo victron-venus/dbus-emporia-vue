@@ -8,6 +8,9 @@ Publishes Emporia/Home Assistant power channels as Victron D-Bus AC loads. The e
 
 ### Maintenance
 
+- Skip malformed Home Assistant channel entries and isolate D-Bus connection
+  failures to the affected channel. Keep failed cleanup owned for shutdown and
+  preserve task cancellation while attempting later valid channels.
 - Separate cloud usage/status parsing and device-transition logging from request
   handling while preserving nested-device traversal, invalid-data rejection,
   authentication recovery and retry timing.

@@ -603,7 +603,9 @@ def selected_submeter(config):
     if not isinstance(selection, dict):
         raise ValueError("submeter must be null or an object with channel")
     channel = selection.get("channel")
-    matches = [c for c in config.get("channels", []) if channel_id(c) == channel]
+    matches = [
+        c for c in config.get("channels", []) if isinstance(c, dict) and channel_id(c) == channel
+    ]
     if not isinstance(channel, str) or len(matches) != 1:
         raise ValueError("submeter.channel must identify exactly one configured channel")
     if not matches[0].get("service_name", "").startswith("com.victronenergy.acload."):
@@ -706,27 +708,56 @@ async def heartbeat_task(direct_channels, services):
             await asyncio.sleep(1)
 
 
+async def connect_service_bus(service_name, unowned_buses):
+    """Retain a failed connection until cleanup finishes, without stopping later channels."""
+    bus = MessageBus(bus_type=BusType.SYSTEM)
+    unowned_buses.append(bus)
+    try:
+        connected = await bus.connect()
+    except Exception:
+        logger.exception("Failed to connect D-Bus service %s", service_name)
+        try:
+            await close_unowned_bus(bus)
+        except Exception:
+            # The outer owner must retry a failed cleanup during shutdown.
+            logger.exception("Failed to close D-Bus connection for %s", service_name)
+        else:
+            unowned_buses.remove(bus)
+        return None
+    unowned_buses[-1] = connected
+    return connected
+
+
+def channel_registration_settings(chan, direct):
+    """Read required channel fields only after checking the configured entry type."""
+    if not isinstance(chan, dict):
+        return None
+    entity_id = channel_id(chan) if direct else chan.get("ha_entity_id")
+    service_name = chan.get("service_name")
+    instance = chan.get("instance")
+    custom_name = chan.get("custom_name")
+    position = chan.get("position", 0)
+    if not all([entity_id, service_name, instance is not None, custom_name]):
+        return None
+    return entity_id, service_name, instance, custom_name, position
+
+
 async def register_services(channels_config, direct, submeter, allocated_services, unowned_buses):
     """Register channels while the caller retains ownership of every allocated bus."""
     services = {}
     for chan in channels_config:
-        entity_id = channel_id(chan) if direct else chan.get("ha_entity_id")
-        service_name = chan.get("service_name")
-        instance = chan.get("instance")
-        custom_name = chan.get("custom_name")
-        position = chan.get("position", 0)
-
-        if not all([entity_id, service_name, instance is not None, custom_name]):
+        settings = channel_registration_settings(chan, direct)
+        if settings is None:
             logger.error("Invalid channel configuration: %s", chan)
             continue
+        entity_id, service_name, instance, custom_name, position = settings
 
         # One message bus per service: every com.victronenergy.* service
         # exports the BusItem interface at "/", so sharing a single bus
         # between services raises "already exported on this bus".
-        bus = MessageBus(bus_type=BusType.SYSTEM)
-        unowned_buses.append(bus)
-        bus = await bus.connect()
-        unowned_buses[-1] = bus
+        bus = await connect_service_bus(service_name, unowned_buses)
+        if bus is None:
+            continue
         selection = submeter if submeter and submeter["channel"] == channel_id(chan) else None
         service = AcLoadService(bus, service_name, instance, custom_name, position, selection)
         allocated_services.append(service)
