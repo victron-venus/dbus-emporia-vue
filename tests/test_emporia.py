@@ -1071,3 +1071,15 @@ def test_power_runs_between_slow_energy_requests(monkeypatch):
     monitor._work(lambda callback, *args: callback(*args))
     assert calls == [("power", 0), ("day", 0), ("power", 10), ("month", 10), ("power", 20)]
     monitor.unavailable.assert_not_called()
+
+
+def test_energy_publish_failure_retries_only_that_period(monkeypatch, caplog):
+    monitor = client()
+    monitor.publish_energy = Mock(side_effect=[RuntimeError("private callback error"), None, None])
+    power, attempts, waits = run_energy_worker(monkeypatch, monitor, 12, lambda *_args: {})
+    assert power == list(range(12))
+    assert attempts == {"day": [0, 5], "month": [1]}
+    assert waits == [1] * 12
+    monitor.unavailable.assert_not_called()
+    assert monitor.publish_energy.call_count == 3
+    assert "private callback error" not in caplog.text

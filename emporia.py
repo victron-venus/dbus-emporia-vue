@@ -445,6 +445,25 @@ class EmporiaClient:
         finally:
             self._reset_auth()
 
+    def _poll_energy_attempt(
+        self, emit: Callable, period: str, failures: int, interval: float
+    ) -> tuple[int, float]:
+        """Publish one period and calculate its independent retry delay."""
+        try:
+            emit(self.publish_energy, self.poll_energy(period))
+        except Exception as error:  # noqa: BLE001 - Energy does not gate power.
+            if _auth_error(error):
+                self._reset_auth()
+            LOG.warning("Emporia %s request failed (%s)", period, type(error).__name__)
+            failures += 1
+            delay = min(
+                interval,
+                300.0,
+                max(5.0, self.poll_interval) * 2 ** min(failures - 1, 6),
+            )
+            return failures, delay
+        return 0, interval
+
     def _poll_loop(self, emit: Callable) -> None:
         next_energy = {"day": 0.0, "month": 0.0}
         energy_intervals = {"day": self.day_interval, "month": self.month_interval}
@@ -473,21 +492,9 @@ class EmporiaClient:
                 and self.publish_energy
                 and time.monotonic() >= next_energy[period]
             ):
-                try:
-                    emit(self.publish_energy, self.poll_energy(period))
-                except Exception as error:  # noqa: BLE001 - Energy does not gate power.
-                    if _auth_error(error):
-                        self._reset_auth()
-                    LOG.warning("Emporia %s request failed (%s)", period, type(error).__name__)
-                    energy_failures[period] += 1
-                    delay = min(
-                        energy_intervals[period],
-                        300.0,
-                        max(5.0, self.poll_interval) * 2 ** min(energy_failures[period] - 1, 6),
-                    )
-                else:
-                    energy_failures[period] = 0
-                    delay = energy_intervals[period]
+                energy_failures[period], delay = self._poll_energy_attempt(
+                    emit, period, energy_failures[period], energy_intervals[period]
+                )
                 next_energy[period] = time.monotonic() + delay
             self._stop.wait(max(0.0, self.poll_interval - (time.monotonic() - started)))
 
