@@ -23,6 +23,8 @@ Install local test dependencies with `bash scripts/ci.sh --install`, then run `b
 
 Automated tests use mocks or controlled fixtures where available. A passing unit test does not establish hardware safety. Describe any physical-device test separately, including firmware, configuration and expected rollback. Never run installation, deployment, Terraform apply or actuator commands merely to validate a documentation change.
 
+Sonar's automatic analysis includes the release helpers in `scripts/`. Keep executable first-party files in scope and investigate findings individually. Record the affected data flow and reproducible evidence for a demonstrated false positive; do not exclude a whole file to hide one finding. See the [supported automatic-analysis settings](https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/automatic-analysis#additional-analysis-configuration).
+
 ## Source and interfaces
 
 - [main.py](main.py)
