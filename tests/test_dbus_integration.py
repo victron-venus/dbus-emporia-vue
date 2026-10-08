@@ -229,8 +229,9 @@ async def _startup_failure(address, case):
         patch.object(main, "MessageBus", side_effect=bus_factory),
         patch.object(main, "AcLoadService", side_effect=service_factory),
     ):
+        operation = main.main()
         with pytest.raises(expected):
-            await asyncio.wait_for(main.main(), timeout=3)
+            await asyncio.wait_for(operation, timeout=3)
     assert len(buses) == 2
     assert all(not bus.connected for bus in buses)
     observer = await MessageBus(bus_address=address).connect()

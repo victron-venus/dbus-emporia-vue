@@ -155,8 +155,9 @@ def valid_channel():
     ],
 )
 def test_invalid_channel_mapping(changes):
+    config = {"source": "emporia", "channels": [{**valid_channel(), **changes}]}
     with pytest.raises(ValueError):
-        emporia_config({"source": "emporia", "channels": [{**valid_channel(), **changes}]})
+        emporia_config(config)
 
 
 def test_duplicate_ids_and_devices_rejected():
