@@ -1,5 +1,5 @@
 dbus-fast>=5.2.0
-websockets>=17.1
+websockets>=17.2
 requests
 pyemvue==0.18.9
 boto3>=1.43.108,<1.44.0
