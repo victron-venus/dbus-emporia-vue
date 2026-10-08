@@ -1,6 +1,7 @@
 """Tests for main.py orchestration — aiovelib + websockets + heartbeat are mocked."""
 
 import asyncio
+import contextlib
 import json
 import os
 import signal
@@ -510,14 +511,17 @@ def test_main_no_channels_returns(caplog, tmp_path, monkeypatch):
     assert "No channels" in caplog.text
 
 
-def test_main_invalid_channel_skipped_and_continues(caplog, tmp_path, monkeypatch):
+@pytest.mark.parametrize("bad", [{"ha_entity_id": "sensor.bad"}, None, "bad", [], 3, True])
+@pytest.mark.parametrize("submeter_selection", [None, {"channel": "sensor.a"}])
+def test_main_invalid_channel_skipped_and_continues(
+    caplog, tmp_path, monkeypatch, bad, submeter_selection
+):
     """A malformed channel must not abort the loop; the valid one registers."""
     import main as main_mod
     from main import main
 
-    bad = {"ha_entity_id": "sensor.bad"}
     good = CHANNELS_CFG[0]
-    p = _write_config(tmp_path, channels=[bad, good])
+    p = _write_config(tmp_path, channels=[bad, good], submeter=submeter_selection)
 
     # Short-circuit the long-lived gather so main() returns after registration.
     async def fake_gather(*coros, return_exceptions=False):
@@ -580,6 +584,117 @@ def test_main_all_services_fail_returns(caplog, tmp_path, monkeypatch):
                 ALS.return_value.close = AsyncMock()
                 asyncio.run(main())
     assert "No services could be registered" in caplog.text
+
+
+@pytest.mark.parametrize("cleanup_fails", [False, True])
+@pytest.mark.parametrize("replacement_bus", [False, True])
+def test_failed_bus_connection_is_closed_before_next_channel(
+    monkeypatch, cleanup_fails, replacement_bus
+):
+    """Keep failed cleanup owned, and transfer the actual connected bus to the service."""
+    import main as app
+
+    async def exercise():
+        trace = []
+        owned, unowned = [], []
+        failed, good, connected = MagicMock(), MagicMock(), MagicMock()
+        if not replacement_bus:
+            connected = good
+
+        async def fail_connect():
+            trace.append("first-connect")
+            raise ConnectionError("synthetic connection failure")
+
+        def disconnect():
+            trace.append("first-disconnect")
+            if cleanup_fails and trace.count("first-disconnect") == 1:
+                raise RuntimeError("synthetic cleanup failure")
+
+        async def wait_closed():
+            trace.append("first-closed")
+
+        async def connect():
+            trace.append("second-connect")
+            return connected
+
+        failed.connect = AsyncMock(side_effect=fail_connect)
+        failed.disconnect.side_effect = disconnect
+        failed.wait_for_disconnect = AsyncMock(side_effect=wait_closed)
+        good.connect = AsyncMock(side_effect=connect)
+        service = MagicMock()
+        service.register = AsyncMock()
+        service.close = AsyncMock()
+        factory = MagicMock(return_value=service)
+        monkeypatch.setattr(app, "MessageBus", MagicMock(side_effect=[failed, good]))
+        monkeypatch.setattr(app, "AcLoadService", factory)
+
+        services = await app.register_services(CHANNELS_CFG, None, None, owned, unowned)
+        assert services == {"sensor.b": service}
+        assert owned == [service]
+        assert unowned == ([failed] if cleanup_fails else [])
+        factory.assert_called_once_with(connected, "com.victronenergy.acload.b", 72, "B", 0, None)
+        service.register.assert_awaited_once()
+        expected = ["first-connect", "first-disconnect"]
+        if not cleanup_fails:
+            expected.append("first-closed")
+        assert trace == [*expected, "second-connect"]
+        await app.close_dbus_resources(owned, unowned)
+        service.close.assert_awaited_once()
+        assert failed.disconnect.call_count == (2 if cleanup_fails else 1)
+        failed.wait_for_disconnect.assert_awaited_once()
+
+    asyncio.run(exercise())
+
+
+@pytest.mark.parametrize("cancel_at", ["connect", "cleanup"])
+def test_connection_cancellation_preserves_outer_cleanup(monkeypatch, cancel_at):
+    """Cancellation stops registration and leaves its current bus available to the outer owner."""
+    import main as app
+
+    async def exercise():
+        entered = asyncio.Event()
+        owned, unowned, trace = [], [], []
+        bus = MagicMock()
+
+        async def connect():
+            trace.append("connect")
+            if cancel_at == "connect":
+                entered.set()
+                await asyncio.Event().wait()
+            raise ConnectionError("synthetic connection failure")
+
+        async def wait_closed():
+            trace.append("wait-closed")
+            if cancel_at == "cleanup" and trace.count("wait-closed") == 1:
+                entered.set()
+                await asyncio.Event().wait()
+
+        bus.connect = AsyncMock(side_effect=connect)
+        bus.wait_for_disconnect = AsyncMock(side_effect=wait_closed)
+        factory = MagicMock(return_value=bus)
+        monkeypatch.setattr(app, "MessageBus", factory)
+        monkeypatch.setattr(app, "AcLoadService", MagicMock())
+
+        async def run():
+            async with contextlib.AsyncExitStack() as stack:
+                stack.push_async_callback(app.close_dbus_resources, owned, unowned)
+                await app.register_services(CHANNELS_CFG, None, None, owned, unowned)
+
+        task = asyncio.create_task(run())
+        await asyncio.wait_for(entered.wait(), timeout=2)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert task.cancelling() == 1
+        assert owned == []
+        assert unowned == [bus]
+        factory.assert_called_once()
+        app.AcLoadService.assert_not_called()
+        assert bus.disconnect.call_count == (1 if cancel_at == "connect" else 2)
+        assert bus.wait_for_disconnect.await_count == bus.disconnect.call_count
+        assert not [item for item in asyncio.all_tasks() if item is not asyncio.current_task()]
+
+    asyncio.run(exercise())
 
 
 # ---------------------------------------------------------------------------

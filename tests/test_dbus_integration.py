@@ -185,7 +185,8 @@ async def _startup_failure(address, case):
     import main
 
     buses = []
-    names = [f"com.victronenergy.acload.private_test_{index}" for index in range(2)]
+    count = 3 if case == "connect_failure" else 2
+    names = [f"com.victronenergy.acload.private_test_{index}" for index in range(count)]
     config = {
         "ha_url": "invalid://example.test/api/websocket"
         if case == "invalid_ha_url"
@@ -223,16 +224,30 @@ async def _startup_failure(address, case):
             raise RuntimeError("injected constructor failure")
         return service_class(*args)
 
-    expected = ValueError if case == "invalid_ha_url" else RuntimeError
+    async def finish_after_registration(_channels, services, _ws_client, _cloud_client):
+        assert case == "connect_failure"
+        assert set(services) == {"sensor.audit_0", "sensor.audit_2"}
+        assert buses[0].connected and not buses[1].connected and buses[2].connected
+        assert services["sensor.audit_0"]._bus is buses[0]
+        assert services["sensor.audit_2"]._bus is buses[2]
+        raise asyncio.CancelledError
+
+    if case == "connect_failure":
+        expected = asyncio.CancelledError
+    elif case == "invalid_ha_url":
+        expected = ValueError
+    else:
+        expected = RuntimeError
     with (
         patch.object(main, "load_config", return_value=config),
         patch.object(main, "MessageBus", side_effect=bus_factory),
         patch.object(main, "AcLoadService", side_effect=service_factory),
+        patch.object(main, "run_service_workers", side_effect=finish_after_registration),
     ):
         operation = main.main()
         with pytest.raises(expected):
             await asyncio.wait_for(operation, timeout=3)
-    assert len(buses) == 2
+    assert len(buses) == count
     assert all(not bus.connected for bus in buses)
     observer = await MessageBus(bus_address=address).connect()
     try:
