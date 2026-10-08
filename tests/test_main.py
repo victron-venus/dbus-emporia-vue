@@ -699,8 +699,9 @@ def test_network_failure_retries_without_exiting(monkeypatch, failure):
             raise asyncio.CancelledError
 
     monkeypatch.setattr("main.asyncio.sleep", wait_once)
+    operation = run_websocket_client(client)
     with pytest.raises(asyncio.CancelledError):
-        asyncio.run(run_websocket_client(client))
+        asyncio.run(operation)
     assert client.connect.await_count == 2
     assert client.disconnect.await_count == 2
     assert 1 <= waits[0] <= 1.1
@@ -874,8 +875,9 @@ def test_failed_service_release_still_disconnects_its_bus():
     bus = MagicMock()
     service = AcLoadService(bus, "com.victronenergy.acload.test", 71, "Test", 0)
     service._service.close = AsyncMock(side_effect=RuntimeError("release failed"))
+    operation = service.close()
     with pytest.raises(RuntimeError, match="release failed"):
-        asyncio.run(service.close())
+        asyncio.run(operation)
     bus.disconnect.assert_called_once()
 
 
@@ -892,8 +894,9 @@ def test_timed_out_service_release_disconnects_bus_without_pending_tasks():
     service._service.close = never_releases
 
     async def check():
+        operation = service.close()
         with pytest.raises(TimeoutError):
-            await asyncio.wait_for(service.close(), timeout=0.01)
+            await asyncio.wait_for(operation, timeout=0.01)
         bus.disconnect.assert_called_once()
         assert not [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
 
