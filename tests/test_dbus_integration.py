@@ -227,7 +227,9 @@ async def _startup_failure(address, case):
     async def finish_after_registration(_channels, services, _ws_client, _cloud_client):
         assert case == "connect_failure"
         assert set(services) == {"sensor.audit_0", "sensor.audit_2"}
-        assert buses[0].connected and not buses[1].connected and buses[2].connected
+        assert buses[0].connected
+        assert not buses[1].connected
+        assert buses[2].connected
         assert services["sensor.audit_0"]._bus is buses[0]
         assert services["sensor.audit_2"]._bus is buses[2]
         raise asyncio.CancelledError
