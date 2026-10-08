@@ -706,6 +706,171 @@ async def heartbeat_task(direct_channels, services):
             await asyncio.sleep(1)
 
 
+async def register_services(channels_config, direct, submeter, allocated_services, unowned_buses):
+    """Register channels while the caller retains ownership of every allocated bus."""
+    services = {}
+    for chan in channels_config:
+        entity_id = channel_id(chan) if direct else chan.get("ha_entity_id")
+        service_name = chan.get("service_name")
+        instance = chan.get("instance")
+        custom_name = chan.get("custom_name")
+        position = chan.get("position", 0)
+
+        if not all([entity_id, service_name, instance is not None, custom_name]):
+            logger.error("Invalid channel configuration: %s", chan)
+            continue
+
+        # One message bus per service: every com.victronenergy.* service
+        # exports the BusItem interface at "/", so sharing a single bus
+        # between services raises "already exported on this bus".
+        bus = MessageBus(bus_type=BusType.SYSTEM)
+        unowned_buses.append(bus)
+        bus = await bus.connect()
+        unowned_buses[-1] = bus
+        selection = submeter if submeter and submeter["channel"] == channel_id(chan) else None
+        service = AcLoadService(bus, service_name, instance, custom_name, position, selection)
+        allocated_services.append(service)
+        unowned_buses.pop()
+        if direct:
+            service.configure_emporia(chan, direct["poll_interval_seconds"])
+        try:
+            await service.register()
+        except Exception:  # a broken channel must not kill startup
+            logger.exception("Failed to register service %s", service_name)
+            allocated_services.remove(service)
+            await close_dbus_resources([service], [])
+            continue
+        services[entity_id] = service
+        logger.info(
+            "Registered %s for entity %s (instance %d)",
+            service_name,
+            entity_id,
+            instance,
+        )
+
+    return services
+
+
+def publish_channel_energy(direct_channels, measurements):
+    """Deliver each available energy field in its existing source order."""
+    for identity, reading in measurements.items():
+        if identity in direct_channels:
+            for field in ENERGY_PATHS:
+                if field in reading:
+                    direct_channels[identity].update_energy(
+                        field,
+                        reading[field],
+                        reading.get("timestamp"),
+                    )
+
+
+def create_emporia_client(direct, channels_config, services, submeter, direct_channels):
+    """Bind source callbacks to the same service and channel mappings."""
+    from emporia import EmporiaClient
+
+    for key in ("token_file", "credentials_file"):
+        if key in direct:
+            direct[key] = str(Path(_here) / direct[key])
+    active_channels = [
+        {**c, "id": channel_id(c)} for c in channels_config if channel_id(c) in services
+    ]
+    for channel in active_channels:
+        identity = channel["id"]
+        selected_age = (
+            submeter["stale_after_seconds"]
+            if submeter and submeter["channel"] == identity
+            else None
+        )
+        direct_channels[identity] = EmporiaChannel(
+            services[identity],
+            direct,
+            selected_age,
+            services[identity].energy_fields,
+        )
+
+    def publish_power(measurements):
+        for identity, sample in measurements.items():
+            if identity in direct_channels:
+                direct_channels[identity].update(sample)
+
+    def cloud_unavailable():
+        for channel in direct_channels.values():
+            channel.unavailable()
+
+    def publish_energy(measurements):
+        publish_channel_energy(direct_channels, measurements)
+
+    cloud_client = EmporiaClient(
+        direct,
+        active_channels,
+        publish_power,
+        cloud_unavailable,
+        publish_energy=publish_energy,
+    )
+
+    return cloud_client
+
+
+def install_shutdown_signals(loop, request_shutdown, installed_signals):
+    """Record only successfully installed signal handlers for later removal."""
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            loop.add_signal_handler(sig, request_shutdown)
+            installed_signals.append(sig)
+        except NotImplementedError:
+            pass
+
+
+async def run_service_workers(direct_channels, services, ws_client, cloud_client):
+    """Run and drain workers in the caller task before releasing D-Bus resources."""
+    loop = asyncio.get_running_loop()
+    main_task = asyncio.current_task()
+    stopping = False
+
+    def request_shutdown():
+        nonlocal stopping
+        if not stopping:
+            stopping = True
+            logger.info("Shutting down...")
+            if main_task is not None:
+                main_task.cancel()
+
+    installed_signals = []
+    tasks = []
+    try:
+        install_shutdown_signals(loop, request_shutdown, installed_signals)
+
+        tasks.append(asyncio.create_task(heartbeat_task(direct_channels, services)))
+        tasks.extend(
+            asyncio.create_task(monitor_service_bus(service)) for service in services.values()
+        )
+        if ws_client:
+            tasks.insert(0, asyncio.create_task(run_websocket_client(ws_client)))
+        if cloud_client:
+            tasks.append(asyncio.create_task(cloud_client.run()))
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        if not stopping:
+            raise
+    finally:
+        # Stop and retrieve workers before releasing their D-Bus resources.
+        for task in tasks:
+            task.cancel()
+        try:
+            await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5)
+        except TimeoutError:
+            logger.exception("Timed out stopping background tasks")
+        finally:
+            try:
+                if ws_client:
+                    await asyncio.wait_for(ws_client.disconnect(), timeout=5)
+            except Exception:  # cleanup must continue even after an unexpected close failure
+                logger.exception("Failed to close Home Assistant connection")
+            finally:
+                for sig in installed_signals:
+                    loop.remove_signal_handler(sig)
+
+
 async def main():
     config_path = os.path.join(_here, "config.json")
     try:
@@ -745,45 +910,9 @@ async def main():
         # Own every connection from allocation onward, including startup failures
         # before the worker tasks and their shutdown handlers exist.
         resources.push_async_callback(close_dbus_resources, allocated_services, unowned_buses)
-        services = {}
-        for chan in channels_config:
-            entity_id = channel_id(chan) if direct else chan.get("ha_entity_id")
-            service_name = chan.get("service_name")
-            instance = chan.get("instance")
-            custom_name = chan.get("custom_name")
-            position = chan.get("position", 0)
-
-            if not all([entity_id, service_name, instance is not None, custom_name]):
-                logger.error("Invalid channel configuration: %s", chan)
-                continue
-
-            # One message bus per service: every com.victronenergy.* service
-            # exports the BusItem interface at "/", so sharing a single bus
-            # between services raises "already exported on this bus".
-            bus = MessageBus(bus_type=BusType.SYSTEM)
-            unowned_buses.append(bus)
-            bus = await bus.connect()
-            unowned_buses[-1] = bus
-            selection = submeter if submeter and submeter["channel"] == channel_id(chan) else None
-            service = AcLoadService(bus, service_name, instance, custom_name, position, selection)
-            allocated_services.append(service)
-            unowned_buses.pop()
-            if direct:
-                service.configure_emporia(chan, direct["poll_interval_seconds"])
-            try:
-                await service.register()
-            except Exception:  # a broken channel must not kill startup
-                logger.exception("Failed to register service %s", service_name)
-                allocated_services.remove(service)
-                await close_dbus_resources([service], [])
-                continue
-            services[entity_id] = service
-            logger.info(
-                "Registered %s for entity %s (instance %d)",
-                service_name,
-                entity_id,
-                instance,
-            )
+        services = await register_services(
+            channels_config, direct, submeter, allocated_services, unowned_buses
+        )
 
         if not services:
             logger.error("No services could be registered")
@@ -793,109 +922,13 @@ async def main():
         ws_client = None
         cloud_client = None
         if direct:
-            from emporia import EmporiaClient
-
-            for key in ("token_file", "credentials_file"):
-                if key in direct:
-                    direct[key] = str(Path(_here) / direct[key])
-            active_channels = [
-                {**c, "id": channel_id(c)} for c in channels_config if channel_id(c) in services
-            ]
-            for channel in active_channels:
-                identity = channel["id"]
-                selected_age = (
-                    submeter["stale_after_seconds"]
-                    if submeter and submeter["channel"] == identity
-                    else None
-                )
-                direct_channels[identity] = EmporiaChannel(
-                    services[identity],
-                    direct,
-                    selected_age,
-                    services[identity].energy_fields,
-                )
-
-            def publish_power(measurements):
-                for identity, sample in measurements.items():
-                    if identity in direct_channels:
-                        direct_channels[identity].update(sample)
-
-            def cloud_unavailable():
-                for channel in direct_channels.values():
-                    channel.unavailable()
-
-            def publish_energy(measurements):
-                for identity, reading in measurements.items():
-                    if identity in direct_channels:
-                        for field in ENERGY_PATHS:
-                            if field in reading:
-                                direct_channels[identity].update_energy(
-                                    field,
-                                    reading[field],
-                                    reading.get("timestamp"),
-                                )
-
-            cloud_client = EmporiaClient(
-                direct,
-                active_channels,
-                publish_power,
-                cloud_unavailable,
-                publish_energy=publish_energy,
+            cloud_client = create_emporia_client(
+                direct, channels_config, services, submeter, direct_channels
             )
         else:
             ws_client = HaWebSocketClient(ha_url, ha_token, services, **ha_policy)
 
-        loop = asyncio.get_running_loop()
-        main_task = asyncio.current_task()
-        stopping = False
-
-        def request_shutdown():
-            nonlocal stopping
-            if not stopping:
-                stopping = True
-                logger.info("Shutting down...")
-                if main_task is not None:
-                    main_task.cancel()
-
-        installed_signals = []
-        tasks = []
-        try:
-            for sig in (signal.SIGINT, signal.SIGTERM):
-                try:
-                    loop.add_signal_handler(sig, request_shutdown)
-                    installed_signals.append(sig)
-                except NotImplementedError:
-                    pass
-
-            tasks.append(asyncio.create_task(heartbeat_task(direct_channels, services)))
-            tasks.extend(
-                asyncio.create_task(monitor_service_bus(service)) for service in services.values()
-            )
-            if ws_client:
-                tasks.insert(0, asyncio.create_task(run_websocket_client(ws_client)))
-            if cloud_client:
-                tasks.append(asyncio.create_task(cloud_client.run()))
-            await asyncio.gather(*tasks)
-        except asyncio.CancelledError:
-            if not stopping:
-                raise
-        finally:
-            # Stop and retrieve workers before releasing their D-Bus resources.
-            for task in tasks:
-                task.cancel()
-            try:
-                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5)
-            except TimeoutError:
-                logger.exception("Timed out stopping background tasks")
-            finally:
-                try:
-                    if ws_client:
-                        await asyncio.wait_for(ws_client.disconnect(), timeout=5)
-                except Exception:  # cleanup must continue even after an unexpected close failure
-                    logger.exception("Failed to close Home Assistant connection")
-                finally:
-                    for sig in installed_signals:
-                        loop.remove_signal_handler(sig)
+        await run_service_workers(direct_channels, services, ws_client, cloud_client)
 
 
 if __name__ == "__main__":
