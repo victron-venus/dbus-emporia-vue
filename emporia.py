@@ -127,6 +127,30 @@ def _auth_error(error: Exception) -> bool:
     return getattr(response, "status_code", None) in (401, 403)
 
 
+def _load_auth_inputs(config: dict) -> tuple[dict, Any, Any]:
+    """Load private files before resolving the credential environment fallback."""
+    try:
+        tokens = _read_private_json(config["token_file"])
+    except FileNotFoundError:
+        tokens = {}
+    credentials = {}
+    if config.get("credentials_file"):
+        credentials = _read_private_json(config["credentials_file"])
+    username = credentials.get("username") or os.environ.get("EMPORIA_USERNAME")
+    password = credentials.get("password") or os.environ.get("EMPORIA_PASSWORD")
+    return tokens, username, password
+
+
+def _cognito_identity(tokens: dict, username: Any, use_tokens: bool) -> dict:
+    """Prepare one attempt's identity after its owned HTTP session exists."""
+    return {
+        "username": username.lower() if username else None,
+        "id_token": tokens.get("id_token") if use_tokens else None,
+        "access_token": tokens.get("access_token") if use_tokens else None,
+        "refresh_token": tokens.get("refresh_token") if use_tokens else None,
+    }
+
+
 def _new_auth(**settings):
     """Keep pyemvue authentication while reusing one worker-owned HTTP pool."""
     from pyemvue.auth import Auth
@@ -214,15 +238,7 @@ class EmporiaClient:
         self._reset_auth()
         self._api_template = API_DEVICES_USAGE
         self._api_status_path = API_GET_STATUS
-        try:
-            tokens = _read_private_json(self.config["token_file"])
-        except FileNotFoundError:
-            tokens = {}
-        credentials = {}
-        if self.config.get("credentials_file"):
-            credentials = _read_private_json(self.config["credentials_file"])
-        username = credentials.get("username") or os.environ.get("EMPORIA_USERNAME")
-        password = credentials.get("password") or os.environ.get("EMPORIA_PASSWORD")
+        tokens, username, password = _load_auth_inputs(self.config)
         self._username = tokens.get("username") or username
         have_tokens = all(
             isinstance(tokens.get(key), str) and tokens[key]
@@ -251,10 +267,7 @@ class EmporiaClient:
                     USER_POOL,
                     CLIENT_ID,
                     user_pool_region="us-east-2",
-                    username=username.lower() if username else None,
-                    id_token=tokens.get("id_token") if use_tokens else None,
-                    access_token=tokens.get("access_token") if use_tokens else None,
-                    refresh_token=tokens.get("refresh_token") if use_tokens else None,
+                    **_cognito_identity(tokens, username, use_tokens),
                     botocore_config=Config(
                         signature_version=UNSIGNED,
                         connect_timeout=self.timeout,
