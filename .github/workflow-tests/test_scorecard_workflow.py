@@ -17,7 +17,8 @@ ALLOWED = {
 
 def validate(workflow):
     """Apply the pinned action's publishing constraints to the real workflow."""
-    assert "env" not in workflow and "defaults" not in workflow
+    assert "env" not in workflow
+    assert "defaults" not in workflow
     assert "write" not in workflow["permissions"].values()
     jobs = workflow["jobs"]
     publisher = jobs["scorecard"]

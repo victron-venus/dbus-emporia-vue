@@ -30,9 +30,11 @@ def validate(policy, workflows):
     upload = next(step for step in test["steps"] if step.get("name") == "Upload coverage")
     assert upload["uses"] == ACTION
     assert upload["with"] == {"files": "./coverage.xml", "fail_ci_if_error": True, "use_oidc": True}
-    assert "if" not in upload and not upload.get("continue-on-error", False)
+    assert "if" not in upload
+    assert not upload.get("continue-on-error", False)
     checks = next(step for step in test["steps"] if step.get("name") == "Test")
-    assert "--cov-fail-under=80" in checks["run"] and not checks.get("continue-on-error", False)
+    assert "--cov-fail-under=80" in checks["run"]
+    assert not checks.get("continue-on-error", False)
     caller = quality["jobs"]["check-0"]
     assert caller["uses"] == "./.github/workflows/python-ci.yml"
     assert release["jobs"]["checks"]["uses"] == "./.github/workflows/quality-gate.yml"
