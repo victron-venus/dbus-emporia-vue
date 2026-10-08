@@ -291,12 +291,12 @@ def prepare(root, requested="", bump="next-patch", pull_request=False, dry_run=F
         try:
             version_plan.sync_versions(checkout, editable, plan)
             version_plan.check_base_versions(checkout, editable, target)
-            names = sorted({item["path"] for item in editable["versioning"]["files"]})
+            names = {item["path"] for item in editable["versioning"]["files"]}
             if not existing and not run(checkout, "git", "diff", "--name-only"):
                 return {"version": target, "unchanged": True}
             run(checkout, "git", "diff", "--check")
             changed = set(run(checkout, "git", "diff", "--name-only").splitlines())
-            if not changed <= set(names):
+            if not changed <= names:
                 raise ValueError("Preparation changed an unowned file")
             if changed:
                 run(checkout, "git", "add", "--", *sorted(changed), capture=False)
