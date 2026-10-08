@@ -686,6 +686,26 @@ async def close_dbus_resources(services, buses):
         logger.exception("Timed out releasing D-Bus services")
 
 
+def refresh_channel_freshness(direct_channels, services):
+    if direct_channels:
+        for channel in direct_channels.values():
+            channel.refresh()
+    else:
+        for service in services.values():
+            service.expire()
+
+
+async def heartbeat_task(direct_channels, services):
+    while True:
+        try:
+            await asyncio.to_thread(write_heartbeat)
+        except OSError:
+            logger.exception("Failed to write heartbeat file")
+        for _ in range(5):
+            refresh_channel_freshness(direct_channels, services)
+            await asyncio.sleep(1)
+
+
 async def main():
     config_path = os.path.join(_here, "config.json")
     try:
@@ -825,21 +845,6 @@ async def main():
         else:
             ws_client = HaWebSocketClient(ha_url, ha_token, services, **ha_policy)
 
-        async def heartbeat_task():
-            while True:
-                try:
-                    await asyncio.to_thread(write_heartbeat)
-                except OSError:
-                    logger.exception("Failed to write heartbeat file")
-                for _ in range(5):
-                    if direct_channels:
-                        for channel in direct_channels.values():
-                            channel.refresh()
-                    else:
-                        for service in services.values():
-                            service.expire()
-                    await asyncio.sleep(1)
-
         loop = asyncio.get_running_loop()
         main_task = asyncio.current_task()
         stopping = False
@@ -862,7 +867,7 @@ async def main():
                 except NotImplementedError:
                     pass
 
-            tasks.append(asyncio.create_task(heartbeat_task()))
+            tasks.append(asyncio.create_task(heartbeat_task(direct_channels, services)))
             tasks.extend(
                 asyncio.create_task(monitor_service_bus(service)) for service in services.values()
             )
