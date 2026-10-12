@@ -1,12 +1,15 @@
 # Changelog
 
-## [1.0.8] - Development line
+## [1.0.9] - Development line
 
 ### Release overview
 
 Publishes Emporia/Home Assistant power channels as Victron D-Bus AC loads. The existing README documents configuration and external interfaces for this development line.
 
 ### Maintenance
+
+- Synchronize Ruff 0.17.0 and boto3/botocore 1.43.112 with the hash-locked dependency files used by CI.
+- Refresh shared CI workflow pins while preserving the default GitHub-hosted runner selection.
 
 - Skip malformed Home Assistant channel entries and isolate D-Bus connection
   failures to the affected channel. Keep failed cleanup owned for shutdown and
