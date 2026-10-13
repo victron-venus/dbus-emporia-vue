@@ -133,7 +133,7 @@ def probe(vendor, receipt):
 
     if FFI().sizeof("int") != 4 or Variant("s", "probe").value != "probe":
         raise ValueError("CFFI or D-Bus type probe failed")
-    Message(path="/diagnostic", interface="test.diagnostic", member="Probe")._marshall()
+    Message(path="/diagnostic", interface="test.diagnostic", member="Probe")._marshall(False)
     hasher = hashes.Hash(hashes.SHA256())
     hasher.update(b"diagnostic")
     if hasher.finalize().hex() != hashlib.sha256(b"diagnostic").hexdigest():
