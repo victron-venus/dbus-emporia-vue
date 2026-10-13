@@ -1,9 +1,9 @@
 {
   "python": "3.12.13",
-  "base_commit": "90b2fdae45a45202079c60fa17a0c197e5dba8e9",
+  "base_commit": "3a62798b708b4672a10a9b349d66ef0bd22162b4",
   "method": "Two independent archive writer invocations using the actual tracked native package inventory from this reviewed worktree, identified by input SHA-256 below; no installation, deployment or release publication.",
-  "archive_sha256": "ecda6ee0226777c1863654f88ef150a9b5856674bb13b0d970f0f552dbc81277",
-  "archive_bytes": 75759,
+  "archive_sha256": "d6ef813f93d2ceb59e389d10176704aec6b748933d1635420f280a5f7a029e63",
+  "archive_bytes": 79555,
   "matching_builds": 2,
   "inputs": [
     {
@@ -18,7 +18,17 @@
     },
     {
       "path": "README.md",
-      "sha256": "e43fb85321560d903b1a2fc3a7bf6b3a6c5d9d3bf1bfb5ef39f11f26a18baa60",
+      "sha256": "db636e04c84bf792a876ea6a0d251d6f331d6c95c14881804b97b8d814a54844",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/LICENSE",
+      "sha256": "a1ef3847d0b19c55783ac5d937e5a6dc0aaf79a45cf871a794051c4cf4af620e",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/UPSTREAM.md",
+      "sha256": "139fdd0956aa510c76ded31e088a9eae6f7661c9c64adeca5d9b974e4e6d6109",
       "executable": false
     },
     {
@@ -28,17 +38,17 @@
     },
     {
       "path": "aiovelib/aiovelib/client.py",
-      "sha256": "6a751347529b4ca404ef37250dc8f5acff424e88cac219b9535571bfc1470fb5",
+      "sha256": "2b13e5276b8db844969bf25a3724a02d85aa5164e167a53d88577e7f37840f71",
       "executable": false
     },
     {
       "path": "aiovelib/aiovelib/localsettings.py",
-      "sha256": "526ee2300fe38c97d4d71976955837b1eddade930201c0c38438dec15b3078ff",
+      "sha256": "ecc339027a2c0339d7273d8d03260ab493f7bffbe4f47c45b22d4766128e8aa4",
       "executable": false
     },
     {
       "path": "aiovelib/aiovelib/service.py",
-      "sha256": "95235a027fdaa65d8380bb33e0e703a3380e83884c6f99e2df782140ff791bc3",
+      "sha256": "d1356a071ddb7f82b1973927d9877e4dbda860d4a27b850a97fa84578f51aa1d",
       "executable": false
     },
     {
@@ -48,7 +58,7 @@
     },
     {
       "path": "docs/configuration.md",
-      "sha256": "6ea940e56ad3e77e5d1e1ab78aac0ce2cf1e52b6d15534b9b24919232b0a4a2f",
+      "sha256": "498584bbb97a9df501705e2c165c5c26d63acd9b5cd07194149dfca9fa2cddaa",
       "executable": false
     },
     {
@@ -107,6 +117,11 @@
       "executable": false
     },
     {
+      "path": "docs/staged-installation.md",
+      "sha256": "d20770c612bac848d4687ced51a42d22852a274713f23cba87fbabe1240da74f",
+      "executable": false
+    },
+    {
       "path": "emporia.py",
       "sha256": "edfb2d9879f0f28307d0641564add117800d23be5382aa58821c35f3e38377df",
       "executable": false
@@ -118,8 +133,13 @@
     },
     {
       "path": "ha_config_gen.py",
-      "sha256": "32e6a3d829c1f937aa115f5c872ae8efc2964bb46457aa558048de491de8ef07",
+      "sha256": "71cd081c5ed10b192262659e4d0ccf8a297b75409ded4ee48ff71d57e3e15b6e",
       "executable": true
+    },
+    {
+      "path": "install.py",
+      "sha256": "72506461dc97f3eefa96115af1d73749c250781501d496a907a2414e9be88463",
+      "executable": false
     },
     {
       "path": "main.py",
@@ -158,7 +178,7 @@
     },
     {
       "path": "setup",
-      "sha256": "eb9db7649e10bcef7f3b951cd096fe5ac57e939b8b88e356de7005233316d7d5",
+      "sha256": "f58de3e1430686e8dfa75034d7bf58cf22520e37761e8e8fa4f0f08201ab5644",
       "executable": true
     },
     {
@@ -168,7 +188,7 @@
     },
     {
       "path": "update.sh",
-      "sha256": "356471c7b08546b2cf390387af308de981da01549f02c2c8feca9ef04fdf6af9",
+      "sha256": "cc727e12901df18d71c4c2d7463efdea67abea8ee6340347e1368fea86fe71e6",
       "executable": true
     },
     {

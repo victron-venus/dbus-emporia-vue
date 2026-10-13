@@ -47,7 +47,7 @@ class TestFetchJson:
         fake_resp.read = MagicMock(return_value=body)
         fake_resp.__enter__ = MagicMock(return_value=fake_resp)
         fake_resp.__exit__ = MagicMock(return_value=False)
-        with patch("ha_config_gen.urlopen", return_value=fake_resp):
+        with patch("ha_config_gen.open_authenticated", return_value=fake_resp):
             result = ha_config_gen.fetch_json("ws://h:8123/api/websocket", "tok", "/states")
             assert result == {"foo": "bar"}
 
@@ -55,14 +55,14 @@ class TestFetchJson:
         from urllib.error import HTTPError
 
         err = HTTPError("http://h:8123/api/states", 401, "Unauthorized", {}, None)
-        with patch("ha_config_gen.urlopen", side_effect=err):
+        with patch("ha_config_gen.open_authenticated", side_effect=err):
             assert ha_config_gen.fetch_json("ws://h:8123/api/websocket", "tok", "/states") is None
         assert "HTTP error: 401" in capsys.readouterr().err
 
     def test_url_error_returns_none(self, capsys):
         from urllib.error import URLError
 
-        with patch("ha_config_gen.urlopen", side_effect=URLError("dns")):
+        with patch("ha_config_gen.open_authenticated", side_effect=URLError("dns")):
             assert ha_config_gen.fetch_json("ws://h:8123/api/websocket", "tok", "/states") is None
         assert "URL error" in capsys.readouterr().err
 
@@ -162,3 +162,92 @@ def test_main_no_instantaneous_exits(capsys, monkeypatch, tmp_path):
             ha_config_gen.main()
     assert exc.value.code == 1
     assert "No power sensors found for the specified device" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "file:///etc",
+        "ftp://host",
+        "data:text/plain,secret",
+        "//host/api",
+        "https:///api",
+        "https://user:password@host/api",
+        "https://host/api?secret=x",
+        "https://host/api#fragment",
+        "https://host:70000/api",
+    ],
+)
+def test_rejects_unsafe_endpoint_before_open(url):
+    with patch("ha_config_gen.open_authenticated") as opened:
+        with pytest.raises(ValueError):
+            ha_config_gen.fetch_json(url, "test-token", "/states")
+        opened.assert_not_called()
+
+
+def test_redirect_does_not_forward_bearer_token():
+    from urllib.error import HTTPError
+    from urllib.request import Request
+
+    request = Request(
+        "https://ha.invalid/api/states", headers={"Authorization": "Bearer test-token"}
+    )
+    with pytest.raises(HTTPError, match="redirects are disabled"):
+        ha_config_gen.NoAuthRedirect().redirect_request(
+            request, None, 302, "Found", {}, "https://other.invalid/api/states"
+        )
+
+
+def test_authenticated_opener_has_no_redirect_handler():
+    from urllib.request import Request
+
+    with patch("ha_config_gen.build_opener") as builder:
+        request = Request("https://ha.invalid/api/states")
+        ha_config_gen.open_authenticated(request)
+        assert isinstance(builder.call_args.args[0], ha_config_gen.NoAuthRedirect)
+        builder.return_value.open.assert_called_once_with(request, timeout=10)
+    with pytest.raises(ValueError):
+        ha_config_gen.open_authenticated(Request("file:///etc/passwd"))
+
+
+def test_private_config_replaces_permissive_file(tmp_path):
+    import stat
+
+    target = tmp_path / "config.json"
+    target.write_text("old")
+    target.chmod(0o644)
+    ha_config_gen.write_private_config({"ha_token": "test-token"}, target)
+    assert json.loads(target.read_text()) == {"ha_token": "test-token"}
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert not list(tmp_path.glob(".config-*"))
+
+
+def test_private_config_refuses_symlink_without_changing_target(tmp_path):
+    original = tmp_path / "operator.json"
+    original.write_text("preserve")
+    target = tmp_path / "config.json"
+    target.symlink_to(original)
+    with pytest.raises(ValueError, match="symlink"):
+        ha_config_gen.write_private_config({"ha_token": "test-token"}, target)
+    assert original.read_text() == "preserve"
+    assert target.is_symlink()
+
+
+def test_private_config_failed_serialization_preserves_existing_file(tmp_path):
+    target = tmp_path / "config.json"
+    target.write_text("preserve")
+    with pytest.raises(TypeError):
+        ha_config_gen.write_private_config({"unsupported": object()}, target)
+    assert target.read_text() == "preserve"
+    assert not list(tmp_path.glob(".config-*"))
+
+
+def test_main_rejects_invalid_url_without_printing_credentials(monkeypatch, capsys):
+    monkeypatch.setenv("HA_URL", "https://user:private-password@host")
+    monkeypatch.setenv("HA_TOKEN", "test-token")
+    with pytest.raises(SystemExit) as error:
+        ha_config_gen.main()
+    assert error.value.code == 1
+    captured = capsys.readouterr()
+    assert "private-password" not in captured.out + captured.err
+    assert "HA_URL is invalid" in captured.err

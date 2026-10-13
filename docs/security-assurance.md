@@ -29,8 +29,11 @@ safety certification.
 - Claim: source changes and updates remain reviewable. Argument: public history,
   contributor policy, required CI and release input manifests identify the code
   under review. Evidence: CONTRIBUTING.md, RELEASING.md, release contract tests.
-  This supports reviewability; authenticated artifact signatures are still a
-  separate unfinished release work item.
+  The release policy enables a separate post-build Sigstore signing job. The
+  verifier authenticates the expected repository, branch and reviewed commit
+  before reading the inventory, then checks all original assets and source bytes.
+  Evidence: docs/release-signatures.md, scripts/release_signing.py and its negative
+  contract tests. Actual published signed-release verification remains required.
 
 ## Residual obligations
 
@@ -41,6 +44,7 @@ credential from Git revokes it. Use SECURITY.md for coordinated disclosure.
 
 The coverage and regression inventories support this argument only within their
 declared scope. Remaining OpenSSF obligations include verified continuity,
-a complete defect-level regression-history denominator, confirmation of GitHub
-report/credit history and signed release verification. Python coverage is
+a complete defect-level regression-history denominator and published signed
+release verification. The 2026-10-12 review found no GitHub issue/advisory reports,
+and the owner confirmed no outside-GitHub reports during the prior 12 months. Python coverage is
 measured in docs/quality-evidence.md; hardware and shell coverage are not implied. No Passing or Silver award is asserted here.

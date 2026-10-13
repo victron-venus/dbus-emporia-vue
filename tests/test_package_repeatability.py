@@ -138,3 +138,16 @@ def test_build_rejects_empty_asset_declaration(package_project, tmp_path):
     (package_project / ".release-package.json").write_text(json.dumps({"name": "fixture"}))
     with pytest.raises(ValueError, match="No release assets"):
         PACKAGE.build_package(package_project, "1.2.3", "stable", tmp_path / "release")
+
+
+def test_native_archive_includes_the_bundled_library_license(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    config = json.loads((root / ".release-package.json").read_text())
+    _, selected = PACKAGE.package_inputs(root, config)
+    assert "aiovelib/LICENSE" in selected
+    archive_path = tmp_path / "native.tar.gz"
+    PACKAGE.write_archive(root, config["name"], selected, archive_path)
+    with tarfile.open(archive_path) as archive:
+        notice = archive.extractfile(f"{config['name']}/aiovelib/LICENSE").read()
+    assert notice == (root / "aiovelib/LICENSE").read_bytes()
+    assert b"Copyright (c) 2022 Victron Energy BV" in notice

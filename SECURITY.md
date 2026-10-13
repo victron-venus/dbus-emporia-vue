@@ -33,3 +33,19 @@ assertion about reports received before it.
 
 See the [security assurance argument](docs/security-assurance.md) for scoped
 claims, implementation references and remaining obligations.
+
+## Release authentication and cryptography
+
+The release policy enables Sigstore keyless signing in a dedicated job after
+quality checks and compilation. Follow [recipient verification](docs/release-signatures.md)
+using a separately trusted reviewed source commit before extracting artifacts.
+The signed inventory covers the original build outputs, receipts and source archive.
+Historical releases without the signature pair remain unsigned.
+
+The [Cosign signature format](https://github.com/sigstore/cosign/blob/main/specs/SIGNATURE_SPEC.md)
+uses ECDSA P-256 and SHA-256. Its ephemeral keys use the maintained implementation's
+cryptographic randomness; no long-lived signing key is stored in this project.
+Application TLS also delegates algorithms, certificate verification and random
+values to maintained Python/OpenSSL libraries. Do not disable TLS validation or
+replace secure defaults on the deployed host. Emporia provider authentication,
+where present, is delegated to pycognito's SRP/HMAC-SHA256 implementation.

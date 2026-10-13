@@ -1,5 +1,4 @@
-from aiovelib.client import make_variant, Monitor, ServiceHandler, DbusException
-from aiovelib.client import Service
+from aiovelib.client import DbusException, Monitor, Service, ServiceHandler, make_variant
 
 SETTINGS_SERVICE = "com.victronenergy.settings"
 SETTINGS_INTERFACE = "com.victronenergy.Settings"

@@ -43,3 +43,7 @@ Follow [governance and role responsibilities](GOVERNANCE.md), the
 [quality evidence](docs/quality-evidence.md). The [roadmap](ROADMAP.md) and
 [security assurance argument](docs/security-assurance.md) describe current work
 and the evidence required for changes to a trust boundary.
+
+For package capture or image construction, use the documented
+[`DESTDIR` staging installer](docs/staged-installation.md). It installs into an
+explicit private staging root without invoking SetupHelper, supervisors or devices.

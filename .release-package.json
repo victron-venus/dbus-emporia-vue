@@ -22,6 +22,8 @@
     "docs/home-assistant-mqtt.md",
     "docs/examples",
     "LICENSE",
-    ".python-version"
+    ".python-version",
+    "install.py",
+    "docs/staged-installation.md"
   ]
 }

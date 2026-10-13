@@ -1,0 +1,212 @@
+{
+  "observed_on": "2026-10-12",
+  "tool": "Bandit 1.9.2",
+  "scope": "Complete local source scan excluding generated output, environments and application/release/workflow test directories; security discovery fixtures remain scanned. All severity levels retained.",
+  "high": 0,
+  "medium": 0,
+  "low": 9,
+  "findings": [
+    {
+      "path": ".github/security-tests/test_bandit_discovery.py",
+      "line": 5,
+      "rule": "B404",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Test fixture executes the current interpreter with fixed module/arguments in an isolated temporary directory."
+    },
+    {
+      "path": ".github/security-tests/test_bandit_discovery.py",
+      "line": 55,
+      "rule": "B603",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Test fixture executes the current interpreter with fixed module/arguments in an isolated temporary directory."
+    },
+    {
+      "path": "main.py",
+      "line": 930,
+      "rule": "B105",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Known invalid placeholder is a guard/example, not an operational credential."
+    },
+    {
+      "path": "scripts/package_release.py",
+      "line": 10,
+      "rule": "B404",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Subprocess uses a fixed executable or current interpreter, explicit argv and checked return status, without a shell; inputs come from the trusted local checkout/validated version or produced build files."
+    },
+    {
+      "path": "scripts/package_release.py",
+      "line": 38,
+      "rule": "B603",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Subprocess uses a fixed executable or current interpreter, explicit argv and checked return status, without a shell; inputs come from the trusted local checkout/validated version or produced build files."
+    },
+    {
+      "path": "scripts/package_release.py",
+      "line": 69,
+      "rule": "B607",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Subprocess uses a fixed executable or current interpreter, explicit argv and checked return status, without a shell; inputs come from the trusted local checkout/validated version or produced build files."
+    },
+    {
+      "path": "scripts/package_release.py",
+      "line": 69,
+      "rule": "B603",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Subprocess uses a fixed executable or current interpreter, explicit argv and checked return status, without a shell; inputs come from the trusted local checkout/validated version or produced build files."
+    },
+    {
+      "path": "scripts/package_release.py",
+      "line": 149,
+      "rule": "B603",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Subprocess uses a fixed executable or current interpreter, explicit argv and checked return status, without a shell; inputs come from the trusted local checkout/validated version or produced build files."
+    },
+    {
+      "path": "scripts/package_release.py",
+      "line": 154,
+      "rule": "B603",
+      "severity": "LOW",
+      "disposition": "reviewed_no_exploitable_issue",
+      "reason": "Subprocess uses a fixed executable or current interpreter, explicit argv and checked return status, without a shell; inputs come from the trusted local checkout/validated version or produced build files."
+    }
+  ],
+  "source_files": [
+    {
+      "path": ".github/security-tests/test_bandit_discovery.py",
+      "sha256": "059fec15d1ac23fa173ce7ebf2685ef70fdc72a28fcbcae261afd44ac279ae65"
+    },
+    {
+      "path": "aiovelib/aiovelib/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "aiovelib/aiovelib/client.py",
+      "sha256": "2b13e5276b8db844969bf25a3724a02d85aa5164e167a53d88577e7f37840f71"
+    },
+    {
+      "path": "aiovelib/aiovelib/localsettings.py",
+      "sha256": "ecc339027a2c0339d7273d8d03260ab493f7bffbe4f47c45b22d4766128e8aa4"
+    },
+    {
+      "path": "aiovelib/aiovelib/service.py",
+      "sha256": "d1356a071ddb7f82b1973927d9877e4dbda860d4a27b850a97fa84578f51aa1d"
+    },
+    {
+      "path": "emporia.py",
+      "sha256": "edfb2d9879f0f28307d0641564add117800d23be5382aa58821c35f3e38377df"
+    },
+    {
+      "path": "ha_config_gen.py",
+      "sha256": "71cd081c5ed10b192262659e4d0ccf8a297b75409ded4ee48ff71d57e3e15b6e"
+    },
+    {
+      "path": "install.py",
+      "sha256": "72506461dc97f3eefa96115af1d73749c250781501d496a907a2414e9be88463"
+    },
+    {
+      "path": "main.py",
+      "sha256": "e162c95095923ecbc9858f3cacc0a70f5ea03c09069d9015589b08ff888a0b90"
+    },
+    {
+      "path": "parse_ha.py",
+      "sha256": "00db071bf223cef6e21699d7df9df90b5dbdbc5e55d02099bd1cd0aec55bce60"
+    },
+    {
+      "path": "scripts/change_scope.py",
+      "sha256": "174e460603f2efe87cf6e5cde1b8682f0a0f2d35c4c129aafe3cde8801299be8"
+    },
+    {
+      "path": "scripts/export_tariff.py",
+      "sha256": "f1808dc84c1878b4ef2fdb6d68db653e3bc57a00ef67544bde902d7b548a092c"
+    },
+    {
+      "path": "scripts/package_release.py",
+      "sha256": "1b23b5782e91e44b31e44e414d1680e9dc157bcfda8d4d6e45ac06f8be7eea00"
+    },
+    {
+      "path": "scripts/prepare_version.py",
+      "sha256": "6e9c4a9c2fe4e3c7e4954d9725ed02fb2f179c5771ef843a653ef4f065fae0e2"
+    },
+    {
+      "path": "scripts/release.py",
+      "sha256": "2584b05d01ef82b48f2ef75dc5d8e649de09df591fc6121097b2388f65a7b4eb"
+    },
+    {
+      "path": "scripts/release_container_labels.py",
+      "sha256": "8030cb28474e577a97ff9f406acfe75bf6b1d423dc144173667becc0605bec9f"
+    },
+    {
+      "path": "scripts/release_control.py",
+      "sha256": "1700427ea38864763ca223bca4f3074456ad80d52cc1bf3e63ed6929ff29a7ff"
+    },
+    {
+      "path": "scripts/release_signing.py",
+      "sha256": "29a4cb3d1e6deb913d501965292664b2b3a7b44a3f6fe297b121c87eb73f0d4b"
+    },
+    {
+      "path": "scripts/release_state.py",
+      "sha256": "7c9717ce50dd10695dbc74f4fa876a5143c83f49e4f9a6bca77190916fef3641"
+    },
+    {
+      "path": "scripts/release_validation.py",
+      "sha256": "d87f110445cd6618aff991ff126218de47154afc7a878aa9ba37621b800ece42"
+    },
+    {
+      "path": "scripts/release_version_adapter.py",
+      "sha256": "2a520b4333d681cfda32437c8f5f00050839dabdcdd29527d1b1346f43fd5792"
+    },
+    {
+      "path": "scripts/release_versioned.py",
+      "sha256": "9461377600faf2010804eaa943b6283674457b0d5c9a55db6b2f11d0156acb75"
+    },
+    {
+      "path": "scripts/runner_preflight.py",
+      "sha256": "c0460d162e83d2fa515615452c59567186d05f3ef26dddaa68735352bbcedf80"
+    },
+    {
+      "path": "scripts/stage_release_assets.py",
+      "sha256": "ec308cd5346b5e55860336dba0352e426284b674d9f6f4ae7f5bd80e11dd9003"
+    },
+    {
+      "path": "scripts/validate_scorecard_json.py",
+      "sha256": "56214c5f92527e6ba7c6de0524914b88e8521f42eabbb433f870db3fa9d29761"
+    },
+    {
+      "path": "scripts/version_plan.py",
+      "sha256": "5ab44b0750a135f291417825b18536e0256938d8b36f87918ab5e35ce1b49a39"
+    },
+    {
+      "path": "scripts/version_receipt.py",
+      "sha256": "da2d97f686d8d41ae73715fdbfbcbafc31f23389152006cc2519fb9d56902169"
+    },
+    {
+      "path": "scripts/workflow_contracts.py",
+      "sha256": "5332b472b01df64077e7a474b7e5171ba48d8cfa2ae1b0b4d7572024effd248d"
+    },
+    {
+      "path": "scripts/write_binary_build_metadata.py",
+      "sha256": "d09d1642bb675b585ab3a69384efb87ff48dc3a37b2c04cadedb693cf5113c41"
+    },
+    {
+      "path": "scripts/write_web_build_metadata.py",
+      "sha256": "1d962dfedb82feada5a062f2e075e895deb687d79ad982596d915ad6bef668f0"
+    },
+    {
+      "path": "sources.py",
+      "sha256": "8ca103cc8cf7f31af56a33cfbf27f242318c9a66c2da941c8a37f1fa22061eef"
+    },
+    {
+      "path": "tariff_export.py",
+      "sha256": "58827e525807c813832fbe7bb8cae5681024dea8212fbb75ec871417e3ebb6e5"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 # Roadmap
 
-This is an ordered maintenance plan, not a delivery-date commitment. Changes are
+This ordered maintenance plan covers the next twelve months. It is not a
+delivery-date commitment. Changes are
 proposed and prioritized using the issue/review process in GOVERNANCE.md.
 
 1. Preserve source freshness, D-Bus lifecycle and independent channel recovery. Keep negative tests for invalid data and
@@ -11,9 +12,9 @@ proposed and prioritized using the issue/review process in GOVERNANCE.md.
 3. Finish the OpenSSF Passing assessment with project-specific owner facts.
    Complete Silver governance, continuity, regression-history and assurance
    evidence without asserting unverified criteria.
-4. Add cryptographically verifiable source/artifact release signatures and
-   recipient verification through the reviewed common release implementation.
-   Checksums alone do not satisfy that work.
+4. Publish and independently verify a release using the configured source/artifact
+   signatures and recipient verifier. The implementation is present; a successful
+   workflow configuration alone does not establish signed release evidence.
 5. Keep dependencies updated, preserve the documented Venus OS/Python compatibility
    boundary, and record evidence for each supported environment.
 

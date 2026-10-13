@@ -17,9 +17,10 @@ An application-only percentage must never be described as whole-project coverage
 
 ## Measurement on 2026-10-12
 
-82.43% (4416 of 5357 statements), covering all 27 applicable Python source files, including modified local aiovelib; 746 tests passed across the full suite and the added real-library check.
+87.15% (5288 of 6068 statements), covering all 31 applicable Python source files, including modified local aiovelib; 937 tests passed with Python warnings treated as errors.
 The [machine-readable inventory](evidence/python-coverage-2026-10-12.json)
 records exact file hashes, tools, commands, missing statements and exclusions.
+The new signature verifier is included: 98 of 111 statements (88.29%).
 `.coveragerc` explicitly enumerates non-package source directories and enables
 child-process measurement; otherwise never-imported helpers and real D-Bus
 fixtures can silently disappear from the reported scope. CI and scripts/ci.sh
@@ -60,3 +61,25 @@ The [six-month history and reviewed pairs](evidence/regression-history-2026-10-1
 retain the complete commit list and distinguish reviewed regression additions from
 heuristic candidates. A representative/all-fix denominator review remains open;
 the 50% historical criterion is not asserted from title matching.
+
+## Warning policy
+
+Python test warnings are errors (`filterwarnings = error`), including dependency
+deprecations and resource warnings; no blanket runtime-warning suppression is
+configured. Ruff enables error, undefined-name, warning, import, upgrade, blind
+exception, async and Ruff-specific diagnostics for application code. Generated
+release components retain the reviewed toolkit's configuration and upstream
+checks. A narrow exception must identify an unavoidable protocol or compatibility
+requirement; a new warning is not fixed by dropping it from the report.
+
+The modified aiovelib is included in functional lint and coverage. Its preserved
+upstream tab layout/legacy naming and shared class registries have explicit style
+exceptions; D-Bus decorators require string protocol signatures (`v`, `s`,
+`a{sv}`), so those annotations are exempt from Python forward-reference checks.
+The availability probe import selects a compatible D-Bus backend. Formatting alone
+is excluded for this copied library; whole-file functional lint is not excluded.
+
+The [additional defect-level history review](evidence/defect-level-review-2026-10-12.json)
+separates distinct early runtime, installer and CI failures, and identifies the
+remaining compound-change groups. It is not a percentage inferred from commit
+counts.

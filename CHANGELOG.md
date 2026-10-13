@@ -8,6 +8,14 @@ Publishes Emporia/Home Assistant power channels as Victron D-Bus AC loads. The e
 
 ### Maintenance
 
+- Support explicit `DESTDIR` package staging and uninstall without live service actions, preserving operator-owned configuration.
+- Treat Python test warnings as failures and apply broad Python lint checks with documented, narrow compatibility exceptions.
+
+- Enable isolated keyless release signing and authenticated verification of the complete artifact inventory and reviewed source archive.
+
+- Restore the upstream MIT copyright notice and record provenance for the
+  modified bundled aiovelib library.
+
 - Measure application, release helpers and modified local library code with one
   explicit Python source inventory and an 80% statement-coverage gate.
 - Exercise deterministic native packaging, untracked-file exclusion, required
@@ -32,6 +40,8 @@ Publishes Emporia/Home Assistant power channels as Victron D-Bus AC loads. The e
 These maintenance changes do not introduce a configuration or data migration. Retain local configuration and credentials when using the documented update procedure. Validate the candidate on an isolated system before production use; automated checks do not establish hardware acceptance.
 
 ### Security
+
+- Restrict configuration-generator endpoints to HTTP(S)/WS(S), refuse authenticated redirects, and atomically write token-bearing configuration with owner-only permissions. Existing symlink destinations are rejected.
 
 Private vulnerability reporting and response policy are documented in SECURITY.md. This maintenance update strengthens release evidence and review instructions; it does not replace deployment authentication, network isolation or independent equipment safeguards. No new project CVE is announced by these changes.
 

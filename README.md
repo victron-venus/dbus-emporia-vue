@@ -144,6 +144,9 @@ See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and s
 
 ## License
 
+The modified bundled [aiovelib](aiovelib/UPSTREAM.md) retains its
+[upstream MIT notice](aiovelib/LICENSE).
+
 MIT
 
 ## Tariff reference export
