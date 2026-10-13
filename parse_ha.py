@@ -32,8 +32,14 @@ def parse_ha_state_change(message: str) -> tuple[str | None, float | None]:
 
     Returns:
         (entity_id, power_watts) or (None, None) if not a state change.
+
+    Raises:
+        ValueError: If the JSON is invalid or nested too deeply.
     """
-    data = _object(json.loads(message))
+    try:
+        data = _object(json.loads(message))
+    except RecursionError as error:
+        raise ValueError("JSON nesting is too deep") from error
     if data.get("type") != "event":
         return None, None
     variables = _object(_object(data.get("event")).get("variables"))

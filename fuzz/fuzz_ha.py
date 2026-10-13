@@ -18,7 +18,7 @@ def test_one_input(data: bytes) -> None:
     assert power is None or math.isfinite(power)  # nosec B101 - intentional test oracle
     try:
         entity, power = parse_ha_state_change(text)
-    except json.JSONDecodeError:
+    except ValueError:
         return
     assert entity is None or isinstance(entity, str)  # nosec B101 - intentional test oracle
     assert power is None or math.isfinite(power)  # nosec B101 - intentional test oracle

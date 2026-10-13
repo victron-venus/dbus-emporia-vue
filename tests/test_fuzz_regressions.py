@@ -7,6 +7,15 @@ import pytest
 from parse_ha import parse_ha_state_change, parse_power, parse_submeter_state
 
 
+def test_deeply_nested_json_is_rejected_as_invalid_input():
+    # Some Python builds allow more C decoder nesting than the Python recursion limit.
+    depth = 10_000
+    message = "[" * depth + "0" + "]" * depth
+    with pytest.raises(ValueError, match="JSON nesting is too deep") as error:
+        parse_ha_state_change(message)
+    assert isinstance(error.value.__cause__, RecursionError)
+
+
 @pytest.mark.parametrize(
     "value",
     [[], None, {"type": "event", "event": []}, {"type": "event", "event": {"variables": None}}],

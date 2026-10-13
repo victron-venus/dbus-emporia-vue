@@ -5,7 +5,8 @@
 ### Maintenance
 
 - Require bounded fuzzing on public release candidates, with source-bound reports and retained diagnostics; beta and ordinary CI do not run mutation campaigns.
-- Reject malformed Home Assistant object shapes, numeric overflow and non-finite converted power.
+- Reject malformed or excessively nested Home Assistant JSON, numeric overflow and non-finite converted power.
+- Resolve release channel validation imports in both package and script execution modes.
 
 ### Upgrade
 
