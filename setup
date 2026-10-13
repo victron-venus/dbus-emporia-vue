@@ -4,6 +4,13 @@
 # Install logic lives in update.sh; this file is the SetupHelper entry point.
 #
 
+# DESTDIR packages the payload without requiring SetupHelper on the host.
+if [[ -n "${DESTDIR:-}" ]]; then
+    action="${1:-${scriptAction:-install}}"
+    case "$action" in INSTALL) action=install ;; UNINSTALL) action=uninstall ;; esac
+    exec python3 "$(dirname "$0")/install.py" "$action"
+fi
+
 #### following line incorporates SetupHelper resources into this script
 source "/data/SetupHelper/HelperResources/IncludeHelpers"
 #### end of lines to include helper resources

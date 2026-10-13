@@ -1,6 +1,6 @@
 import asyncio
-from collections import defaultdict
 import logging
+from collections import defaultdict
 
 try:
 	from dbus_fast import Message, MessageType, Variant

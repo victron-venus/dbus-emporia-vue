@@ -21,3 +21,32 @@ Validate external values at trust boundaries, reject unsupported or malformed co
 Obtain source and published artifacts through the repository's HTTPS URLs. Verify published checksums or provenance when provided, over an authenticated channel. Keep local configuration, credentials and private keys out of source control and logs. Report suspected exposure through the private channel so credentials can be revoked and replaced; deleting a file alone does not revoke it.
 
 [OpenSSF evidence and remaining verification](docs/openssf-evidence.md) is maintained separately from this policy.
+
+## Reporter credit and response records
+
+Offer public credit to reporters of confirmed vulnerabilities. Publish it only
+after the reporter approves the exact attribution; use anonymous attribution if
+they do not respond or request anonymity. Ask their preference before publication
+and retain the decision with the private report. Track acknowledgement,
+triage, mitigation, release and disclosure dates; escalate delayed critical fixes
+to repository administrators. This is the required process going forward, not an
+assertion about reports received before it.
+
+See the [security assurance argument](docs/security-assurance.md) for scoped
+claims, implementation references and remaining obligations.
+
+## Release authentication and cryptography
+
+The release policy enables Sigstore keyless signing in a dedicated job after
+quality checks and compilation. Follow [recipient verification](docs/release-signatures.md)
+using a separately trusted reviewed source commit before extracting artifacts.
+The signed inventory covers the original build outputs, receipts and source archive.
+Historical releases without the signature pair remain unsigned.
+
+The [Cosign signature format](https://github.com/sigstore/cosign/blob/main/specs/SIGNATURE_SPEC.md)
+uses ECDSA P-256 and SHA-256. Its ephemeral keys use the maintained implementation's
+cryptographic randomness; no long-lived signing key is stored in this project.
+Application TLS also delegates algorithms, certificate verification and random
+values to maintained Python/OpenSSL libraries. Do not disable TLS validation or
+replace secure defaults on the deployed host. Emporia provider authentication,
+where present, is delegated to pycognito's SRP/HMAC-SHA256 implementation.

@@ -1,10 +1,16 @@
-# Ruff config for dbus-emporia-vue.
-# Vendored aiovelib/ ships from upstream as-is — exclude from lint/format.
-
-extend-exclude = ["aiovelib", "build", "dist", "ha_config_gen.py"]
-
+# Shared application rules include the locally modified bundled library.
+# Its upstream layout is preserved, while functional diagnostics remain enabled.
+extend-exclude = ["build", "dist"]
 line-length = 100
 target-version = "py312"
 
 [lint]
 select = ["E", "F", "W", "I", "UP", "BLE", "ASYNC", "RUF"]
+
+[lint.per-file-ignores]
+# Keep the upstream tab layout, legacy naming and explicit object bases to limit
+# unrelated vendor churn. Shared class registries are part of this library API.
+"aiovelib/aiovelib/*.py" = ["W191", "E101", "UP004", "E701", "E741", "RUF012"]
+
+[format]
+exclude = ["aiovelib/**"]

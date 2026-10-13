@@ -19,11 +19,19 @@ def validate(policy, workflows):
     )
     for workflow in workflows.values():
         assert workflow["permissions"].get("id-token", "none") == "none"
-    for workflow, selected in ((ci, "test"), (quality, "check-0"), (release, "checks")):
+    for workflow, selected in (
+        (ci, {"test"}),
+        (quality, {"check-0"}),
+        (release, {"checks", "sign"}),
+    ):
         for name, job in workflow["jobs"].items():
             assert job.get("permissions", {}).get("id-token", "none") == (
-                "write" if name == selected else "none"
+                "write" if name in selected else "none"
             )
+    assert policy["sign_releases"] is True
+    sign = release["jobs"]["sign"]
+    assert sign["permissions"] == {"contents": "read", "actions": "read", "id-token": "write"}
+    assert set(sign["needs"]) == {"prepare", "checks", "build"}
     test = ci["jobs"]["test"]
     assert test["permissions"]["contents"] == "read"
     assert not test.get("continue-on-error", False)
@@ -62,6 +70,7 @@ class CoverageAuthTests(unittest.TestCase):
             ("python-ci", "test"),
             ("quality-gate", "check-0"),
             ("release-pipeline", "checks"),
+            ("release-pipeline", "sign"),
         ):
             changed = copy.deepcopy(self.workflows)
             changed[workflow]["jobs"][job]["permissions"].pop("id-token", None)
@@ -71,6 +80,14 @@ class CoverageAuthTests(unittest.TestCase):
     def test_unrelated_jobs_cannot_issue_identity_tokens(self):
         changed = copy.deepcopy(self.workflows)
         changed["quality-gate"]["jobs"]["check-1"]["permissions"]["id-token"] = "write"
+        with self.assertRaises(AssertionError):
+            validate(self.policy, changed)
+
+    def test_build_job_cannot_issue_identity_tokens(self):
+        changed = copy.deepcopy(self.workflows)
+        changed["release-pipeline"]["jobs"]["build"].setdefault("permissions", {})["id-token"] = (
+            "write"
+        )
         with self.assertRaises(AssertionError):
             validate(self.policy, changed)
 

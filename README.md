@@ -1,5 +1,7 @@
 # dbus-emporia-vue
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15437/badge)](https://www.bestpractices.dev/projects/15437)
+
 Show Emporia Vue circuits as AC loads on a Victron GX device. Read power from
 Home Assistant, or read power and energy directly from Emporia Cloud. You can
 also send the direct readings to your own Home Assistant through GX MQTT.
@@ -142,6 +144,9 @@ See the [release strategy](RELEASING.md) for validation, nightly, beta, RC and s
 
 ## License
 
+The modified bundled [aiovelib](aiovelib/UPSTREAM.md) retains its
+[upstream MIT notice](aiovelib/LICENSE).
+
 MIT
 
 ## Tariff reference export
@@ -155,3 +160,12 @@ to be copied from the app; an ID alone is never treated as a flat price.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for reports, development checks and pull requests,
 [SECURITY.md](SECURITY.md) for private vulnerability reporting and deployment trust boundaries,
 and the [OpenSSF evidence index](docs/openssf-evidence.md) for assessment references and remaining verification.
+
+## Project governance and quality
+
+See [contribution guidance](CONTRIBUTING.md), [governance and responsibilities](GOVERNANCE.md),
+[code of conduct](CODE_OF_CONDUCT.md), and the [maintenance roadmap](ROADMAP.md).
+The [quality evidence](docs/quality-evidence.md) and [security assurance argument](docs/security-assurance.md)
+explain the checks, their scope and outstanding work. The
+[OpenSSF evidence](docs/openssf-evidence.md) records progress without claiming an
+unearned badge.

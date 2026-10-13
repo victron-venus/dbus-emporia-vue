@@ -16,6 +16,11 @@
 set -eu
 
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Staging never reaches firmware checks or service activation below.
+if [ -n "${DESTDIR:-}" ]; then
+    exec python3 "$SRC_DIR/install.py" install
+fi
 INSTALL_DIR="${1:-/data/dbus-emporia-vue}"
 
 # Unit commands and boot hooks use this canonical persistent location.
@@ -28,7 +33,7 @@ fi
 LOCAL_ONLY="config.json"
 
 # Runtime items shipped at the repo root and installed at INSTALL_DIR root.
-RUNTIME_ITEMS="update.sh main.py emporia.py sources.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt requirements.lock"
+RUNTIME_ITEMS="update.sh install.py main.py emporia.py sources.py parse_ha.py aiovelib version setup register-package.sh gitHubInfo config.json.example requirements.txt requirements.lock"
 
 # Reserved for obsolete runtime files from future migrations.
 STALE_TOP_LEVEL=""

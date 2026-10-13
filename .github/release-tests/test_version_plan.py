@@ -16,7 +16,8 @@ import io
 import json
 import os
 import plistlib
-import subprocess
+# Subprocess calls below use argument vectors with shell=False.
+import subprocess  # nosec B404
 import sys
 import tarfile
 import tempfile
@@ -66,6 +67,8 @@ class PlanTest(unittest.TestCase):
             "２０２６１００８１２３４５６.1.1",
             "20261008123456.١.1",
             "20261008123456.1.𝟙",
+            "20261008123456.1١.1",
+            "20261008123456.1.1𝟙",
         )
         for invalid in invalid_sequences:
             with self.subTest(sequence=invalid), self.assertRaises(ValueError):
@@ -661,7 +664,8 @@ version = "2.5.42"
         (self.root / "linked").symlink_to(self.root, target_is_directory=True)
         for name in (
             "../escape",
-            "/tmp/escape",
+            # Malicious absolute-path fixture verifies rejection; no file is created.
+            "/tmp/escape",  # nosec B108
             "sub/../original.json",
             "alias.json",
             "linked/original.json",
@@ -728,7 +732,8 @@ version = "2.5.42"
             "--plan",
             ".release-plan.json",
         ]
-        subprocess.run(command, check=True, capture_output=True)
+        # Isolated test fixture; explicit argv, never shell interpolation.
+        subprocess.run(command, check=True, capture_output=True)  # nosec B603
         receipt = self.root / ".release-inputs.json"
         before = receipt.read_bytes()
         actual = json.loads(before)
@@ -739,7 +744,8 @@ version = "2.5.42"
             actual["effective_inputs_sha256"],
             version.effective_inputs_digest(actual["files"]),
         )
-        subprocess.run(command + ["--check"], check=True, capture_output=True)
+        # Isolated test fixture; explicit argv, never shell interpolation.
+        subprocess.run(command + ["--check"], check=True, capture_output=True)  # nosec B603
         self.assertEqual(receipt.read_bytes(), before)
 
     def test_git_source_binding_rejects_unrelated_input_changes(self):
@@ -748,7 +754,8 @@ version = "2.5.42"
         )
 
         def git(*args):
-            return subprocess.check_output(
+            # Test harness intentionally uses its fixture-controlled PATH.
+            return subprocess.check_output(  # nosec B603, B607
                 ["git", "-C", str(self.root), *args],
                 stderr=subprocess.DEVNULL,
                 text=True,
@@ -789,7 +796,8 @@ version = "2.5.42"
         self.write("VERSION", "2.5.42\n")
 
         def git(*args):
-            return subprocess.check_output(
+            # Test harness intentionally uses its fixture-controlled PATH.
+            return subprocess.check_output(  # nosec B603, B607
                 ["git", "-C", str(self.root), *args],
                 stderr=subprocess.DEVNULL,
                 text=True,

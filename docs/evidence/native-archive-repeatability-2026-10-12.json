@@ -1,0 +1,200 @@
+{
+  "python": "3.12.13",
+  "base_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+  "method": "Two independent archive writer invocations using the actual tracked native package inventory from this reviewed worktree, identified by input SHA-256 below; no installation, deployment or release publication.",
+  "archive_sha256": "9d9d4d0362d187cba38176744a8d4467866b73a0649e0bdba5cd2ab4fb9cfe90",
+  "archive_bytes": 79552,
+  "matching_builds": 2,
+  "inputs": [
+    {
+      "path": ".python-version",
+      "sha256": "aa0d6581054e6e4ff3f91839deca7a854ad37221b8784d060b42d0f847ff1a3b",
+      "executable": false
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "0201a15cc3c327b059df3f5743b2abe3e9eb51f8c5bdf96047fb3f80cc4f513e",
+      "executable": false
+    },
+    {
+      "path": "README.md",
+      "sha256": "db636e04c84bf792a876ea6a0d251d6f331d6c95c14881804b97b8d814a54844",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/LICENSE",
+      "sha256": "a1ef3847d0b19c55783ac5d937e5a6dc0aaf79a45cf871a794051c4cf4af620e",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/UPSTREAM.md",
+      "sha256": "139fdd0956aa510c76ded31e088a9eae6f7661c9c64adeca5d9b974e4e6d6109",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/aiovelib/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/aiovelib/client.py",
+      "sha256": "2b13e5276b8db844969bf25a3724a02d85aa5164e167a53d88577e7f37840f71",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/aiovelib/localsettings.py",
+      "sha256": "ecc339027a2c0339d7273d8d03260ab493f7bffbe4f47c45b22d4766128e8aa4",
+      "executable": false
+    },
+    {
+      "path": "aiovelib/aiovelib/service.py",
+      "sha256": "c156482b7180ad26e466cad2bdaedbf8a2a87ac36c9d12fe4510ba255364ca9c",
+      "executable": false
+    },
+    {
+      "path": "config.json.example",
+      "sha256": "d5ff2644fb505d0ec5320fca874ae1fc6abe35aff4126982a3943db085b8648f",
+      "executable": false
+    },
+    {
+      "path": "docs/configuration.md",
+      "sha256": "498584bbb97a9df501705e2c165c5c26d63acd9b5cd07194149dfca9fa2cddaa",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/1-from-home-assistant/README.md",
+      "sha256": "c9df67d9b4fb01e44078bab47a86b126daeb1d8d53261678acba96a89e40b96d",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/1-from-home-assistant/config.json.example",
+      "sha256": "97b4dbacbbf736238d5f019d754386b7d0c829a909a485be57067296dcc52ad2",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/2-from-emporia-api/README.md",
+      "sha256": "b170d12bde9cffeeae9beaaa08240dc04509db5a1047f3618785eec9af49772e",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/2-from-emporia-api/config.json.example",
+      "sha256": "d5ff2644fb505d0ec5320fca874ae1fc6abe35aff4126982a3943db085b8648f",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/2-from-emporia-api/emporia-credentials.json.example",
+      "sha256": "884980aec0a87deb568f268822e471e83e70a847d6c6d05b917c5e88f1555295",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/3-emporia-api-to-home-assistant/README.md",
+      "sha256": "18f0e98b027f2c1a6fe4a27737fec2f8f2e3910ec125bc2e3993b3f4d6ac880f",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/3-emporia-api-to-home-assistant/config.json.example",
+      "sha256": "a56397b72240e0193af1e9e08a57d4ddd5bf2b525330b541764c7d1aff0ec6ac",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/3-emporia-api-to-home-assistant/home-assistant-emporia.yaml",
+      "sha256": "adca6084d9d17fd217ac0e7f8d93e8d972841ee97fefd752d56dac9f96f6d811",
+      "executable": false
+    },
+    {
+      "path": "docs/examples/3-emporia-api-to-home-assistant/mosquitto-cerbo.conf",
+      "sha256": "12bfcf9a1561e9ac75874a3fe55f96c601bbb02a465d893db26bd07ff1c1188a",
+      "executable": false
+    },
+    {
+      "path": "docs/home-assistant-mqtt.md",
+      "sha256": "0526f427b7b3fedaa94dde98d4b079eccff64d554f1f15685ea191a5e2793f54",
+      "executable": false
+    },
+    {
+      "path": "docs/installation.md",
+      "sha256": "5227b339b3861d2a1eb92ab319ae17d56b6be6af088beda4615b0829b60c7081",
+      "executable": false
+    },
+    {
+      "path": "docs/staged-installation.md",
+      "sha256": "d20770c612bac848d4687ced51a42d22852a274713f23cba87fbabe1240da74f",
+      "executable": false
+    },
+    {
+      "path": "emporia.py",
+      "sha256": "edfb2d9879f0f28307d0641564add117800d23be5382aa58821c35f3e38377df",
+      "executable": false
+    },
+    {
+      "path": "gitHubInfo",
+      "sha256": "7accd03a6c275a964efb6248fcaf39ffe1d6866df915ae372a80ac3d5b085080",
+      "executable": false
+    },
+    {
+      "path": "ha_config_gen.py",
+      "sha256": "71cd081c5ed10b192262659e4d0ccf8a297b75409ded4ee48ff71d57e3e15b6e",
+      "executable": true
+    },
+    {
+      "path": "install.py",
+      "sha256": "72506461dc97f3eefa96115af1d73749c250781501d496a907a2414e9be88463",
+      "executable": false
+    },
+    {
+      "path": "main.py",
+      "sha256": "e162c95095923ecbc9858f3cacc0a70f5ea03c09069d9015589b08ff888a0b90",
+      "executable": true
+    },
+    {
+      "path": "parse_ha.py",
+      "sha256": "00db071bf223cef6e21699d7df9df90b5dbdbc5e55d02099bd1cd0aec55bce60",
+      "executable": false
+    },
+    {
+      "path": "register-package.sh",
+      "sha256": "5949a823f0fb894b370c0f2b1d464eee11e012977adfcb75f236d13768acd4d3",
+      "executable": true
+    },
+    {
+      "path": "requirements.lock",
+      "sha256": "760dfda03b0465b982cb40d85fd6c258c0135f93fad52670f0f8447046bc519c",
+      "executable": false
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "d56c772c7020a0402ee5ce886544cce1f9b0e562c7af613f926943a362e92139",
+      "executable": false
+    },
+    {
+      "path": "services/dbus-emporia-vue/log/run",
+      "sha256": "92f64042664bd42e6e790b6ecd904a44e7a2fb5f33b6c8f4204c5ecb5e77d0ce",
+      "executable": true
+    },
+    {
+      "path": "services/dbus-emporia-vue/run",
+      "sha256": "73159b2f53765d885eab596358490c657e7ce050a282d43b2e2100e7ac285ca7",
+      "executable": true
+    },
+    {
+      "path": "setup",
+      "sha256": "f58de3e1430686e8dfa75034d7bf58cf22520e37761e8e8fa4f0f08201ab5644",
+      "executable": true
+    },
+    {
+      "path": "sources.py",
+      "sha256": "8ca103cc8cf7f31af56a33cfbf27f242318c9a66c2da941c8a37f1fa22061eef",
+      "executable": false
+    },
+    {
+      "path": "update.sh",
+      "sha256": "cc727e12901df18d71c4c2d7463efdea67abea8ee6340347e1368fea86fe71e6",
+      "executable": true
+    },
+    {
+      "path": "version",
+      "sha256": "2df2bd7011e87351e2e3e296ddb7f2520270a76160f95b2d64b337167294f28c",
+      "executable": false
+    }
+  ]
+}

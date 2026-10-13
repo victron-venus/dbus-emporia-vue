@@ -217,3 +217,12 @@ Venus OS MQTT publishes these paths under
 `N/<portal-id>/acload/71/Ac/Power`. Payloads contain a JSON `value` field.
 See the [MQTT guide](home-assistant-mqtt.md) for bridge prefixes, keepalive,
 availability and energy statistics.
+
+## Configuration generator security
+
+`ha_config_gen.py` accepts HTTP(S) and WS(S) host URLs without embedded credentials,
+queries or fragments. It refuses HTTP redirects so the Home Assistant bearer token
+is never forwarded to a different destination. Use the final server URL directly.
+Generated `config.json` is atomically replaced with mode `0600`; a symlink
+destination is rejected. Keep existing hand-written configuration owner-readable
+only, and rotate credentials if an older file was exposed.

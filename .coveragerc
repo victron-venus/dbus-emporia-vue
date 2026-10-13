@@ -1,0 +1,26 @@
+[run]
+patch = subprocess
+# Explicit non-package directories also discover files never imported by tests.
+source =
+    .
+    scripts
+    aiovelib/aiovelib
+omit =
+    */tests/*
+    */.github/*tests/*
+    */.venv/*
+    */.venv-ci/*
+    */build/*
+    */local_config.example.py
+
+[report]
+# Child tests use temporary working directories; keep the same scope on combine.
+omit =
+    */tests/*
+    */.github/*tests/*
+    */.venv/*
+    */.venv-ci/*
+    */build/*
+    */local_config.example.py
+show_missing = True
+fail_under = 80

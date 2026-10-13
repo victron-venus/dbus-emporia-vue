@@ -16,6 +16,9 @@ The root [LICENSE](../LICENSE) records the project license. Third-party componen
 
 ## Implementation and interfaces
 
+[Architecture and trust boundaries](architecture.md) explains the component flow
+and operator, network, D-Bus and release boundaries.
+
 - [main.py](../main.py)
 - [emporia.py](../emporia.py)
 - [sources.py](../sources.py)
@@ -44,45 +47,54 @@ The local validation entry point is [scripts/ci.sh](../scripts/ci.sh). Its actua
 
 Do not equate a green metadata or release job with successful application tests. Record actual test results, coverage limitations and security-analysis results for the submitted revision. Test execution does not establish physical-device behavior.
 
-## Items requiring explicit verification before submission
+## Assessment evidence reviewed on 2026-10-12
 
-- Confirm the private reporting channel works and examine issue/advisory history. Historical response-time claims require actual reports and responses, including any reports outside GitHub.
-- Obtain primary-developer attestations about secure-design and vulnerability-prevention knowledge; repository text cannot establish a person's knowledge.
-- Verify every user-facing release has useful release notes and upgrade impact, and includes any assigned vulnerability identifiers for fixes.
-- Review dependency, code-scanning and secret-scanning findings and their age. A workflow success result is not proof that all findings are resolved.
-- Review the actual cryptographic libraries, protocols, key lengths, randomness, certificate checks and password storage applicable to this project. Do not copy another project's answers.
-- Verify build reproducibility from source, test policy adherence in recent substantive changes, dynamic analysis and any manual-memory-code checks.
-- Link only this project's real awarded badge once the assessment is accepted.
+Private vulnerability reporting is enabled. The full GitHub issues inventory
+contained no non-PR reports, and the advisory inventory was empty. The owner
+confirmed no reports, bugs, suggestions or vulnerabilities outside GitHub during
+the preceding 12 months, and confirmed secure-design and common-vulnerability
+knowledge for this project. No response-time percentage is inferred from an
+empty report set.
 
-The live assessment, when created, is the source of truth for the badge level. Unverified criteria remain open.
+Release notes were checked for actual change descriptions and upgrade/security
+guidance. Open Dependabot and secret-alert inventories were empty. Four remaining
+Scorecard findings concern maintenance, branch protection, fuzzing and the badge;
+they are process findings, not established exploitable runtime defects. These
+inventories are time-specific and must be reviewed again before submission.
+
+The proposed [.bestpractices.json](../.bestpractices.json) contains this project's
+Passing answers and public evidence links. Import only after the reviewed changes
+merge and required CI succeeds. The live assessment is the source of truth for
+any awarded level; a README badge does not itself establish compliance.
 
 ## Release-note source
 
-[CHANGELOG.md](../CHANGELOG.md) contains the current development line's change summary, upgrade impact and security notes. The release policy opts into commit-pinned notes; publication rejects missing or incomplete current-version sections. Historical release bodies still require a separate audit before claiming complete coverage.
+[CHANGELOG.md](../CHANGELOG.md) contains the current development line's change summary, upgrade impact and security notes. The release policy opts into commit-pinned notes; publication rejects missing or incomplete current-version sections. The 2026-10-12 historical review checked descriptions and retained original build provenance; new releases still require a source-specific review.
 
-The October 2026 maintenance imports the release identity and metadata parser
-from `venus-os-ci-toolkit` revision `9dd211a`, including bounded TOML parsing and
-source-bound release-note validation. Consumer release-contract suites verify
-the imported engine. Workflow-validator refactoring preserves this repository's
-existing policy; it does not imply all newer toolkit workflow guarantees are enabled.
-
-Release guidance parsing also imports toolkit revision `ec99f37`: Markdown code
-fences cannot provide or split the required version, Upgrade or Security headings.
-The release contract suite tests matching fence markers and lengths, unclosed
-examples, CRLF input and rejection before any remote publication writes.
-
-Release guidance and validation helpers also import reviewed toolkit revision `cab6d07`: comments and empty code fences cannot satisfy upgrade/security guidance, while visible literal examples remain valid. Receipt size limits are enforced before parsing. The existing consumer workflow policy is retained.
-
-The immutable-action fallback follows reviewed `inverter-control` revision `3830602`: even without a generator manifest, remote job/step references require a full commit SHA (or a Docker content digest), and generated workflows retain their generator marker. Tests exercise copies of the actual repository workflows.
-
-[Toolkit revision `6f3bac8`](https://github.com/victron-venus/venus-os-ci-toolkit/commit/6f3bac867a101441e029ee7c20c5aa92541eb308) also makes same-level and higher-level ATX headings end release sections, including empty headings, while headings inside code or comments remain inert.
-
-Release structure uses ATX headings (`#`, `##`, `###`), with up to three leading spaces. Setext-style or ambiguous text/comment/underline structures in the selected version are rejected; use ATX headings or a blank line before a thematic `---` separator. Literal fenced/indented examples and comments do not define sections.
-
-Toolkit revision `3533a43322cb351433ca8e90b786f14edcea7725` validates staging inputs before creating output and removes only a newly created target after a failed copy, artifact check or receipt write. Regression tests cover retry and preservation of existing operator files.
-
-Toolkit revision `4895f852f87ca1f27e2bc75e24c5c792e4f95aa6` includes verified staging cleanup and rejects release guidance made only of headings or separators. Regression tests cover retry, preservation of existing operator files, and visible guidance requirements.
-
-Toolkit revision `d8089003f43637ee420fa4cbcccdf11f5d21e469` also rejects empty Markdown lists, task items and quotations as release guidance, while preserving literal examples and lists with substantive text.
+The release implementation is generated from the immutable toolkit revision in
+[.release-policy.json](../.release-policy.json). It rejects missing source-specific
+notes, ambiguous or empty guidance, mutable action pins, mismatched source/version
+receipts and unsafe staging inputs. Consumer regression tests exercise those
+contracts. [Recipient signature verification](release-signatures.md) authenticates
+the full original artifact inventory and reviewed source archive. Signing runs
+only after compilation and quality checks, in a separate job with scoped OIDC
+permission. A real signed release still needs to be published and independently
+verified; historical releases remain unsigned.
 
 The CodeQL configuration also analyzes GitHub Actions in its own analysis category; existing application-language analyses remain enabled.
+
+## Silver work and remaining owner facts — 2026-10-12
+
+[Governance](../GOVERNANCE.md), [conduct](../CODE_OF_CONDUCT.md),
+[roadmap](../ROADMAP.md), [quality evidence](quality-evidence.md), and the
+[security assurance argument](security-assurance.md) describe the implemented
+process and scoped evidence. The owner confirmed that no continuity mechanism
+is currently in place: access_continuity remains Unmet. The owner also confirmed
+no reports outside GitHub in the preceding 12 months; this does not replace the
+separate GitHub history review recorded above or create retrospective response records.
+Published signing verification remains open. The conservative cross-language
+coverage bound exceeds 80% (see [quality evidence](quality-evidence.md)). The
+[defect-level history review](evidence/defect-level-review-2026-10-12.json) records
+a conservative regression-test lower bound above 50%.
+The [live OpenSSF assessment](https://www.bestpractices.dev/projects/15437) is registered.
+The README badge displays its current status; no Silver award is claimed.

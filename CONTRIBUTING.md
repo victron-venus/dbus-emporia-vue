@@ -35,3 +35,15 @@ The [static-analysis review notes](docs/STATIC_ANALYSIS.md) document individual 
 - [config.json.example](config.json.example)
 
 See [README.md](README.md) for acquisition, configuration and usage, and [the evidence index](docs/openssf-evidence.md) for the public development-process references.
+
+## Oversight and evidence
+
+Follow [governance and role responsibilities](GOVERNANCE.md), the
+[Code of Conduct](CODE_OF_CONDUCT.md), and the mandatory test policy in
+[quality evidence](docs/quality-evidence.md). The [roadmap](ROADMAP.md) and
+[security assurance argument](docs/security-assurance.md) describe current work
+and the evidence required for changes to a trust boundary.
+
+For package capture or image construction, use the documented
+[`DESTDIR` staging installer](docs/staged-installation.md). It installs into an
+explicit private staging root without invoking SetupHelper, supervisors or devices.

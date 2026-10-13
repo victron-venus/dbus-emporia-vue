@@ -13,32 +13,65 @@ Usage:
     [DEVICE_NAME=emporia_vue] python ha_config_gen.py
 """
 
-
 import json
 import os
 import sys
+import tempfile
+from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 def ha_url_to_rest(ws_url: str) -> str:
     """Convert WS URL to REST base URL."""
-    if ws_url.startswith("ws://"):
-        # Preserve caller-selected LAN transport; wss:// still maps to HTTPS.
-        http_url = "http://" + ws_url[5:]  # NOSONAR(S5332)
-    elif ws_url.startswith("wss://"):
-        http_url = "https://" + ws_url[6:]
-    else:
-        http_url = ws_url
+    parsed = urlsplit(ws_url)
+    schemes = {"ws": "http", "wss": "https", "http": "http", "https": "https"}
+    if (
+        parsed.scheme not in schemes
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError(
+            "HA_URL must be an HTTP(S) or WS(S) host URL without credentials, query or fragment"
+        )
+    # Accessing port validates malformed and out-of-range values.
+    _ = parsed.port
+    path = parsed.path.removesuffix("/websocket").rstrip("/")
+    if not path.endswith("/api"):
+        path += "/api"
+    return urlunsplit((schemes[parsed.scheme], parsed.netloc, path, "", ""))
 
-    # Remove /websocket suffix if present
-    http_url = http_url.removesuffix("/websocket")
 
-    # Ensure the URL ends with /api for Home Assistant REST API
-    if not http_url.endswith("/api"):
-        http_url = http_url.rstrip("/") + "/api"
+class NoAuthRedirect(HTTPRedirectHandler):
+    """Never forward an operator's bearer token to a redirect destination."""
 
-    return http_url
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise HTTPError(req.full_url, code, "Authenticated redirects are disabled", headers, fp)
+
+
+def open_authenticated(request):
+    """Open only a validated HTTP(S) request with redirects disabled."""
+    if urlsplit(request.full_url).scheme not in {"http", "https"}:
+        raise ValueError("Unsupported authenticated request scheme")
+    return build_opener(NoAuthRedirect()).open(request, timeout=10)  # nosec B310 - HTTP(S) allowlist above
+
+
+def write_private_config(config, path=Path("config.json")):
+    """Atomically replace configuration with owner-only mode, never follow symlinks."""
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError("Refusing a symlink configuration destination")
+    descriptor, temporary = tempfile.mkstemp(prefix=".config-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w") as output:
+            json.dump(config, output, indent=2)
+        os.replace(temporary, path)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
 
 
 def fetch_json(ha_url: str, token: str, api_path: str):
@@ -49,7 +82,7 @@ def fetch_json(ha_url: str, token: str, api_path: str):
     req.add_header("Authorization", f"Bearer {token}")
     req.add_header("content-type", "application/json")
     try:
-        with urlopen(req, timeout=10) as resp:
+        with open_authenticated(req) as resp:
             data = resp.read()
             return json.loads(data)
     except HTTPError as e:
@@ -69,6 +102,12 @@ def main():
         print("Example:", file=sys.stderr)
         print('  export HA_URL="ws://192.168.1.50:8123/api/websocket"', file=sys.stderr)
         print('  export HA_TOKEN="your_long_lived_access_token"', file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        ha_url_to_rest(ha_url)
+    except ValueError:
+        print("HA_URL is invalid; use an HTTP(S) or WS(S) host URL.", file=sys.stderr)
         sys.exit(1)
 
     print(f"Fetching states from {ha_url} (looking for device: {device_name}) ...")
@@ -107,10 +146,16 @@ def main():
     # We rely on the "_1s" suffix filtering as the determining factor for
     # instantaneous power sensor selection, as noted by the user.
     selected = instantaneous_candidates
-    print(f"Using {len(selected)} sensors with '_1s' suffix (device filtering not available in this HA version)")
+    print(
+        f"Using {len(selected)} sensors with '_1s' suffix "
+        "(device filtering not available in this HA version)"
+    )
 
     if not selected:
-        print("No power sensors found for the specified device. Check your HA configuration.", file=sys.stderr)
+        print(
+            "No power sensors found for the specified device. Check your HA configuration.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Sort by entity_id for deterministic ordering
@@ -127,25 +172,26 @@ def main():
         ch_num = idx + 1
         service_name = f"com.victronenergy.acload.emporia_ch{ch_num}"
         instance = base_instance + idx
-        channels.append({
-            "ha_entity_id": entity_id,
-            "service_name": service_name,
-            "instance": instance,
-            "custom_name": friendly,
-            "position": 0  # default to AC Input 1
-        })
+        channels.append(
+            {
+                "ha_entity_id": entity_id,
+                "service_name": service_name,
+                "instance": instance,
+                "custom_name": friendly,
+                "position": 0,  # default to AC Input 1
+            }
+        )
 
     config = {
         "ha_url": ha_url,
         "ha_token": ha_token,
         "channels": channels,
         "stale_timeout": 15,
-        "update_interval": 1
+        "update_interval": 1,
     }
 
     out_path = "config.json"
-    with open(out_path, "w") as f:
-        json.dump(config, f, indent=2)
+    write_private_config(config, Path(out_path))
     print(f"Generated {out_path} with {len(channels)} channels.")
     print("Review and edit if needed (e.g., adjust instance numbers to avoid conflicts).")
 
