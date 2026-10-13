@@ -16,7 +16,10 @@ in tracked scripts and workflow run blocks. It recursively inventories the SSH,
 trap and heredoc forms actually present here. Double-quoted SSH command literals
 are decoded before parsing their remote shell body; they are never executed.
 Embedded Python AST statements, multiline awk/sed allowances, find-exec commands
-and the Pump Python configuration template receive zero coverage credit.
+the two local_checks policy commands, the dormant release.py fallback command,
+and the Pump Python configuration template receive zero coverage credit. Their
+script targets were already inventoried; each wrapper is conservatively counted
+again as a separate shell statement.
 
 The result is a conservative cross-language lower bound, not measured shell
 coverage. Python executable statements and shell AST statements use different
@@ -212,6 +215,30 @@ for root_arg in sys.argv[1:]:
             for i, line in enumerate(lines):
                 if line.startswith("RUN "):
                     scan_shell(line[4:], f"{f}:RUN[{i}]", records)
+    policy = json.loads((root / ".release-policy.json").read_text())
+    for i, command in enumerate(policy.get("local_checks", [])):
+        scan_shell(command, f".release-policy.json:local_checks[{i}]", records)
+    # Count the dormant fallback as well as the configured wrappers. The called
+    # scripts are already inventoried separately; no wrapper receives credit.
+    client = ast.parse((root / "scripts/release.py").read_text())
+    local_checks = next(
+        node
+        for node in client.body
+        if isinstance(node, ast.FunctionDef) and node.name == "local_checks"
+    )
+    defaults = [
+        node.args[1]
+        for node in ast.walk(local_checks)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get"
+        and len(node.args) == 2
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value == "local_checks"
+    ]
+    assert len(defaults) == 1
+    for i, command in enumerate(ast.literal_eval(defaults[0])):
+        scan_shell(command, f"scripts/release.py:local_checks_fallback[{i}]", records)
     cov = json.loads((root / "docs/evidence/python-coverage-2026-10-12.json").read_text())
     for entry in cov["source_files"]:
         assert hashlib.sha256((root / entry["path"]).read_bytes()).hexdigest() == entry["sha256"], (
@@ -231,7 +258,7 @@ for root_arg in sys.argv[1:]:
             "binary_sha256": hashlib.sha256(SH.resolve().read_bytes()).hexdigest(),
             "source_url": "https://github.com/mvdan/sh/releases/tag/v3.14.1",
         },
-        "method": "Count every Bash AST Stmt node, including compound statements and nested command substitutions, across all tracked shell files (including extensionless shebang scripts) and every GitHub Actions run step. Replace Actions expressions with a non-executable placeholder before parsing. Recursively count heredoc shell, SSH/trap command strings, and count embedded Python heredoc/-c AST statements separately at zero coverage. Add conservative sed/awk expression units (punctuation plus nonempty lines), find-exec commands and the unmeasured Python configuration template. Count all Docker instructions plus RUN shell. Each declarative Compose command/entrypoint receives another zero-coverage unit. No non-Python execution credit is used.",
+        "method": "Count every Bash AST Stmt node, including compound statements and nested command substitutions, across all tracked shell files (including extensionless shebang scripts) and every GitHub Actions run step. Replace Actions expressions with a non-executable placeholder before parsing. Recursively count heredoc shell, SSH/trap command strings, and count embedded Python heredoc/-c AST statements separately at zero coverage. Add conservative sed/awk expression units (punctuation plus nonempty lines), find-exec commands, local_checks policy and fallback command strings, and the unmeasured Python configuration template. Count all Docker instructions plus RUN shell. Each declarative Compose command/entrypoint receives another zero-coverage unit. No non-Python execution credit is used.",
         "python_covered_statements": cov["statement_totals"]["covered_lines"],
         "python_statements": cov["statement_totals"]["num_statements"],
         "additional_zero_coverage_units": extra,
@@ -249,7 +276,7 @@ for root_arg in sys.argv[1:]:
     ).strip()
     d["manual_scope_review"] = [
         "Tracked file extensions and extensionless shebangs were reviewed. There are no additional maintained programming languages, local composite actions, Dockerfiles or Compose files in this source snapshot.",
-        "All workflow run steps use shell syntax. Executable SSH/trap strings, embedded Python, awk/sed expressions and find-exec forms were reviewed. No owned Python code dynamically executes additional shell source.",
+        "All workflow run steps use shell syntax. Executable SSH/trap strings, embedded Python, awk/sed expressions and find-exec forms were reviewed. release.py executes the reviewed local_checks policy wrappers or its dormant fallback; all three command strings are included. Other shell invocations select already inventoried scripts by path.",
         "No external dependency source, test fixtures or documentation examples receive production-source coverage credit. The Pump Python configuration template is conservatively counted at zero coverage.",
     ]
     print(json.dumps(d, indent=2))

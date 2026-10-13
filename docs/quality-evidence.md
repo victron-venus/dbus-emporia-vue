@@ -39,10 +39,11 @@ builds have been compared.
 
 The [complete maintained-source inventory](evidence/coverage-scope-2026-10-12.json)
 combines 5288 measured covered Python statements with 6068 total Python
-statements and 506 additional zero-credit units. The resulting lower bound is
-**80.4381%**. Additional units include shell files, extensionless service scripts,
+statements and 509 additional zero-credit units. The resulting lower bound is
+**80.4014%**. Additional units include shell files, extensionless service scripts,
 workflow run blocks, embedded Python/SSH/trap bodies, multiline awk/sed expressions
-and find-exec commands. The Pump configuration template is also counted at zero
+find-exec commands, and the two policy plus one dormant fallback local-check
+wrappers. The Pump configuration template is also counted at zero
 coverage where present. No shell execution or hardware coverage is claimed.
 
 The [reproduction method](evidence/coverage-scope-method.md) records parser versions,
