@@ -1,0 +1,62 @@
+name: ARMv7 vendor diagnostic
+
+on:
+  push:
+    branches: [codex/armv7-vendor-diagnostic-20261012]
+    paths:
+      - tools/armv7-vendor/**
+      - .github/workflows/armv7-vendor-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact RC source content
+        run: |
+          mkdir -p "$RUNNER_TEMP/vendor-output/diagnostics"
+          git diff --exit-code 0c14a138818b36912a52d85cd69995981dbcca4c HEAD -- . \
+            ':(exclude)tools/armv7-vendor/**' \
+            ':(exclude).github/workflows/armv7-vendor-diagnostic.yml'
+          git diff --exit-code
+          git rev-parse HEAD > "$RUNNER_TEMP/vendor-output/diagnostics/checkout-sha.txt"
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+        with:
+          platforms: arm
+          image: tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0
+      - name: Download hash-locked upstream inputs
+        run: |
+          set -o pipefail
+          python3 tools/armv7-vendor/build.py fetch "$RUNNER_TEMP/vendor-inputs" \
+            2>&1 | tee "$RUNNER_TEMP/vendor-output/diagnostics/fetch.log"
+      - name: Build and exercise exact dependencies offline
+        env:
+          VENDOR_BUILD_CHECKOUT_SHA: ${{ github.sha }}
+        run: |
+          set -o pipefail
+          docker run --rm --platform linux/arm/v7 --network none --cap-drop ALL \
+            --security-opt no-new-privileges --read-only \
+            --tmpfs /tmp:rw,exec,nosuid,size=2g \
+            --mount "type=bind,src=$GITHUB_WORKSPACE,dst=/src,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/vendor-inputs,dst=/inputs,readonly" \
+            --mount "type=bind,src=$RUNNER_TEMP/vendor-output,dst=/out" \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            --env VENDOR_BUILD_CHECKOUT_SHA \
+            python:3.12.13-bookworm@sha256:d02ff50d56a7aeee2b40b32c4567ba2ea9a90952591d9fe0ab106ed74d636eec \
+            python /src/tools/armv7-vendor/build.py build /inputs /out \
+            2>&1 | tee "$RUNNER_TEMP/vendor-output/diagnostics/build.log"
+      - name: Retain diagnostic bundle and receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: emporia-vendor-cp312-armv7-diagnostic
+          path: ${{ runner.temp }}/vendor-output/
+          if-no-files-found: warn
+          retention-days: 14
