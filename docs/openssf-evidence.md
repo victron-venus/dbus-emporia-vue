@@ -52,7 +52,7 @@ Do not equate a green metadata or release job with successful application tests.
 - Review dependency, code-scanning and secret-scanning findings and their age. A workflow success result is not proof that all findings are resolved.
 - Review the actual cryptographic libraries, protocols, key lengths, randomness, certificate checks and password storage applicable to this project. Do not copy another project's answers.
 - Verify build reproducibility from source, test policy adherence in recent substantive changes, dynamic analysis and any manual-memory-code checks.
-- Link only this project's real awarded badge once the assessment is accepted.
+- Link this project's live assessment badge; its displayed progress is not a claim of an award.
 
 The live assessment, when created, is the source of truth for the badge level. Unverified criteria remain open.
 
@@ -97,4 +97,5 @@ is currently in place: access_continuity remains Unmet. The owner also confirmed
 no reports outside GitHub in the preceding 12 months; this does not replace the
 separate GitHub history review or create retrospective response records.
 Signing verification and a completed regression-history denominator remain open.
-No Silver award or current public Passing registration is claimed here.
+The [live OpenSSF assessment](https://www.bestpractices.dev/projects/15437) is registered.
+The README badge displays its current status; no Silver award is claimed.

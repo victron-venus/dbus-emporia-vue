@@ -1,5 +1,7 @@
 # dbus-emporia-vue
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15437/badge)](https://www.bestpractices.dev/projects/15437)
+
 Show Emporia Vue circuits as AC loads on a Victron GX device. Read power from
 Home Assistant, or read power and energy directly from Emporia Cloud. You can
 also send the direct readings to your own Home Assistant through GX MQTT.

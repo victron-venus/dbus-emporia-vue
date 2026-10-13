@@ -1,9 +1,9 @@
 {
   "python": "3.12.13",
-  "base_commit": "b34afcd141e18c4dfb99a1849a28ad7b544f0c52",
+  "base_commit": "90b2fdae45a45202079c60fa17a0c197e5dba8e9",
   "method": "Two independent archive writer invocations using the actual tracked native package inventory from this reviewed worktree, identified by input SHA-256 below; no installation, deployment or release publication.",
-  "archive_sha256": "fada06ed34cabf31b279c01868f742d0c40c8faf4aad518ab35f829d29d458ba",
-  "archive_bytes": 75710,
+  "archive_sha256": "ecda6ee0226777c1863654f88ef150a9b5856674bb13b0d970f0f552dbc81277",
+  "archive_bytes": 75759,
   "matching_builds": 2,
   "inputs": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "614e272054b377f76b611d810c0030725ae2a52110445159bf0eb0eae1ee0303",
+      "sha256": "e43fb85321560d903b1a2fc3a7bf6b3a6c5d9d3bf1bfb5ef39f11f26a18baa60",
       "executable": false
     },
     {
