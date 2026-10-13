@@ -9,12 +9,12 @@ proposed and prioritized using the issue/review process in GOVERNANCE.md.
 2. Maintain a source inventory and measured coverage for application code and
    locally maintained tooling; assess reused release tooling separately and
    retain the exact upstream revision and test evidence.
-3. Finish the OpenSSF Passing assessment with project-specific owner facts.
-   Complete Silver governance, continuity, regression-history and assurance
-   evidence without asserting unverified criteria.
-4. Publish and independently verify a release using the configured source/artifact
-   signatures and recipient verifier. The implementation is present; a successful
-   workflow configuration alone does not establish signed release evidence.
+3. Maintain the awarded Passing level and complete the remaining Silver
+   requirements, including a real continuity arrangement. Reassess governance,
+   regression history and assurance evidence without asserting unverified criteria.
+4. Repeat source/artifact signature verification and applicable target acceptance
+   for each release. [Stable v1.0.9 evidence](docs/release-acceptance.md) records
+   the first completed signed stable in this process; preserve its limitations.
 5. Keep dependencies updated, preserve the documented Venus OS/Python compatibility
    boundary, and record evidence for each supported environment.
 

@@ -33,7 +33,9 @@ safety certification.
   verifier authenticates the expected repository, branch and reviewed commit
   before reading the inventory, then checks all original assets and source bytes.
   Evidence: docs/release-signatures.md, scripts/release_signing.py and its negative
-  contract tests. Actual published signed-release verification remains required.
+  contract tests. [Stable v1.0.9 verification and acceptance](release-acceptance.md)
+  record the actual published artifacts, results and target-test limitations.
+  Repeat this verification and applicable acceptance for each new release.
 
 ## Residual obligations
 
@@ -43,9 +45,10 @@ monitored and replace compromised credentials; never claim that deleting a
 credential from Git revokes it. Use SECURITY.md for coordinated disclosure.
 
 The coverage and regression inventories support this argument only within their
-declared scope. Remaining OpenSSF obligations include verified continuity,
-published signed-release verification. The maintained-source coverage bound
+declared scope. Verified continuity remains an unmet OpenSSF obligation.
+The maintained-source coverage bound
 counts shell and embedded code at zero credit, as documented in quality evidence.
 The defect-level regression review now records a conservative lower bound. The 2026-10-12 review found no GitHub issue/advisory reports,
 and the owner confirmed no outside-GitHub reports during the prior 12 months. Python coverage is
-measured in docs/quality-evidence.md; hardware and shell coverage are not implied. No Passing or Silver award is asserted here.
+measured in docs/quality-evidence.md; hardware and shell coverage are not implied. The [live assessment](https://www.bestpractices.dev/en/projects/15437)
+records Passing; Silver has not been awarded.
