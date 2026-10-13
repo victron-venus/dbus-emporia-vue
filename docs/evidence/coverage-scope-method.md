@@ -15,7 +15,7 @@ counts all shell AST statements, including compound statements and substitutions
 in tracked scripts and workflow run blocks. It recursively inventories the SSH,
 trap and heredoc forms actually present here. Double-quoted SSH command literals
 are decoded before parsing their remote shell body; they are never executed.
-Embedded Python AST statements, multiline awk/sed allowances, find-exec commands
+Embedded Python AST statements, multiline awk/sed allowances, find-exec commands,
 the two local_checks policy commands, the dormant release.py fallback command,
 and the Pump Python configuration template receive zero coverage credit. Their
 script targets were already inventoried; each wrapper is conservatively counted
@@ -267,7 +267,7 @@ for root_arg in sys.argv[1:]:
         "limitations": [
             "Coverage.py executable source statements and shell AST statements use different language-appropriate units; this is an explicitly conservative portfolio scope calculation, not a shell-coverage measurement.",
             "External interpreters, installed libraries, tools and remote reusable workflows/actions are dependencies rather than project-maintained source. Test/fixture source and documentation examples are not production source.",
-            "YAML/TOML/JSON configuration is data; executable workflow run steps and Docker RUN bodies are included. Docker instructions receive an extra zero-coverage allowance.",
+            "Most YAML/TOML/JSON configuration is data; executable workflow run steps, release-policy command strings and Docker RUN bodies are included. Docker instructions receive an extra zero-coverage allowance.",
             "Do not apply this bound to native dependency memory safety or branch coverage.",
         ],
     }
