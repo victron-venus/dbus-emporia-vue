@@ -21,3 +21,15 @@ Validate external values at trust boundaries, reject unsupported or malformed co
 Obtain source and published artifacts through the repository's HTTPS URLs. Verify published checksums or provenance when provided, over an authenticated channel. Keep local configuration, credentials and private keys out of source control and logs. Report suspected exposure through the private channel so credentials can be revoked and replaced; deleting a file alone does not revoke it.
 
 [OpenSSF evidence and remaining verification](docs/openssf-evidence.md) is maintained separately from this policy.
+
+## Reporter credit and response records
+
+Offer public credit to reporters of confirmed vulnerabilities when disclosing
+the fix, unless they request anonymity. Ask their preferred attribution before
+publication and retain the decision with the private report. Track acknowledgement,
+triage, mitigation, release and disclosure dates; escalate delayed critical fixes
+to repository administrators. This is the required process going forward, not an
+assertion about reports received before it.
+
+See the [security assurance argument](docs/security-assurance.md) for scoped
+claims, implementation references and remaining obligations.

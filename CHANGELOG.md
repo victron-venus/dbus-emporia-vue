@@ -8,6 +8,13 @@ Publishes Emporia/Home Assistant power channels as Victron D-Bus AC loads. The e
 
 ### Maintenance
 
+- Measure application, release helpers and modified local library code with one
+  explicit Python source inventory and an 80% statement-coverage gate.
+- Exercise deterministic native packaging, untracked-file exclusion, required
+  inputs, version validation and refusal to reuse stale output directories.
+- Document governance, conduct, roadmap, security assurance and dated quality
+  evidence, including the outstanding continuity requirement.
+
 - Synchronize Ruff 0.17.0 and boto3/botocore 1.43.112 with the hash-locked dependency files used by CI.
 - Refresh shared CI workflow pins while preserving the default GitHub-hosted runner selection.
 

@@ -1,0 +1,1056 @@
+{
+  "period_start": "2026-04-12",
+  "period_end": "2026-10-12",
+  "base_commit": "b34afcd141e18c4dfb99a1849a28ad7b544f0c52",
+  "method": "Full non-merge history is retained. Candidate discovery uses title terms fix/correct/preserve/recover/restore/harden/reject/prevent. Candidate discovery can omit differently titled fixes and overcount maintenance; therefore no all-fixes percentage is claimed. Entries marked reviewed have added regression assertions linked to the changed code. Dependency-only updates are not automatically counted as bug fixes. Additional content review includes fixes missed by title filtering and explicitly includes installation, CI authentication and dependency-lock defects. A commit can contain several defects; reviewed commit-pair counts are not the denominator of all corrected defects.",
+  "criterion_status": "not_yet_verified",
+  "reviewed_pairs": 19,
+  "candidate_pairs": [
+    {
+      "commit": "cb8e861317f7ea1dee84aafbab07cb9a0b8d4c59",
+      "title": "fix(release): use authoritative GitHub HTTP status (#93)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/cb8e861317f7ea1dee84aafbab07cb9a0b8d4c59",
+      "changed_tests": [
+        ".github/release-tests/test_github_missing_status.py",
+        ".github/release-tests/test_release_control.py",
+        ".github/release-tests/test_release_state_http.py",
+        ".github/release-tests/test_versioned_release.py"
+      ],
+      "added_test_functions": [
+        "def test_error_body_and_cli_message_cannot_authorize_absence(self):",
+        "def test_real_http_404_is_optional_regardless_of_error_prose(self):",
+        "def test_missing_headers_never_fall_back_to_error_prose(self):",
+        "def test_status_and_exit_code_must_agree(self):",
+        "def test_failed_post_is_not_replayed_and_raw_upload_never_means_missing(self):",
+        "def test_binary_and_empty_response_bytes_are_preserved(self):",
+        "def test_pagination_has_exact_json_boundaries_and_discards_partial_result(self):",
+        "def test_truncated_or_injected_page_boundaries_fail_closed(self):",
+        "def test_local_http_status_wins_over_gh_error_rendering(self):",
+        "def test_paginated_cli_normalizes_json_and_rejects_injected_page_headers(self):",
+        "def test_only_two_real_404_reads_initialize_an_absent_ledger(self):",
+        "def test_errors_cannot_initialize_or_replay_a_ledger_read(self):",
+        "def test_absent_headers_do_not_initialize_a_ledger(self):",
+        "def test_existing_branch_with_missing_file_is_not_reset(self):",
+        "def test_failed_cas_write_is_never_replayed(self):",
+        "def test_successful_cas_write_strips_headers(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "490671aa15ae2fa411e6f02ffa7ee64b4e261206",
+      "title": "fix: simplify release path guard and record analysis evidence (#86)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/490671aa15ae2fa411e6f02ffa7ee64b4e261206",
+      "changed_tests": [
+        ".github/release-tests/test_prepare_version.py"
+      ],
+      "added_test_functions": [
+        "def test_untrusted_requested_version_is_rejected_before_preparation_writes(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "9807bd10c75917609e5a88ac065417a14dba250f",
+      "title": "Restore Sonar source coverage and simplify HA freshness handling (#84)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/9807bd10c75917609e5a88ac065417a14dba250f",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "825da3dc8f600b3aba05db392eb033b691e9b38e",
+      "title": "Separate Emporia response parsing from request recovery (#82)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/825da3dc8f600b3aba05db392eb033b691e9b38e",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "19ff9c92c18ce0bea6c30bdb0e34a4b184290965",
+      "title": "fix(ci): synchronize action versions and group workflow updates (#75)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/19ff9c92c18ce0bea6c30bdb0e34a4b184290965",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "4f931077d75154144eaf0eb90330398df73f213e",
+      "title": "ci: request CodeRabbit autofix after completed reviews (#78)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/4f931077d75154144eaf0eb90330398df73f213e",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
+      "title": "fix: harden source polling and D-Bus recovery (#62)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/682c2c77a4e0164beae91a2d2a383b75e3362f03",
+      "changed_tests": [
+        "tests/test_dbus_integration.py",
+        "tests/test_emporia.py",
+        "tests/test_main.py",
+        "tests/test_sources.py",
+        "tests/test_update.py"
+      ],
+      "added_test_functions": [
+        "def test_private_dbus_lifecycle(case):",
+        "def test_status_logs_only_configured_device_transitions_without_payload_secrets(caplog):",
+        "def test_status_logs_unknown_once_and_does_not_repeat_state_after_request_error(caplog):",
+        "def test_pinned_auth_reuses_http_connection_preserves_headers_and_timeouts(http_endpoint):",
+        "def test_pinned_auth_refreshes_unauthorized_token_on_the_same_connection(http_endpoint):",
+        "def test_failed_authentication_closes_session(tmp_path, dependencies, monkeypatch):",
+        "def test_worker_closes_session_on_exit_and_after_energy_unauthorized(unauthorized):",
+        "def test_energy_timeout_override_does_not_change_power_timeout():",
+        "def test_due_energy_periods_share_turns_even_when_day_is_always_due(monkeypatch):",
+        "def test_power_runs_between_slow_energy_requests(monkeypatch):",
+        "def test_failed_refresh_invalidates_only_requested_channel(submeter, result):",
+        "def test_delayed_refresh_accepts_unchanged_power_and_new_source_timestamp(submeter):",
+        "def test_rest_reply_cannot_undo_event_received_during_request(submeter, event_state):",
+        "def test_legacy_opt_out_skips_ordinary_refresh_but_keeps_submeter_policy(submeter):",
+        "def test_ordinary_channel_expires_source_age_and_revalidates_unchanged_value(submeter):",
+        "def test_repeated_timestamp_cannot_extend_monotonic_freshness_after_clock_rollback(submeter):",
+        "def test_expired_monotonic_sample_is_not_briefly_republished_after_clock_rollback(submeter):",
+        "def test_startup_snapshot_survives_more_than_fifty_interleaved_events():",
+        "def test_invalid_ha_policy_rejected(name, value):",
+        "def test_ha_policy_defaults_and_explicit_legacy_opt_out():",
+        "def test_rest_session_is_reused_and_requests_only_the_configured_entity(monkeypatch):",
+        "def test_cancelled_rest_request_is_drained_before_another_thread_can_start(monkeypatch):",
+        "def test_submeter_refresh_precedes_ordinary_channels_and_rechecks_freshness(submeter):",
+        "def test_slow_ordinary_sweep_revalidates_submeter_between_requests(submeter):",
+        "def test_rest_rejects_missing_redirected_malformed_or_oversized_states(",
+        "def test_shutdown_during_stalled_rest_request_exits_without_waiting_for_worker():",
+        "def test_missing_ha_http_dependency_fails_before_stopping_service(venus, tmp_path):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "dd8061eff05ef884a4eab5b835806240f142be70",
+      "title": "security: harden code-scanning workflows and CI permissions (#61)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/dd8061eff05ef884a4eab5b835806240f142be70",
+      "changed_tests": [
+        ".github/workflow-tests/test_scorecard_workflow.py",
+        "tests/test_validate_scorecard_json.py"
+      ],
+      "added_test_functions": [
+        "def test_publishing_and_guarded_upload_contract(self):",
+        "def test_custom_run_in_publishing_job_is_rejected(self):",
+        "def test_validation_job_cannot_mint_publication_identity(self):",
+        "def test_artifact_must_be_from_this_workflow_run(self):",
+        "def test_upload_cannot_run_without_successful_completeness_guard(self):",
+        "def test_scan_must_preserve_both_original_formats(self):",
+        "def test_complete_clean_and_failing_checks_pass(self) -> None:",
+        "def test_upstream_packaging_not_applicable_is_preserved(self) -> None:",
+        "def test_packaging_runtime_errors_and_other_inconclusive_results_fail(self) -> None:",
+        "def test_invalid_or_incomplete_checks_fail(self) -> None:",
+        "def test_missing_duplicate_unknown_and_malformed_checks_fail(self) -> None:",
+        "def test_repository_commit_and_version_are_bound_to_the_run(self) -> None:",
+        "def test_missing_run_identity_and_invalid_root_fail(self) -> None:",
+        "def test_failed_guard_removes_stale_sarif(self) -> None:",
+        "def test_successful_guard_preserves_original_sarif(self) -> None:"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "65c3e983feb5c71dcf603db38e1fb2abc1950620",
+      "title": "fix: prepare next release cycle and skip closed beta packaging (#60)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/65c3e983feb5c71dcf603db38e1fb2abc1950620",
+      "changed_tests": [
+        ".github/release-tests/test_release_control.py",
+        ".github/release-tests/test_version_plan.py",
+        ".github/release-tests/test_versioned_release.py"
+      ],
+      "added_test_functions": [
+        "def test_existing_stable_tag_closes_only_push_cycle(self):",
+        "def test_missing_tag_continues_but_api_errors_cannot_authorize_skip(self):",
+        "def test_malformed_or_wrong_tag_response_fails_closed(self):",
+        "def test_python_version_updates_preserve_single_and_double_quotes(self):",
+        "def test_closed_push_cycle_stops_before_plan_allocation(self):",
+        "def test_closed_push_cycle_does_not_bypass_source_or_version_checks(self):",
+        "def test_explicit_beta_keeps_existing_stable_tag_error(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "3cac30ef9cd5969104da4b394801b570ae4a2743",
+      "title": "fix(release): preserve RC eligibility during scheduled nightlies (#57)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/3cac30ef9cd5969104da4b394801b570ae4a2743",
+      "changed_tests": [
+        ".github/release-tests/test_release_control.py",
+        ".github/release-tests/test_versioned_release.py"
+      ],
+      "added_test_functions": [
+        "def test_upload_parse_failure_keeps_draft_and_reports_safe_asset_context(self):",
+        "def test_scheduled_rc_reuse_preserves_floor_and_promotion_after_full_build(self):",
+        "def test_scheduled_beta_reuses_retained_qualified_package(self):",
+        "def test_promoted_stable_can_reuse_original_rc_evidence(self):",
+        "def test_final_build_stable_is_a_qualified_publication(self):",
+        "def test_release_mutation_during_verification_does_not_skip_publication(self):",
+        "def test_unqualified_or_changed_release_never_skips_publication(self):",
+        "def test_unqualified_nightly_is_not_a_reuse_baseline(self):",
+        "def test_manual_nightly_always_publishes_despite_qualified_rc(self):",
+        "def test_new_source_always_publishes_despite_previous_rc(self):",
+        "def test_default_branch_movement_during_reuse_prevents_skip(self):",
+        "def test_failed_current_gate_cannot_reuse_previous_rc(self):",
+        "def test_invalid_current_build_receipt_cannot_reuse_previous_rc(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
+      "title": "fix: adopt atomic release evidence and bounded verification (#53)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/7efab61d0cffc338482d59f3792ab7e29418d050",
+      "changed_tests": [
+        ".github/release-tests/test_asset_streaming.py",
+        ".github/release-tests/test_consumer_versioning.py",
+        ".github/release-tests/test_release_control.py",
+        ".github/release-tests/test_version_plan.py",
+        ".github/release-tests/test_version_receipt.py",
+        ".github/release-tests/test_versioned_release.py"
+      ],
+      "added_test_functions": [
+        "def test_copy_and_hash_bounded_chunks_including_empty_and_partial_chunk(self):",
+        "def test_transport_streams_to_output_with_media_type_and_timeout(self):",
+        "def test_transport_rejects_non_asset_endpoints_before_launching_gh(self):",
+        "def test_transport_timeout_uses_the_release_error_contract(self):",
+        "def test_successful_download_returns_identity_of_the_actual_staged_bytes(self):",
+        "def test_partial_download_is_removed_on_transport_error_timeout_or_interrupt(self):",
+        "def test_existing_file_and_symlink_are_never_overwritten_or_removed(self):",
+        "def test_truncated_uploaded_bytes_leave_draft_unpublished(self):",
+        "def test_promotion_waits_for_fresh_active_run_and_keeps_rc_bytes(self):",
+        "def test_candidate_waits_for_fresh_active_run_before_gate(self):",
+        "def test_legacy_automatic_candidate_never_writes_evidence_when_superseded(self):",
+        "def test_default_token_does_not_change_or_probe(self):",
+        "def test_scoped_classic_token_probe_is_read_only_and_secret_safe(self):",
+        "def test_scope_or_repository_mismatch_rejects_before_write(self):",
+        "def test_missing_secret_never_uses_a_fallback_identity(self):",
+        "def test_probe_failure_does_not_print_payload_or_auth_diagnostics(self):",
+        "def test_api_error_identifies_method_and_route_without_body(self):",
+        "def test_transitional_states_require_a_fresh_in_progress_response(self):",
+        "def test_every_refreshed_identity_field_is_rechecked(self):",
+        "def test_execution_checkout_is_rechecked_after_wait(self):",
+        "def test_terminal_or_unknown_state_fails_without_sleep(self):",
+        "def test_timeout_is_bounded_and_does_not_publish(self):",
+        "def test_completed_candidate_validation_does_not_poll(self):",
+        "def test_current_head_always_uses_normal_publication(self):",
+        "def test_push_and_schedule_only_record_proven_supersession(self):",
+        "def test_manual_dispatch_is_unchanged_even_at_older_source(self):",
+        "def test_successor_completion_is_not_a_publication_claim(self):",
+        "def test_missing_or_ambiguous_replacement_fails_closed(self):",
+        "def test_forged_old_or_manual_replacement_fails_closed(self):",
+        "def test_malformed_or_changed_ref_and_divergence_fail_closed(self):",
+        "def test_default_branch_rename_does_not_skip_against_an_old_branch(self):",
+        "def test_unknown_api_response_and_errors_do_not_become_success(self):",
+        "def test_narrow_transport_accepts_only_the_fixed_successor_query(self):",
+        "def test_create_and_overwrite_preserve_exact_bytes_and_existing_mode(self):",
+        "def test_hardlink_replacement_preserves_other_name_and_bytes(self):",
+        "def test_symlink_dangling_symlink_directory_and_fifo_fail_closed(self):",
+        "def test_failed_write_flush_or_replace_preserves_old_output_and_cleans_staging(",
+        "def test_symlink_inserted_during_staging_is_rejected_without_target_write(self):",
+        "def test_hardlinked_output_preserves_outside_bytes_and_plan_hashes(self):",
+        "def test_output_guards_reject_escape_symlink_directory_and_version_input(self):",
+        "def test_large_package_receipt_does_not_buffer_the_payload(self):",
+        "def test_oversized_receipt_reads_only_a_bounded_prefix(self):",
+        "def test_receipt_size_boundary_preserves_exact_bytes_and_validation(self):",
+        "def test_own_downloads_do_not_invalidate_unchanged_candidate(self):",
+        "def test_payloads_use_streaming_and_only_one_private_staged_file(self):",
+        "def test_streamed_corruption_and_truncation_reject_before_acceptance(self):",
+        "def test_interrupted_stream_never_accepts_or_leaves_private_payload(self):",
+        "def test_asset_mutation_during_downloads_still_rejects_candidate(self):",
+        "def test_release_and_tag_changes_during_downloads_still_reject_candidate(self):",
+        "def test_prepare_uses_refreshed_run_after_transient_status(self):",
+        "def test_automatic_current_head_publishes_exact_built_bytes(self):",
+        "def test_early_and_late_supersession_preserve_reservation_without_publication(self):",
+        "def test_unproven_replacement_fails_before_floor_and_tag(self):",
+        "def test_supersession_does_not_hide_a_previously_consumed_plan(self):",
+        "def test_post_guard_tag_failure_consumes_floor_without_retry_or_false_skip(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "dd6871681257b770085a9c1ae51ce6a94283a4e4",
+      "title": "fix: pin Emporia service to the Venus OS Python 3.12 runtime (#41)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/dd6871681257b770085a9c1ae51ce6a94283a4e4",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "4b128809b8ceafe30703ef40db9c697969ce0108",
+      "title": "fix: scope release secrets and bound nightly Python versions (#40)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/4b128809b8ceafe30703ef40db9c697969ce0108",
+      "changed_tests": [
+        ".github/release-tests/test_version_plan.py"
+      ],
+      "added_test_functions": [
+        "def test_real_nightly_run_fits_uv_numeric_limit(self):",
+        "def test_nightly_runs_and_attempts_cannot_collide_or_overflow(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "39afd8bb60897542b165ec3d1b8c8b01d9cc00a9",
+      "title": "fix: update release artifact validation",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/39afd8bb60897542b165ec3d1b8c8b01d9cc00a9",
+      "changed_tests": [
+        ".github/release-tests/test_version_plan.py"
+      ],
+      "added_test_functions": [
+        "def test_git_source_binding_accepts_declared_checkout_eol_conversion(self):",
+        "def test_oci_buildkit_artifact_attestation_checks_subject_and_empty_config(  # pylint: disable=too-many-locals"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "d1853f0bea7efa2fe19160e48540d018b11fbce3",
+      "title": "Pin the release fixture import compatibility fix",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/d1853f0bea7efa2fe19160e48540d018b11fbce3",
+      "changed_tests": [
+        ".github/release-tests/test_versioned_release.py"
+      ],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "98db51cb6f5685aaa581bcf06c91026ccca3775f",
+      "title": "Fix supervised shutdown and release private buses in v1.0.4 (#31)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/98db51cb6f5685aaa581bcf06c91026ccca3775f",
+      "changed_tests": [
+        "tests/test_main.py"
+      ],
+      "added_test_functions": [
+        "def test_real_signal_exits_without_unretrieved_tasks(stop_signal, disconnect_error, tmp_path):",
+        "def test_failed_service_release_still_disconnects_its_bus():",
+        "def test_timed_out_service_release_disconnects_bus_without_pending_tasks():"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "bac94c18b2600c308de964d526e16867b2ce3a41",
+      "title": "Preserve newer HA startup events in Emporia v1.0.3 (#30)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/bac94c18b2600c308de964d526e16867b2ce3a41",
+      "changed_tests": [
+        "tests/test_main.py",
+        "tests/test_update.py"
+      ],
+      "added_test_functions": [
+        "def test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event(",
+        "def test_interleaved_event_is_retained_when_initial_snapshot_fails():"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
+      "title": "Preserve service supervisors during version 1.0.2 updates",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
+      "changed_tests": [
+        "tests/test_update.py"
+      ],
+      "added_test_functions": [
+        "def test_repeated_in_place_updates_preserve_live_supervisors_and_boot(venus):",
+        "def test_release_update_replaces_run_files_atomically(venus, tmp_path):",
+        "def test_first_install_creates_service_without_touching_other_services(venus):",
+        "def test_boot_hook_only_creates_a_missing_canonical_link(venus, existing):",
+        "def test_unexpected_layout_is_rejected_before_stopping_or_replacing(venus, tmp_path, layout):",
+        "def test_missing_service_definition_is_rejected_before_stop(venus):",
+        "def test_stuck_worker_aborts_without_replacing_runtime_or_logger(venus):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "ac529075206b1ed63b0ae8a82d4ebae1acc2a586",
+      "title": "fix: use current check attempts for native auto-merge (#26)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/ac529075206b1ed63b0ae8a82d4ebae1acc2a586",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "13dd4d87aae6c5a082c1780232b606b9fb8716ae",
+      "title": "fix: recognize trusted bot identities for auto-merge (#25)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/13dd4d87aae6c5a082c1780232b606b9fb8716ae",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "3f4e2b29dd1173aa67ea1a6cdca7e453f25b99c1",
+      "title": "fix: prepare complete Emporia runtime package for v1.0.1 (#24)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/3f4e2b29dd1173aa67ea1a6cdca7e453f25b99c1",
+      "changed_tests": [
+        "tests/test_setup_package.py"
+      ],
+      "added_test_functions": [
+        "def test_setup_copies_complete_runtime(tmp_path):",
+        "def test_setup_defines_persistence_before_installation():"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff reviewed; original parent-vs-fix test runs were not repeated."
+    },
+    {
+      "commit": "d8dfd462388c9cc4bd0ea85dd0f44f6fc40494b1",
+      "title": "fix(deploy): copy parse_ha.py to Cerbo in deploy.sh and setup (#20)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/d8dfd462388c9cc4bd0ea85dd0f44f6fc40494b1",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "af1dea208ee9249e2dd045b391d19524e9551333",
+      "title": "fix: resolve SonarCloud findings (#11)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/af1dea208ee9249e2dd045b391d19524e9551333",
+      "changed_tests": [
+        "tests/test_main.py"
+      ],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "3b252f98ace4727e102bacc4a42b8f90284171e4",
+      "title": "ci: fix mypy and SonarCloud warnings",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/3b252f98ace4727e102bacc4a42b8f90284171e4",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "ff1710f59a85c245a7b5c9949cc7a36f77113c8e",
+      "title": "fix: skip trigger events while awaiting get_states reply",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/ff1710f59a85c245a7b5c9949cc7a36f77113c8e",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "d123e61d2ff8bf1b221f7ccbd95792dee7684d62",
+      "title": "fix: one D-Bus connection per acload service",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/d123e61d2ff8bf1b221f7ccbd95792dee7684d62",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "2e5646fc9ea9feb982e9507df08c1107369cab4b",
+      "title": "fix: stop creating real dir in tmpfs /service",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/2e5646fc9ea9feb982e9507df08c1107369cab4b",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "f6eea439a2d0d59bf9dc72b8369ce1f49648a775",
+      "title": "fix: ensure service survives reboot via rc.local",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f6eea439a2d0d59bf9dc72b8369ce1f49648a775",
+      "changed_tests": [],
+      "added_test_functions": [],
+      "status": "candidate_needs_content_review"
+    },
+    {
+      "commit": "07332dd7d40e6612ae9520f0a135152c07c9032f",
+      "title": "Recover transient energy reads and keep dependency locks consistent (#52)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/07332dd7d40e6612ae9520f0a135152c07c9032f",
+      "changed_tests": [
+        "tests/test_emporia.py",
+        "tests/test_requirement_locks.py"
+      ],
+      "added_test_functions": [
+        "def test_energy_transient_failure_recovers_without_delaying_power_or_other_period(",
+        "def test_energy_repeated_failures_use_capped_backoff_and_preserve_power(monkeypatch):",
+        "def test_energy_success_restores_normal_cadence_and_resets_backoff(monkeypatch):",
+        "def test_energy_error_retry_never_outpaces_short_configured_intervals(monkeypatch):",
+        "def test_cancellation_during_failed_energy_stops_next_period_and_retries(monkeypatch):",
+        "def test_locks_satisfy_declared_dependencies(lock, manifests):",
+        "def test_ci_and_installer_use_identical_runtime_versions_and_hashes():"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff and regression assertions reviewed; historical parent-vs-fix test runs were not repeated.",
+      "reason": "Transient energy failures retry with bounded backoff without delaying power; lock tests compare runtime versions and hashes."
+    },
+    {
+      "commit": "a855e116a2d3907c0397252df78055ec42b7eba2",
+      "title": "Keep Emporia D-Bus services alive through Home Assistant outages",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/a855e116a2d3907c0397252df78055ec42b7eba2",
+      "changed_tests": [
+        "tests/test_main.py",
+        "tests/test_parse_ha.py"
+      ],
+      "added_test_functions": [
+        "def test_unavailable_channel_does_not_publish_zero():",
+        "def test_network_failure_retries_without_exiting(monkeypatch, failure):",
+        "def test_unavailable_returns_none(self):",
+        "def test_unknown_returns_none(self):",
+        "def test_empty_string_returns_none(self):",
+        "def test_none_returns_none(self):",
+        "def test_junk_string_returns_none(self):",
+        "def test_unavailable_state_returns_none_power(self):",
+        "def test_null_to_state_returns_none_power(self):",
+        "def test_unavailable_returns_none(self):",
+        "def test_nonfinite_power_is_unavailable():"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff and regression assertions reviewed; historical parent-vs-fix test runs were not repeated.",
+      "reason": "Home Assistant outages retry without exiting; unavailable and nonfinite telemetry remains missing instead of zero."
+    },
+    {
+      "commit": "556ec9c6a6eea373451fd6363b1c603d297e925b",
+      "title": "Clarify startup phases and isolate failed channel connections (#90)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/556ec9c6a6eea373451fd6363b1c603d297e925b",
+      "changed_tests": [
+        "tests/test_dbus_integration.py",
+        "tests/test_main.py"
+      ],
+      "added_test_functions": [
+        "def test_main_invalid_channel_skipped_and_continues(",
+        "def test_failed_bus_connection_is_closed_before_next_channel(",
+        "def test_connection_cancellation_preserves_outer_cleanup(monkeypatch, cancel_at):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff and regression assertions reviewed; historical parent-vs-fix test runs were not repeated.",
+      "reason": "Failed channel connection cleanup is isolated and preserves cancellation while other channels start."
+    },
+    {
+      "commit": "23afdffdc3e1008242b590e36d13111e12f7db00",
+      "title": "fix: secure heartbeat writes and lock dependency installation (#23)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/23afdffdc3e1008242b590e36d13111e12f7db00",
+      "changed_tests": [
+        "tests/test_main.py"
+      ],
+      "added_test_functions": [
+        "def test_heartbeat_replaces_symlink_without_clobbering_target(tmp_path):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff and regression assertions reviewed; historical parent-vs-fix test runs were not repeated.",
+      "reason": "Heartbeat replacement preserves the target of a malicious preexisting symlink."
+    },
+    {
+      "commit": "e277796e150e12ad50d644f85a4ac980d1b71538",
+      "title": "Unify persistent Venus OS installation and health checks",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/e277796e150e12ad50d644f85a4ac980d1b71538",
+      "changed_tests": [
+        "tests/test_update.py"
+      ],
+      "added_test_functions": [
+        "def test_setuphelper_in_place_update_preserves_config_and_boot(tmp_path):",
+        "def test_missing_dependencies_fail_before_install_changes(tmp_path):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff and regression assertions reviewed; historical parent-vs-fix test runs were not repeated.",
+      "reason": "In-place installation preserves local config and persistent boot registration."
+    },
+    {
+      "commit": "b00f701afa80352e263a43b4296e92d71984836c",
+      "title": "fix(deps): reconcile dependency locks and prepare 1.0.8 (#67)",
+      "url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b00f701afa80352e263a43b4296e92d71984836c",
+      "changed_tests": [
+        ".github/workflow-tests/test_coverage_auth.py"
+      ],
+      "added_test_functions": [
+        "def test_current_coverage_auth_contract(self):",
+        "def test_every_permission_hop_is_required(self):",
+        "def test_unrelated_jobs_cannot_issue_identity_tokens(self):",
+        "def test_authentication_and_failure_handling_cannot_be_disabled(self):",
+        "def test_optional_upload_is_rejected(self):"
+      ],
+      "status": "reviewed_added_assertions_and_source_change",
+      "verification": "Historical diff and regression assertions reviewed; historical parent-vs-fix test runs were not repeated.",
+      "reason": "Required coverage upload authenticates via scoped OIDC and cannot silently skip failure."
+    }
+  ],
+  "complete_history": [
+    {
+      "commit": "b34afcd141e18c4dfb99a1849a28ad7b544f0c52",
+      "date": "2026-10-12T16:49:50-07:00",
+      "title": "fix(deps): synchronize dependencies and prepare 1.0.9 (#97)"
+    },
+    {
+      "commit": "8d2241fb6178be2f3d75a6b120493962569e5963",
+      "date": "2026-10-12T16:13:47-07:00",
+      "title": "fix(deps): bump the ci-workflows group with 9 updates (#96)"
+    },
+    {
+      "commit": "cb8e861317f7ea1dee84aafbab07cb9a0b8d4c59",
+      "date": "2026-10-12T14:30:35-07:00",
+      "title": "fix(release): use authoritative GitHub HTTP status (#93)"
+    },
+    {
+      "commit": "0e220858d902084d80902164855a6fa267279951",
+      "date": "2026-10-09T04:27:33-07:00",
+      "title": "fix(deps): bump the ci-workflows group with 4 updates (#92)"
+    },
+    {
+      "commit": "c24edd4500bf159673b31ce9d8bb65d3d7575b86",
+      "date": "2026-10-08T07:40:22-07:00",
+      "title": "Clarify bus connection assertions in startup regression (#91)"
+    },
+    {
+      "commit": "556ec9c6a6eea373451fd6363b1c603d297e925b",
+      "date": "2026-10-08T07:30:00-07:00",
+      "title": "Clarify startup phases and isolate failed channel connections (#90)"
+    },
+    {
+      "commit": "2309345efa632f3583393f0f940c5a690d6ca8c6",
+      "date": "2026-10-08T07:02:46-07:00",
+      "title": "test: isolate expected failures and simplify packaging checks (#89)"
+    },
+    {
+      "commit": "2832a46ddbc0257716db201f2d7e2f9f11423656",
+      "date": "2026-10-08T06:42:48-07:00",
+      "title": "refactor: isolate periodic heartbeat freshness worker (#88)"
+    },
+    {
+      "commit": "43e88c7b643cb21162f51d4501f8b5211dc5c2d0",
+      "date": "2026-10-08T06:39:34-07:00",
+      "title": "refactor: isolate Emporia authentication inputs (#87)"
+    },
+    {
+      "commit": "490671aa15ae2fa411e6f02ffa7ee64b4e261206",
+      "date": "2026-10-08T06:33:56-07:00",
+      "title": "fix: simplify release path guard and record analysis evidence (#86)"
+    },
+    {
+      "commit": "d645d1df340449a747fad6d218b8dafe10d6f9df",
+      "date": "2026-10-08T06:23:12-07:00",
+      "title": "refactor: isolate Emporia energy retry handling (#85)"
+    },
+    {
+      "commit": "9807bd10c75917609e5a88ac065417a14dba250f",
+      "date": "2026-10-08T06:15:08-07:00",
+      "title": "Restore Sonar source coverage and simplify HA freshness handling (#84)"
+    },
+    {
+      "commit": "9ecdb458a18c51f0868adb5b0f4b50af9f7450e9",
+      "date": "2026-10-08T05:57:01-07:00",
+      "title": "Backport reviewed toolkit validation maintenance (#83)"
+    },
+    {
+      "commit": "825da3dc8f600b3aba05db392eb033b691e9b38e",
+      "date": "2026-10-08T11:49:16Z",
+      "title": "Separate Emporia response parsing from request recovery (#82)"
+    },
+    {
+      "commit": "38e186bfeb0186390a71034f3457b8f732100c36",
+      "date": "2026-10-08T04:07:46-07:00",
+      "title": "Require source-bound release notes and document security process (#79)"
+    },
+    {
+      "commit": "a94aee3e6ac9c9ed3f0676bf62b326ccaba14dfb",
+      "date": "2026-10-08T02:49:38-07:00",
+      "title": "fix(deps): bump the ci-workflows group with 6 updates (#80)"
+    },
+    {
+      "commit": "19ff9c92c18ce0bea6c30bdb0e34a4b184290965",
+      "date": "2026-10-08T02:15:09-07:00",
+      "title": "fix(ci): synchronize action versions and group workflow updates (#75)"
+    },
+    {
+      "commit": "e0c3e21b51ed243f07d6af953c2216996a353b03",
+      "date": "2026-10-08T02:00:01-07:00",
+      "title": "chore(deps): update websockets requirement from >=17.1 to >=17.2 (#71)"
+    },
+    {
+      "commit": "4f931077d75154144eaf0eb90330398df73f213e",
+      "date": "2026-10-07T17:18:42-07:00",
+      "title": "ci: request CodeRabbit autofix after completed reviews (#78)"
+    },
+    {
+      "commit": "335a0567e38460d1f221e55e1a322e2b8d3d8c80",
+      "date": "2026-10-07T16:04:32-07:00",
+      "title": "[StepSecurity] Apply security best practices (#72)"
+    },
+    {
+      "commit": "0ac9d2aecddcc9fa2bd45286e7ce73abfd12bcb4",
+      "date": "2026-10-06T17:12:00-07:00",
+      "title": "chore(deps): update dbus-fast requirement from >=5.0.25 to >=5.2.0 (#69)"
+    },
+    {
+      "commit": "beab13a93a6d5b509908257b256bde3e75595a79",
+      "date": "2026-10-06T16:16:15-07:00",
+      "title": "chore(deps): update boto3 requirement (#70)"
+    },
+    {
+      "commit": "cea99f1d913638087c1957a80c282fe9dae4d72c",
+      "date": "2026-10-05T17:34:44-07:00",
+      "title": "ci: prepare optional runner reserve without enabling it (#68)"
+    },
+    {
+      "commit": "b00f701afa80352e263a43b4296e92d71984836c",
+      "date": "2026-10-05T07:34:01-07:00",
+      "title": "fix(deps): reconcile dependency locks and prepare 1.0.8 (#67)"
+    },
+    {
+      "commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
+      "date": "2026-10-04T15:28:37Z",
+      "title": "fix: harden source polling and D-Bus recovery (#62)"
+    },
+    {
+      "commit": "dd8061eff05ef884a4eab5b835806240f142be70",
+      "date": "2026-10-03T13:55:07-07:00",
+      "title": "security: harden code-scanning workflows and CI permissions (#61)"
+    },
+    {
+      "commit": "65c3e983feb5c71dcf603db38e1fb2abc1950620",
+      "date": "2026-10-03T03:47:14-07:00",
+      "title": "fix: prepare next release cycle and skip closed beta packaging (#60)"
+    },
+    {
+      "commit": "cc025e61a98ff0a9d916fdde5dc51e991d8ff1e3",
+      "date": "2026-10-02T21:31:25-07:00",
+      "title": "fix(deps): update Emporia manifests and hashed locks together (#59)"
+    },
+    {
+      "commit": "62fd00d7dd0b384fce3cf5dbff92389fb321b5d0",
+      "date": "2026-10-02T16:21:48-07:00",
+      "title": "ci: request advisory CodeRabbit reviews on new PRs (#58)"
+    },
+    {
+      "commit": "3cac30ef9cd5969104da4b394801b570ae4a2743",
+      "date": "2026-10-02T05:17:11-07:00",
+      "title": "fix(release): preserve RC eligibility during scheduled nightlies (#57)"
+    },
+    {
+      "commit": "d6fb8c1cdada82f54339f0b6bc10f4835a4bf90d",
+      "date": "2026-09-30T06:53:58-07:00",
+      "title": "ci: adopt canonical release lifecycle tooling (#54)"
+    },
+    {
+      "commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
+      "date": "2026-09-29T18:10:38-07:00",
+      "title": "fix: adopt atomic release evidence and bounded verification (#53)"
+    },
+    {
+      "commit": "07332dd7d40e6612ae9520f0a135152c07c9032f",
+      "date": "2026-09-29T17:08:20-07:00",
+      "title": "Recover transient energy reads and keep dependency locks consistent (#52)"
+    },
+    {
+      "commit": "a9bf66a3caad137aeac2a78c0187190ba27a89ef",
+      "date": "2026-09-29T04:39:15-07:00",
+      "title": "chore(deps): update boto3 requirement (#51)"
+    },
+    {
+      "commit": "b86a656eaae6141400f85da198cf9e1a45aface6",
+      "date": "2026-09-28T20:07:41-07:00",
+      "title": "chore(deps-dev): bump ruff from 0.16.8 to 0.16.9 (#50)"
+    },
+    {
+      "commit": "9786f892d97b7a89ae2b7bf7dfc0160d40e64d0f",
+      "date": "2026-09-28T19:43:48-07:00",
+      "title": "chore(deps): update boto3 requirement (#49)"
+    },
+    {
+      "commit": "c0a7854301b7f5baa500fed78c287eb4ab49132e",
+      "date": "2026-09-26T11:42:15-07:00",
+      "title": "chore(deps): update boto3 requirement (#48)"
+    },
+    {
+      "commit": "13e343845669f7a933b36ac037bcbf8becd3e057",
+      "date": "2026-09-23T21:34:09-07:00",
+      "title": "feat: export Emporia tariff references for the spreadsheet editor (#47)"
+    },
+    {
+      "commit": "71fbb3f87f9c4bccdabf9cd3e43d55471b7686ac",
+      "date": "2026-09-22T09:29:02-07:00",
+      "title": "ci: consolidate required validation and use protected native auto-merge (#46)"
+    },
+    {
+      "commit": "de799215f28aaa2581a9d7fb3fc69d60c2e4855b",
+      "date": "2026-09-22T07:15:47-07:00",
+      "title": "ci: approve Dependabot PRs with GITHUB_TOKEN (#45)"
+    },
+    {
+      "commit": "115c9a0b55e33d7db21676b43f1cc296c23df2ec",
+      "date": "2026-09-22T05:52:39-07:00",
+      "title": "chore(deps-dev): bump coverage from 7.16.0 to 7.16.1 (#39)"
+    },
+    {
+      "commit": "80044740876b063d568de29548bf73625adbee80",
+      "date": "2026-09-22T05:27:02-07:00",
+      "title": "chore(deps): update boto3 requirement (#44)"
+    },
+    {
+      "commit": "67639754bf9679e1be93420987a50356ea62bd0c",
+      "date": "2026-09-21T08:59:17-07:00",
+      "title": "chore(deps): update boto3 requirement (#42)"
+    },
+    {
+      "commit": "2c11c71737218d6b562cf5f6368970fa65d1c05d",
+      "date": "2026-09-21T08:59:08-07:00",
+      "title": "chore(deps-dev): bump ruff from 0.16.7 to 0.16.8 (#43)"
+    },
+    {
+      "commit": "dd6871681257b770085a9c1ae51ce6a94283a4e4",
+      "date": "2026-09-20T03:37:39Z",
+      "title": "fix: pin Emporia service to the Venus OS Python 3.12 runtime (#41)"
+    },
+    {
+      "commit": "4b128809b8ceafe30703ef40db9c697969ce0108",
+      "date": "2026-09-19T18:59:23-07:00",
+      "title": "fix: scope release secrets and bound nightly Python versions (#40)"
+    },
+    {
+      "commit": "c4d3b920617a7e6ff7c6c23a9a8c8eb58ecc5be1",
+      "date": "2026-09-18T21:00:42-07:00",
+      "title": "Add direct Emporia API source mode (#38)"
+    },
+    {
+      "commit": "77461c1cefe5ec483d41226d429efc6c489c9b40",
+      "date": "2026-09-14T08:26:20-07:00",
+      "title": "chore(deps-dev): bump ruff from 0.16.6 to 0.16.7 (#37)"
+    },
+    {
+      "commit": "39afd8bb60897542b165ec3d1b8c8b01d9cc00a9",
+      "date": "2026-09-13T20:26:51-07:00",
+      "title": "fix: update release artifact validation"
+    },
+    {
+      "commit": "fa316d3f186b6fa38c33bf8d41de2923482bd564",
+      "date": "2026-09-14T03:11:55Z",
+      "title": "feat: expose a configurable AC load submeter with freshness checks (#35)"
+    },
+    {
+      "commit": "d1853f0bea7efa2fe19160e48540d018b11fbce3",
+      "date": "2026-09-13T16:59:22-07:00",
+      "title": "Pin the release fixture import compatibility fix"
+    },
+    {
+      "commit": "d0b5e160889b08786d5562e02f1bb2185304aa4d",
+      "date": "2026-09-13T15:49:55-07:00",
+      "title": "Document reviewed release helper Sonar exclusions"
+    },
+    {
+      "commit": "c91d8eced2f235b78b3cefecea11e45adc9e08b2",
+      "date": "2026-09-13T15:47:51-07:00",
+      "title": "Adopt frozen release versions and verified artifact receipts"
+    },
+    {
+      "commit": "24293aabe2747a33ba7d250ebd3bc7414f94609e",
+      "date": "2026-09-13T04:50:00Z",
+      "title": "Approve trusted PRs without requiring automerge (#33)"
+    },
+    {
+      "commit": "062c0489aebf98ecd7a1e1f3db29c2f6de379045",
+      "date": "2026-09-12T20:37:37-07:00",
+      "title": "chore: prepare 1.0.5 release version (#32)"
+    },
+    {
+      "commit": "656c9c8ac7da9f1f8e1d3ebdb970172fa1d5e2ae",
+      "date": "2026-09-12T17:49:36-07:00",
+      "title": "ci: add gated release channels and release strategy (#29)"
+    },
+    {
+      "commit": "98db51cb6f5685aaa581bcf06c91026ccca3775f",
+      "date": "2026-09-12T16:36:52-07:00",
+      "title": "Fix supervised shutdown and release private buses in v1.0.4 (#31)"
+    },
+    {
+      "commit": "bac94c18b2600c308de964d526e16867b2ce3a41",
+      "date": "2026-09-12T15:54:08-07:00",
+      "title": "Preserve newer HA startup events in Emporia v1.0.3 (#30)"
+    },
+    {
+      "commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
+      "date": "2026-09-12T12:33:55-07:00",
+      "title": "Preserve service supervisors during version 1.0.2 updates"
+    },
+    {
+      "commit": "e277796e150e12ad50d644f85a4ac980d1b71538",
+      "date": "2026-09-12T09:20:20-07:00",
+      "title": "Unify persistent Venus OS installation and health checks"
+    },
+    {
+      "commit": "a855e116a2d3907c0397252df78055ec42b7eba2",
+      "date": "2026-09-12T09:19:30-07:00",
+      "title": "Keep Emporia D-Bus services alive through Home Assistant outages"
+    },
+    {
+      "commit": "32162e9fb1611521bbce3f7fbfaacd8756d79456",
+      "date": "2026-09-11T22:13:51-07:00",
+      "title": "ci: refresh dismissed approvals for the current PR head (#27)"
+    },
+    {
+      "commit": "ac529075206b1ed63b0ae8a82d4ebae1acc2a586",
+      "date": "2026-09-11T21:41:43-07:00",
+      "title": "fix: use current check attempts for native auto-merge (#26)"
+    },
+    {
+      "commit": "13dd4d87aae6c5a082c1780232b606b9fb8716ae",
+      "date": "2026-09-11T21:19:43-07:00",
+      "title": "fix: recognize trusted bot identities for auto-merge (#25)"
+    },
+    {
+      "commit": "3f4e2b29dd1173aa67ea1a6cdca7e453f25b99c1",
+      "date": "2026-09-11T19:50:35-07:00",
+      "title": "fix: prepare complete Emporia runtime package for v1.0.1 (#24)"
+    },
+    {
+      "commit": "23afdffdc3e1008242b590e36d13111e12f7db00",
+      "date": "2026-09-11T19:43:50-07:00",
+      "title": "fix: secure heartbeat writes and lock dependency installation (#23)"
+    },
+    {
+      "commit": "1b0ab3bd3b05e63a7b7556fa023a3022ad212ba0",
+      "date": "2026-09-11T18:50:28-07:00",
+      "title": "ci: automate trusted PR approval and native merge (#22)"
+    },
+    {
+      "commit": "6a1ad190c0c538c2d3ed53b514c4deed897ea4f1",
+      "date": "2026-09-07T10:07:38-07:00",
+      "title": "chore(deps-dev): bump ruff from 0.16.5 to 0.16.6 (#21)"
+    },
+    {
+      "commit": "d8dfd462388c9cc4bd0ea85dd0f44f6fc40494b1",
+      "date": "2026-09-03T18:12:24-07:00",
+      "title": "fix(deploy): copy parse_ha.py to Cerbo in deploy.sh and setup (#20)"
+    },
+    {
+      "commit": "15eba8a6df86736cd2e5f0210bb7b35ef61b2b86",
+      "date": "2026-09-01T08:28:50-07:00",
+      "title": "chore(deps-dev): bump coverage from 7.15.4 to 7.16.0 (#17)"
+    },
+    {
+      "commit": "18b69ddce26bf0ceeedc0c3b0ea041f2cf94d059",
+      "date": "2026-09-01T08:01:58-07:00",
+      "title": "chore(deps-dev): bump pytest-asyncio from 1.3.0 to 1.4.0 (#18)"
+    },
+    {
+      "commit": "d20a26472f897ef9ff2a9dfad375f00b66f26add",
+      "date": "2026-09-01T08:01:47-07:00",
+      "title": "chore(deps-dev): bump ruff from 0.8.4 to 0.16.5 (#19)"
+    },
+    {
+      "commit": "349fb1cab80d9a8b700154c084c310cb3528a27b",
+      "date": "2026-08-31T11:02:43-07:00",
+      "title": "chore(deps-dev): bump mypy from 1.14.0 to 2.3.1 (#12)"
+    },
+    {
+      "commit": "cb7cd99226bc6bff26b43bb07dec759a28763f69",
+      "date": "2026-08-31T01:59:54-07:00",
+      "title": "chore(deps-dev): bump pytest-cov from 6.0.0 to 7.1.0 (#13)"
+    },
+    {
+      "commit": "6cef4d4f47264958e15b7e34c5a523af9e1677a1",
+      "date": "2026-08-31T01:59:47-07:00",
+      "title": "chore(deps-dev): bump pytest from 9.0.3 to 9.1.1 (#14)"
+    },
+    {
+      "commit": "ae615c594e7d99345a3925e458d8e5037ff70d03",
+      "date": "2026-08-31T01:59:40-07:00",
+      "title": "chore(deps-dev): bump coverage from 7.6.12 to 7.15.4 (#15)"
+    },
+    {
+      "commit": "d58d2a28726a2c2cff2d1c887995ca75bc8d80cb",
+      "date": "2026-08-31T01:59:33-07:00",
+      "title": "chore(deps): update websockets requirement from >=17.0.1 to >=17.1 (#16)"
+    },
+    {
+      "commit": "af1dea208ee9249e2dd045b391d19524e9551333",
+      "date": "2026-08-30T13:06:51-07:00",
+      "title": "fix: resolve SonarCloud findings (#11)"
+    },
+    {
+      "commit": "4a4dea0a6b3c50a86db7cbafca05d7313c31df5c",
+      "date": "2026-08-30T11:43:28-07:00",
+      "title": "fix(deps-dev): bump pytest-asyncio to 1.3.0 for pytest 9 compat (#10)"
+    },
+    {
+      "commit": "19e4c52c2b1c2e0f455775dbf6b4b2e036adf138",
+      "date": "2026-08-30T11:27:50-07:00",
+      "title": "chore(deps-dev): bump pytest from 8.3.4 to 9.0.3 (#8)"
+    },
+    {
+      "commit": "bb12b14e21267cb0e7bf77ebeaf7f093c56bfa10",
+      "date": "2026-08-30T10:47:57-07:00",
+      "title": "refactor: tests to 80%"
+    },
+    {
+      "commit": "3b252f98ace4727e102bacc4a42b8f90284171e4",
+      "date": "2026-08-30T10:01:50-07:00",
+      "title": "ci: fix mypy and SonarCloud warnings"
+    },
+    {
+      "commit": "2826c423eed2bcfff2fbe8ba0e7c9dbfacc0460d",
+      "date": "2026-08-30T09:55:51-07:00",
+      "title": "ci: address CI lint and Sonar findings"
+    },
+    {
+      "commit": "48baec34d774f3fa5d9d26e262cfe7dfc8e8e08e",
+      "date": "2026-08-30T09:24:39-07:00",
+      "title": "ci: baseline python CI with ruff + mypy + pytest"
+    },
+    {
+      "commit": "01fe6e46284d9a4516bf4f44368466f74a3d9a35",
+      "date": "2026-08-27T22:40:35-07:00",
+      "title": "chore: add *.backup to .gitignore"
+    },
+    {
+      "commit": "b3a51ba780aa326581e69130ea7cf5be4dc15a33",
+      "date": "2026-08-25T13:59:09-07:00",
+      "title": "ci: add auto-merge pipeline (#5)"
+    },
+    {
+      "commit": "ff1710f59a85c245a7b5c9949cc7a36f77113c8e",
+      "date": "2026-08-24T15:27:55-07:00",
+      "title": "fix: skip trigger events while awaiting get_states reply"
+    },
+    {
+      "commit": "d123e61d2ff8bf1b221f7ccbd95792dee7684d62",
+      "date": "2026-08-24T15:26:03-07:00",
+      "title": "fix: one D-Bus connection per acload service"
+    },
+    {
+      "commit": "2e5646fc9ea9feb982e9507df08c1107369cab4b",
+      "date": "2026-08-24T14:52:10-07:00",
+      "title": "fix: stop creating real dir in tmpfs /service"
+    },
+    {
+      "commit": "ec26719f9de34623434ae4775eaf0a939db71091",
+      "date": "2026-08-20T22:53:46-07:00",
+      "title": "Implemented the three features"
+    },
+    {
+      "commit": "f6eea439a2d0d59bf9dc72b8369ce1f49648a775",
+      "date": "2026-08-18T18:11:31-07:00",
+      "title": "fix: ensure service survives reboot via rc.local"
+    },
+    {
+      "commit": "b91b9d6a3c64e7c53ee75d4b3032031e6e17496a",
+      "date": "2026-08-14T13:05:44-07:00",
+      "title": "Update websockets requirement from >=11.0 to >=17.0.1 (#2)"
+    },
+    {
+      "commit": "be58d5e0817031801b27f4b4a68b5eb4d1ab7dd7",
+      "date": "2026-08-14T12:51:24-07:00",
+      "title": "Update dbus-fast requirement from >=0.2.0 to >=5.0.22 (#3)"
+    },
+    {
+      "commit": "fe18e5258cf3cc9f131eb38a33d90b654628857c",
+      "date": "2026-08-14T12:29:45Z",
+      "title": "[StepSecurity] Apply security best practices"
+    },
+    {
+      "commit": "e49b678b106b18852faddf5e85c045f46e3a71bd",
+      "date": "2026-08-14T05:22:18-07:00",
+      "title": "Ignore local terraform-github-victron symlink"
+    },
+    {
+      "commit": "fda338ac6e5a4f62bf3cd00dd9ea47b254dad6d9",
+      "date": "2026-08-14T05:22:18-07:00",
+      "title": "Rewrite with aiovelib BusItem acload services and HA subscribe_trigger"
+    },
+    {
+      "commit": "09ea9928f1bce9c14e0677e82ec309bc01e8f8a6",
+      "date": "2026-08-14T05:19:20-07:00",
+      "title": "Initial commit"
+    }
+  ]
+}

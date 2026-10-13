@@ -46,7 +46,7 @@ jobs:
         run: mypy main.py
 
       - name: Test
-        run: pytest tests/ --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=80
+        run: pytest tests/ .github/release-tests/ .github/workflow-tests/ --cov --cov-report=xml --cov-report=term-missing --cov-fail-under=80
 
       - name: Upload coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1

@@ -86,3 +86,15 @@ Toolkit revision `4895f852f87ca1f27e2bc75e24c5c792e4f95aa6` includes verified st
 Toolkit revision `d8089003f43637ee420fa4cbcccdf11f5d21e469` also rejects empty Markdown lists, task items and quotations as release guidance, while preserving literal examples and lists with substantive text.
 
 The CodeQL configuration also analyzes GitHub Actions in its own analysis category; existing application-language analyses remain enabled.
+
+## Silver work and remaining owner facts — 2026-10-12
+
+[Governance](../GOVERNANCE.md), [conduct](../CODE_OF_CONDUCT.md),
+[roadmap](../ROADMAP.md), [quality evidence](quality-evidence.md), and the
+[security assurance argument](security-assurance.md) describe the implemented
+process and scoped evidence. The owner confirmed that no continuity mechanism
+is currently in place: access_continuity remains Unmet. The owner also confirmed
+no reports outside GitHub in the preceding 12 months; this does not replace the
+separate GitHub history review or create retrospective response records.
+Signing verification and a completed regression-history denominator remain open.
+No Silver award or current public Passing registration is claimed here.
