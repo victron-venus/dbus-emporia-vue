@@ -59,8 +59,10 @@ retroactively guaranteed by this new policy.
 
 The [six-month history and reviewed pairs](evidence/regression-history-2026-10-12.json)
 retain the complete commit list and distinguish reviewed regression additions from
-heuristic candidates. A representative/all-fix denominator review remains open;
-the 50% historical criterion is not asserted from title matching.
+heuristic candidates. The [defect-level review](evidence/defect-level-review-2026-10-12.json)
+classifies the complete original commit inventory and separates distinct causes
+from initial feature tests. Its proposed counts await independent review and
+verification of later test mappings; the 50% criterion is not asserted yet.
 
 ## Warning policy
 

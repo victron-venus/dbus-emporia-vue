@@ -98,7 +98,7 @@
     },
     {
       "path": "aiovelib/aiovelib/service.py",
-      "sha256": "d1356a071ddb7f82b1973927d9877e4dbda860d4a27b850a97fa84578f51aa1d"
+      "sha256": "c156482b7180ad26e466cad2bdaedbf8a2a87ac36c9d12fe4510ba255364ca9c"
     },
     {
       "path": "emporia.py",
@@ -208,5 +208,6 @@
       "path": "tariff_export.py",
       "sha256": "58827e525807c813832fbe7bb8cae5681024dea8212fbb75ec871417e3ebb6e5"
     }
-  ]
+  ],
+  "reproduction": "Bandit 1.9.2 --format json, invoked with exactly the source_files paths below; complete maintained Python inventory plus source-discovery fixtures."
 }

@@ -192,8 +192,9 @@ def test_redirect_does_not_forward_bearer_token():
     request = Request(
         "https://ha.invalid/api/states", headers={"Authorization": "Bearer test-token"}
     )
+    handler = ha_config_gen.NoAuthRedirect()
     with pytest.raises(HTTPError, match="redirects are disabled"):
-        ha_config_gen.NoAuthRedirect().redirect_request(
+        handler.redirect_request(
             request, None, 302, "Found", {}, "https://other.invalid/api/states"
         )
 
@@ -206,8 +207,9 @@ def test_authenticated_opener_has_no_redirect_handler():
         ha_config_gen.open_authenticated(request)
         assert isinstance(builder.call_args.args[0], ha_config_gen.NoAuthRedirect)
         builder.return_value.open.assert_called_once_with(request, timeout=10)
+    local_request = Request("file:///etc/passwd")
     with pytest.raises(ValueError):
-        ha_config_gen.open_authenticated(Request("file:///etc/passwd"))
+        ha_config_gen.open_authenticated(local_request)
 
 
 def test_private_config_replaces_permissive_file(tmp_path):

@@ -3,7 +3,7 @@ import warnings
 from inspect import iscoroutinefunction
 
 try:
-	import dbus_fast  # noqa: F401 - availability probe selects the compatible backend
+	import dbus_fast  # noqa: F401 # availability probe selects the compatible backend
 except ImportError:
 	from dbus_next import Message, MessageFlag, MessageType, NameFlag, RequestNameReply, Variant
 	from dbus_next.service import ServiceInterface, method, signal
@@ -30,15 +30,15 @@ class Item(ServiceInterface):
 		return str(self.value)
 
 	@method()
-	def GetValue(self) -> 'v':  # noqa: F821 - D-Bus signature, not a Python annotation
+	def GetValue(self) -> 'v':  # noqa: F821 # D-Bus signature, not a Python annotation
 		return self.get_value()
 
 	@method()
-	def GetText(self) -> 's':  # noqa: F821 - D-Bus signature, not a Python annotation
+	def GetText(self) -> 's':  # noqa: F821 # D-Bus signature, not a Python annotation
 		return self.get_text()
 
 	@method()
-	def SetValue(self, v: 'v') -> 'i':  # noqa: F821 - D-Bus signature, not a Python annotation
+	def SetValue(self, v: 'v') -> 'i':  # noqa: F821 # D-Bus signature, not a Python annotation
 		if not self.writeable:
 			return 1
 
@@ -133,28 +133,28 @@ class RootItemInterface(ServiceInterface):
 		self.service = service
 
 	@method()
-	def GetItems(self) -> 'a{sa{sv}}':  # noqa: F722 - D-Bus signature, not a Python annotation
+	def GetItems(self) -> 'a{sa{sv}}':  # noqa: F722 # D-Bus signature, not a Python annotation
 		return {
 			p: {'Value': v.get_value(), 'Text': Variant('s', v.get_text()) } \
 			for p, v in self.service.objects.items()
 		}
 
 	@signal()
-	def ItemsChanged(self, changes) -> 'a{sa{sv}}':  # noqa: F722 - D-Bus signature, not a Python annotation
+	def ItemsChanged(self, changes) -> 'a{sa{sv}}':  # noqa: F722 # D-Bus signature, not a Python annotation
 		""" This is here for introspection. We don't use it because dbus-next
 		    does not allow us to set the NO_REPLY_EXPECTED flag. """
 		return changes
 
 	@method()
-	def GetValue(self) -> 'v':  # noqa: F821 - D-Bus signature, not a Python annotation
+	def GetValue(self) -> 'v':  # noqa: F821 # D-Bus signature, not a Python annotation
 		return Variant('ai', [])
 
 	@method()
-	def GetText(self) -> 's':  # noqa: F821 - D-Bus signature, not a Python annotation
+	def GetText(self) -> 's':  # noqa: F821 # D-Bus signature, not a Python annotation
 		return ''
 
 	@method()
-	def SetValue(self, v: 'v') -> 'i':  # noqa: F821 - D-Bus signature, not a Python annotation
+	def SetValue(self, v: 'v') -> 'i':  # noqa: F821 # D-Bus signature, not a Python annotation
 		return 1
 
 class ItemChangeCollector:

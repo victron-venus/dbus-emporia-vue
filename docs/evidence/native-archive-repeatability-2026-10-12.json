@@ -1,9 +1,9 @@
 {
   "python": "3.12.13",
-  "base_commit": "3a62798b708b4672a10a9b349d66ef0bd22162b4",
+  "base_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
   "method": "Two independent archive writer invocations using the actual tracked native package inventory from this reviewed worktree, identified by input SHA-256 below; no installation, deployment or release publication.",
-  "archive_sha256": "d6ef813f93d2ceb59e389d10176704aec6b748933d1635420f280a5f7a029e63",
-  "archive_bytes": 79555,
+  "archive_sha256": "9d9d4d0362d187cba38176744a8d4467866b73a0649e0bdba5cd2ab4fb9cfe90",
+  "archive_bytes": 79552,
   "matching_builds": 2,
   "inputs": [
     {
@@ -48,7 +48,7 @@
     },
     {
       "path": "aiovelib/aiovelib/service.py",
-      "sha256": "d1356a071ddb7f82b1973927d9877e4dbda860d4a27b850a97fa84578f51aa1d",
+      "sha256": "c156482b7180ad26e466cad2bdaedbf8a2a87ac36c9d12fe4510ba255364ca9c",
       "executable": false
     },
     {

@@ -1,6 +1,6 @@
 {
   "observed_on": "2026-10-12",
-  "base_commit": "3a62798b708b4672a10a9b349d66ef0bd22162b4",
+  "base_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
   "source_identity": "Exact measured source is identified by SHA-256 per file below; the base commit plus reviewed PR changes identify the worktree.",
   "platform": "macOS-26.7-arm64-arm-64bit",
   "python": "3.12.13",
@@ -341,7 +341,7 @@
     },
     {
       "path": "aiovelib/aiovelib/service.py",
-      "sha256": "d1356a071ddb7f82b1973927d9877e4dbda860d4a27b850a97fa84578f51aa1d",
+      "sha256": "c156482b7180ad26e466cad2bdaedbf8a2a87ac36c9d12fe4510ba255364ca9c",
       "statements": 210,
       "covered": 129,
       "missing": [
