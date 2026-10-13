@@ -26,6 +26,7 @@ The final observation window included a recovered upstream power-read timeout.
 All 19 checked services reported connected at the final observation; the process
 identity was unchanged.
 The separately verified ARMv7 vendor archive is not a signed RC release asset.
+Cold boot was not tested.
 
 These checks do not establish uninterrupted upstream availability, exercise
 all failure modes, or certify physical equipment safety. Reapply the
