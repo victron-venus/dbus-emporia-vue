@@ -15,8 +15,13 @@ def parse_power(state: str | None) -> float | None:
     try:
         value = float(state)  # type: ignore[arg-type]
         return value if math.isfinite(value) else None
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
+
+
+def _object(value) -> dict:
+    """Treat a wrong-shaped network object as absent, not as an attribute error."""
+    return value if isinstance(value, dict) else {}
 
 
 def parse_ha_state_change(message: str) -> tuple[str | None, float | None]:
@@ -28,13 +33,15 @@ def parse_ha_state_change(message: str) -> tuple[str | None, float | None]:
     Returns:
         (entity_id, power_watts) or (None, None) if not a state change.
     """
-    data = json.loads(message)
+    data = _object(json.loads(message))
     if data.get("type") != "event":
         return None, None
-    variables = data.get("event", {}).get("variables", {})
-    trigger = variables.get("trigger", {})
+    variables = _object(_object(data.get("event")).get("variables"))
+    trigger = _object(variables.get("trigger"))
     entity_id = trigger.get("entity_id")
-    state = (trigger.get("to_state") or {}).get("state")
+    if not isinstance(entity_id, str):
+        return None, None
+    state = _object(trigger.get("to_state")).get("state")
     return entity_id, parse_power(state)
 
 
@@ -52,9 +59,11 @@ def parse_initial_state(entity: dict) -> tuple[str | None, float | None]:
 def parse_submeter_state(entity: dict) -> tuple[float | None, float | None]:
     """Read signed watts and the HA source timestamp, never the fetch time."""
     power = parse_power(entity.get("state"))
-    unit = (entity.get("attributes") or {}).get("unit_of_measurement")
+    unit = _object(entity.get("attributes")).get("unit_of_measurement")
     if unit == "kW" and power is not None:
         power *= 1000
+        if not math.isfinite(power):
+            power = None
     elif unit != "W":
         power = None
     return power, parse_source_timestamp(entity)
