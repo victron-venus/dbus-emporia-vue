@@ -28,11 +28,29 @@ run the application, release and workflow suites together with an 80% gate.
 Tests, local environments, build outputs and the operator configuration template
 are excluded; no shipped Python module is omitted. Shell installers have behavior
 checks in tests/test_update.py; their statement coverage is not measured here.
+The separate cross-language bound below gives them no execution credit.
 
 The [native archive comparison](evidence/native-archive-repeatability-2026-10-12.json)
 records two byte-identical builds of the actual declared native inputs, with
 input hashes and executable flags. It does not claim that wheels or cross-platform
 builds have been compared.
+
+## Conservative cross-language bound
+
+The [complete maintained-source inventory](evidence/coverage-scope-2026-10-12.json)
+combines 5288 measured covered Python statements with 6068 total Python
+statements and 506 additional zero-credit units. The resulting lower bound is
+**80.4381%**. Additional units include shell files, extensionless service scripts,
+workflow run blocks, embedded Python/SSH/trap bodies, multiline awk/sed expressions
+and find-exec commands. The Pump configuration template is also counted at zero
+coverage where present. No shell execution or hardware coverage is claimed.
+
+The [reproduction method](evidence/coverage-scope-method.md) records parser versions,
+source hashes, manual scope checks and limitations. Python executable statements
+and shell AST statements use different language-appropriate units; compound
+shell nodes and extra expression allowances intentionally enlarge the denominator.
+The source and tests are unchanged by this accounting. Reassess the inventory
+when introducing another language or executable command form.
 
 ## Reproducible packaging
 
