@@ -44,7 +44,7 @@ credential from Git revokes it. Use SECURITY.md for coordinated disclosure.
 
 The coverage and regression inventories support this argument only within their
 declared scope. Remaining OpenSSF obligations include verified continuity,
-a complete defect-level regression-history denominator and published signed
-release verification. The 2026-10-12 review found no GitHub issue/advisory reports,
+published signed-release verification and all-language coverage evidence.
+The defect-level regression review now records a conservative lower bound. The 2026-10-12 review found no GitHub issue/advisory reports,
 and the owner confirmed no outside-GitHub reports during the prior 12 months. Python coverage is
 measured in docs/quality-evidence.md; hardware and shell coverage are not implied. No Passing or Silver award is asserted here.

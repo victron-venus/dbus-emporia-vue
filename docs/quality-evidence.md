@@ -57,12 +57,15 @@ a defect or that half of all fixes meet the criterion. Reviewed samples and the
 complete candidate denominator must be distinguished. Historical behavior is not
 retroactively guaranteed by this new policy.
 
-The [six-month history and reviewed pairs](evidence/regression-history-2026-10-12.json)
-retain the complete commit list and distinguish reviewed regression additions from
-heuristic candidates. The [defect-level review](evidence/defect-level-review-2026-10-12.json)
-classifies the complete original commit inventory and separates distinct causes
-from initial feature tests. Its proposed counts await independent review and
-verification of later test mappings; the 50% criterion is not asserted yet.
+The [six-month discovery history](evidence/regression-history-2026-10-12.json)
+retains the original commits and heuristic candidates. It is superseded for
+acceptance by the [defect-level review](evidence/defect-level-review-2026-10-12.json).
+That review verifies regression assertions for 46 fixes out of at most 82
+identified defect units, a conservative lower bound of 56.10%. Ambiguous
+feature boundaries and current corrections receive zero credit but remain in
+the denominator. Later tests are dated explicitly; passing counts alone do not
+establish a regression test. Independent review covered selected rows and
+counting boundaries, not a second complete audit.
 
 ## Warning policy
 
@@ -82,6 +85,5 @@ The availability probe import selects a compatible D-Bus backend. Formatting alo
 is excluded for this copied library; whole-file functional lint is not excluded.
 
 The [additional defect-level history review](evidence/defect-level-review-2026-10-12.json)
-separates distinct early runtime, installer and CI failures, and identifies the
-remaining compound-change groups. It is not a percentage inferred from commit
-counts.
+separates runtime, installer and CI causes and records conservative upper-bound
+units for ambiguous compound changes. The ratio is not inferred from commit counts.

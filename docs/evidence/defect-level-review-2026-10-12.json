@@ -3,7 +3,7 @@
   "base_commit": "b34afcd141e18c4dfb99a1849a28ad7b544f0c52",
   "period_start": "2026-04-12",
   "period_end": "2026-10-12",
-  "method": "Semantic causes split only where distinct existing defects are established. New functionality and its first tests are excluded. Existing tests can qualify after specific assertion review; later tests are distinguished from contemporaneous ones. A passing suite alone does not prove historical regression coverage. Dependency-only bumps are not treated as defects without evidence of a particular corrected failure.",
+  "method": "Semantic causes split only where distinct existing defects are established. New functionality and its first tests are excluded. Existing tests can qualify after specific assertion review; later tests are distinguished from contemporaneous ones. A passing suite alone does not prove historical regression coverage. Dependency-only bumps are not treated as defects without evidence of a particular corrected failure. The finalized assertion is a conservative lower bound: every identified ambiguous feature/defect boundary and distinct current correction below is retained in the maximum denominator with zero credit. Defects without verified tests remain counted. Later tests count only after review of their causal assertions; same function names and passing totals alone do not qualify.",
   "defects": [
     {
       "id": "dbus-emporia-vue-001",
@@ -29,11 +29,12 @@
       "regression": {
         "file": ".github/release-tests/test_github_missing_status.py",
         "function": "test_error_body_and_cli_message_cannot_authorize_absence",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_github_missing_status.py#L50",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_github_missing_status.py#L50",
         "introduced_commit": "cb8e861317f7ea1dee84aafbab07cb9a0b8d4c59",
         "introduced_on": "2026-10-12T14:30:35-07:00",
         "test_file_sha256": "50e754b93972da017bfc1f1048c32c6f23e98bc90f72a18d2a8bf8588417bec9",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -50,11 +51,12 @@
       "regression": {
         "file": ".github/release-tests/test_consumer_versioning.py",
         "function": "test_staging_rejects_ambiguous_or_unsafe_payloads_before_output",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_consumer_versioning.py#L270",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_consumer_versioning.py#L270",
         "introduced_commit": "38e186bfeb0186390a71034f3457b8f732100c36",
         "introduced_on": "2026-10-08T04:07:46-07:00",
         "test_file_sha256": "b19b3a1d1cd44be9a2ff25756f7b49271cd1ac50c4c4425a7d177e74f57fba82",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -71,11 +73,12 @@
       "regression": {
         "file": ".github/release-tests/test_consumer_versioning.py",
         "function": "test_staging_failure_never_removes_preexisting_target",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_consumer_versioning.py#L259",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_consumer_versioning.py#L259",
         "introduced_commit": "38e186bfeb0186390a71034f3457b8f732100c36",
         "introduced_on": "2026-10-08T04:07:46-07:00",
         "test_file_sha256": "b19b3a1d1cd44be9a2ff25756f7b49271cd1ac50c4c4425a7d177e74f57fba82",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -92,11 +95,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_plan.py",
         "function": "test_toml_quoted_assignment_keys_preserve_delimiters_and_escapes",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_plan.py#L422",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_plan.py#L422",
         "introduced_commit": "38e186bfeb0186390a71034f3457b8f732100c36",
         "introduced_on": "2026-10-08T04:07:46-07:00",
         "test_file_sha256": "cfd55e0b8d360003b8ea457a01385cc4f2a7ae3b3a3cb1e4978f8c084e266c14",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -113,11 +117,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_receipt.py",
         "function": "test_publisher_rejects_mutated_receipt_identity_and_coverage",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_receipt.py#L115",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_receipt.py#L115",
         "introduced_commit": "38e186bfeb0186390a71034f3457b8f732100c36",
         "introduced_on": "2026-10-08T04:07:46-07:00",
         "test_file_sha256": "247a982e0d10305e62cafd82fec664a4d38f3f80e26783fad19f7d92543ee7ae",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -134,11 +139,12 @@
       "regression": {
         "file": ".github/workflow-tests/test_action_pins.py",
         "function": "test_mutable_step_action_is_rejected_without_manifest",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/workflow-tests/test_action_pins.py#L56",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/workflow-tests/test_action_pins.py#L56",
         "introduced_commit": "38e186bfeb0186390a71034f3457b8f732100c36",
         "introduced_on": "2026-10-08T04:07:46-07:00",
         "test_file_sha256": "4c1b2e7943ddbda87c4a9def87b07df608eb92cfff66099de61ebf5ef4867655",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -155,11 +161,12 @@
       "regression": {
         "file": ".github/security-tests/test_bandit_discovery.py",
         "function": "test_regular_checkout",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/security-tests/test_bandit_discovery.py#L80",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/security-tests/test_bandit_discovery.py#L80",
         "introduced_commit": "38e186bfeb0186390a71034f3457b8f732100c36",
         "introduced_on": "2026-10-08T04:07:46-07:00",
         "test_file_sha256": "059fec15d1ac23fa173ce7ebf2685ef70fdc72a28fcbcae261afd44ac279ae65",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -187,11 +194,12 @@
       "regression": {
         "file": ".github/release-tests/test_versioned_release.py",
         "function": "test_closed_push_cycle_stops_before_plan_allocation",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_versioned_release.py#L980",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_versioned_release.py#L980",
         "introduced_commit": "65c3e983feb5c71dcf603db38e1fb2abc1950620",
         "introduced_on": "2026-10-03T03:47:14-07:00",
         "test_file_sha256": "1494169d8470c55bab1aa33ecf49911e87c6385de884ee5c461f88a2028caa6d",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -208,11 +216,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_plan.py",
         "function": "test_python_version_updates_preserve_single_and_double_quotes",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_plan.py#L565",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_plan.py#L565",
         "introduced_commit": "65c3e983feb5c71dcf603db38e1fb2abc1950620",
         "introduced_on": "2026-10-03T03:47:14-07:00",
         "test_file_sha256": "cfd55e0b8d360003b8ea457a01385cc4f2a7ae3b3a3cb1e4978f8c084e266c14",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -229,11 +238,12 @@
       "regression": {
         "file": ".github/release-tests/test_versioned_release.py",
         "function": "test_scheduled_rc_reuse_preserves_floor_and_promotion_after_full_build",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_versioned_release.py#L754",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_versioned_release.py#L754",
         "introduced_commit": "3cac30ef9cd5969104da4b394801b570ae4a2743",
         "introduced_on": "2026-10-02T05:17:11-07:00",
         "test_file_sha256": "1494169d8470c55bab1aa33ecf49911e87c6385de884ee5c461f88a2028caa6d",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -250,11 +260,12 @@
       "regression": {
         "file": ".github/release-tests/test_release_control.py",
         "function": "test_upload_parse_failure_keeps_draft_and_reports_safe_asset_context",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_release_control.py#L1548",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_release_control.py#L1548",
         "introduced_commit": "3cac30ef9cd5969104da4b394801b570ae4a2743",
         "introduced_on": "2026-10-02T05:17:11-07:00",
         "test_file_sha256": "9b9f596699d5b8d06df8e1dab9372f12ea1ef02b68d3b8e9b9a7fc4bc034ed66",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -271,11 +282,12 @@
       "regression": {
         "file": ".github/release-tests/test_asset_streaming.py",
         "function": "test_copy_and_hash_bounded_chunks_including_empty_and_partial_chunk",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_asset_streaming.py#L31",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_asset_streaming.py#L31",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "edddbce746f487880fac3b373328c8f8b46949f4f8512b9a849cb45ffd93fd33",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -292,11 +304,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_receipt.py",
         "function": "test_oversized_receipt_reads_only_a_bounded_prefix",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_receipt.py#L160",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_receipt.py#L160",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "247a982e0d10305e62cafd82fec664a4d38f3f80e26783fad19f7d92543ee7ae",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -313,11 +326,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_plan.py",
         "function": "test_hardlinked_output_preserves_outside_bytes_and_plan_hashes",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_plan.py#L1334",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_plan.py#L1334",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "cfd55e0b8d360003b8ea457a01385cc4f2a7ae3b3a3cb1e4978f8c084e266c14",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -334,11 +348,12 @@
       "regression": {
         "file": ".github/release-tests/test_versioned_release.py",
         "function": "test_own_downloads_do_not_invalidate_unchanged_candidate",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_versioned_release.py#L204",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_versioned_release.py#L204",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "1494169d8470c55bab1aa33ecf49911e87c6385de884ee5c461f88a2028caa6d",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -355,11 +370,12 @@
       "regression": {
         "file": ".github/release-tests/test_release_control.py",
         "function": "test_transitional_states_require_a_fresh_in_progress_response",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_release_control.py#L1904",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_release_control.py#L1904",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "9b9f596699d5b8d06df8e1dab9372f12ea1ef02b68d3b8e9b9a7fc4bc034ed66",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -376,11 +392,12 @@
       "regression": {
         "file": ".github/release-tests/test_versioned_release.py",
         "function": "test_unproven_replacement_fails_before_floor_and_tag",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_versioned_release.py#L1185",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_versioned_release.py#L1185",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "1494169d8470c55bab1aa33ecf49911e87c6385de884ee5c461f88a2028caa6d",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -397,11 +414,12 @@
       "regression": {
         "file": ".github/release-tests/test_release_control.py",
         "function": "test_scope_or_repository_mismatch_rejects_before_write",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_release_control.py#L1195",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_release_control.py#L1195",
         "introduced_commit": "7efab61d0cffc338482d59f3792ab7e29418d050",
         "introduced_on": "2026-09-29T18:10:38-07:00",
         "test_file_sha256": "9b9f596699d5b8d06df8e1dab9372f12ea1ef02b68d3b8e9b9a7fc4bc034ed66",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -418,11 +436,12 @@
       "regression": {
         "file": ".github/release-tests/test_release_control.py",
         "function": "test_workflow_drift_rejects_promotion_without_stranding_stable_tag",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_release_control.py#L680",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_release_control.py#L680",
         "introduced_commit": "d6fb8c1cdada82f54339f0b6bc10f4835a4bf90d",
         "introduced_on": "2026-09-30T06:53:58-07:00",
         "test_file_sha256": "9b9f596699d5b8d06df8e1dab9372f12ea1ef02b68d3b8e9b9a7fc4bc034ed66",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -439,11 +458,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_plan.py",
         "function": "test_real_nightly_run_fits_uv_numeric_limit",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_plan.py#L127",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_plan.py#L127",
         "introduced_commit": "4b128809b8ceafe30703ef40db9c697969ce0108",
         "introduced_on": "2026-09-19T18:59:23-07:00",
         "test_file_sha256": "cfd55e0b8d360003b8ea457a01385cc4f2a7ae3b3a3cb1e4978f8c084e266c14",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -471,11 +491,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_plan.py",
         "function": "test_git_source_binding_accepts_declared_checkout_eol_conversion",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_plan.py#L789",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_plan.py#L789",
         "introduced_commit": "39afd8bb60897542b165ec3d1b8c8b01d9cc00a9",
         "introduced_on": "2026-09-13T20:26:51-07:00",
         "test_file_sha256": "cfd55e0b8d360003b8ea457a01385cc4f2a7ae3b3a3cb1e4978f8c084e266c14",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -492,11 +513,12 @@
       "regression": {
         "file": ".github/release-tests/test_version_plan.py",
         "function": "test_oci_buildkit_artifact_attestation_checks_subject_and_empty_config",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_version_plan.py#L1011",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_version_plan.py#L1011",
         "introduced_commit": "39afd8bb60897542b165ec3d1b8c8b01d9cc00a9",
         "introduced_on": "2026-09-13T20:26:51-07:00",
         "test_file_sha256": "cfd55e0b8d360003b8ea457a01385cc4f2a7ae3b3a3cb1e4978f8c084e266c14",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row.",
       "component_scope": "This is the shipped common scripts/version_plan.py OCI verification branch. This project publishes a native source package; this row does not imply it distributes a container image."
@@ -514,11 +536,12 @@
       "regression": {
         "file": ".github/release-tests/test_versioned_release.py",
         "function": "test_real_beta_rc_final_cycle_has_exact_versions_and_fresh_final_hashes",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/release-tests/test_versioned_release.py#L1349",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/release-tests/test_versioned_release.py#L1349",
         "introduced_commit": "c91d8eced2f235b78b3cefecea11e45adc9e08b2",
         "introduced_on": "2026-09-13T15:47:51-07:00",
         "test_file_sha256": "1494169d8470c55bab1aa33ecf49911e87c6385de884ee5c461f88a2028caa6d",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -535,11 +558,12 @@
       "regression": {
         "file": "tests/test_validate_scorecard_json.py",
         "function": "test_invalid_or_incomplete_checks_fail",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_validate_scorecard_json.py#L74",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_validate_scorecard_json.py#L74",
         "introduced_commit": "dd8061eff05ef884a4eab5b835806240f142be70",
         "introduced_on": "2026-10-03T13:55:07-07:00",
         "test_file_sha256": "3fac5577b1425f707de3834eff2dfbdbdce7039250d89f1511f4c9d2007edf64",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -578,11 +602,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_repeated_in_place_updates_preserve_live_supervisors_and_boot",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L123",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L123",
         "introduced_commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
         "introduced_on": "2026-09-12T12:33:55-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -599,11 +624,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_release_update_replaces_run_files_atomically",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L173",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L173",
         "introduced_commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
         "introduced_on": "2026-09-12T12:33:55-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -620,11 +646,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_stuck_worker_aborts_without_replacing_runtime_or_logger",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L270",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L270",
         "introduced_commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
         "introduced_on": "2026-09-12T12:33:55-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -641,11 +668,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_repeated_in_place_updates_preserve_live_supervisors_and_boot",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L123",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L123",
         "introduced_commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
         "introduced_on": "2026-09-12T12:33:55-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -662,11 +690,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_missing_dependencies_fail_before_install_changes",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L282",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L282",
         "introduced_commit": "e277796e150e12ad50d644f85a4ac980d1b71538",
         "introduced_on": "2026-09-12T09:20:20-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -716,11 +745,12 @@
       "regression": {
         "file": "tests/test_dbus_integration.py",
         "function": "test_private_dbus_lifecycle",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_dbus_integration.py#L40",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_dbus_integration.py#L40",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "e7b98a9196d2116424e19e1c8aee35925e0927ac824c6af2a6bc549fb9c8d00f",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -737,11 +767,12 @@
       "regression": {
         "file": "tests/test_dbus_integration.py",
         "function": "test_private_dbus_lifecycle",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_dbus_integration.py#L40",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_dbus_integration.py#L40",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "e7b98a9196d2116424e19e1c8aee35925e0927ac824c6af2a6bc549fb9c8d00f",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -758,11 +789,12 @@
       "regression": {
         "file": "tests/test_dbus_integration.py",
         "function": "test_private_dbus_lifecycle",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_dbus_integration.py#L40",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_dbus_integration.py#L40",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "e7b98a9196d2116424e19e1c8aee35925e0927ac824c6af2a6bc549fb9c8d00f",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -779,11 +811,12 @@
       "regression": {
         "file": "tests/test_emporia.py",
         "function": "test_power_runs_between_slow_energy_requests",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_emporia.py#L1052",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_emporia.py#L1052",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "77022282506049e88befb16a7960f59e62132a688d1ada8285bc275b9c011158",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -796,17 +829,19 @@
       "source_file": "main.py",
       "source_patch_sha256": "06186a21097244e940f81c3e98ba69ccd47393780fa8b715ae47054977f5d3d9",
       "source_change_found": true,
-      "regression_status": "verified_assertions",
+      "regression_status": "not_verified",
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_ordinary_channel_expires_source_age_and_revalidates_unchanged_value",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L1276",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L1276",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
-      "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
+      "verification": "Ordinary Home Assistant freshness expiry may be a new policy rather than correction of an established promise. Retain one possible defect in the upper denominator, with no numerator credit, even though expiry tests exist.",
+      "counting_status": "possible_defect_in_denominator_only"
     },
     {
       "id": "dbus-emporia-vue-043",
@@ -821,11 +856,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_repeated_timestamp_cannot_extend_monotonic_freshness_after_clock_rollback",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L1297",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L1297",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -842,11 +878,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_startup_snapshot_survives_more_than_fifty_interleaved_events",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L1319",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L1319",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -863,11 +900,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_rest_reply_cannot_undo_event_received_during_request",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L1225",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L1225",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -884,11 +922,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_delayed_refresh_accepts_unchanged_power_and_new_source_timestamp",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L1201",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L1201",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -905,11 +944,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_main_invalid_channel_skipped_and_continues",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L516",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L516",
         "introduced_commit": "bb12b14e21267cb0e7bf77ebeaf7f093c56bfa10",
         "introduced_on": "2026-08-30T10:47:57-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -926,11 +966,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_failed_bus_connection_is_closed_before_next_channel",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L591",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L591",
         "introduced_commit": "556ec9c6a6eea373451fd6363b1c603d297e925b",
         "introduced_on": "2026-10-08T07:30:00-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -947,11 +988,12 @@
       "regression": {
         "file": "tests/test_emporia.py",
         "function": "test_energy_transient_failure_recovers_without_delaying_power_or_other_period",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_emporia.py#L854",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_emporia.py#L854",
         "introduced_commit": "07332dd7d40e6612ae9520f0a135152c07c9032f",
         "introduced_on": "2026-09-29T17:08:20-07:00",
         "test_file_sha256": "77022282506049e88befb16a7960f59e62132a688d1ada8285bc275b9c011158",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -968,11 +1010,12 @@
       "regression": {
         "file": "tests/test_requirement_locks.py",
         "function": "test_ci_and_installer_use_identical_runtime_versions_and_hashes",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_requirement_locks.py#L71",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_requirement_locks.py#L71",
         "introduced_commit": "07332dd7d40e6612ae9520f0a135152c07c9032f",
         "introduced_on": "2026-09-29T17:08:20-07:00",
         "test_file_sha256": "8b3fe596694a5d2a136db4d73bd5b05f88fdc857d1ca000001a3712731e25519",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -989,11 +1032,12 @@
       "regression": {
         "file": ".github/workflow-tests/test_coverage_auth.py",
         "function": "test_every_permission_hop_is_required",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/.github/workflow-tests/test_coverage_auth.py#L68",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/.github/workflow-tests/test_coverage_auth.py#L68",
         "introduced_commit": "b00f701afa80352e263a43b4296e92d71984836c",
         "introduced_on": "2026-10-05T07:34:01-07:00",
         "test_file_sha256": "177f351b307485d3d4f8cb439ddaf825265ae5e8425bfaf6196ca6cf38372d8d",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1010,11 +1054,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_real_signal_exits_without_unretrieved_tasks",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L919",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L919",
         "introduced_commit": "98db51cb6f5685aaa581bcf06c91026ccca3775f",
         "introduced_on": "2026-09-12T16:36:52-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1031,11 +1076,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_timed_out_service_release_disconnects_bus_without_pending_tasks",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L999",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L999",
         "introduced_commit": "98db51cb6f5685aaa581bcf06c91026ccca3775f",
         "introduced_on": "2026-09-12T16:36:52-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1052,11 +1098,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_initial_snapshot_cannot_overwrite_a_newer_interleaved_event",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L852",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L852",
         "introduced_commit": "bac94c18b2600c308de964d526e16867b2ce3a41",
         "introduced_on": "2026-09-12T15:54:08-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1073,11 +1120,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_unavailable_channel_does_not_publish_zero",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L780",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L780",
         "introduced_commit": "a855e116a2d3907c0397252df78055ec42b7eba2",
         "introduced_on": "2026-09-12T09:19:30-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1094,11 +1142,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_network_failure_retries_without_exiting",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L803",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L803",
         "introduced_commit": "a855e116a2d3907c0397252df78055ec42b7eba2",
         "introduced_on": "2026-09-12T09:19:30-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1115,11 +1164,12 @@
       "regression": {
         "file": "tests/test_setup_package.py",
         "function": "test_setup_copies_complete_runtime",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_setup_package.py#L14",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_setup_package.py#L14",
         "introduced_commit": "3f4e2b29dd1173aa67ea1a6cdca7e453f25b99c1",
         "introduced_on": "2026-09-11T19:50:35-07:00",
         "test_file_sha256": "a8700f5efaa83628156c5ce521c5925ee667a1b8dc62219907856c328920ce2c",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1136,11 +1186,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_heartbeat_replaces_symlink_without_clobbering_target",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L827",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L827",
         "introduced_commit": "23afdffdc3e1008242b590e36d13111e12f7db00",
         "introduced_on": "2026-09-11T19:43:50-07:00",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "same_fix"
+        "timing": "same_fix",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Reviewed the historical production diff and current test assertions addressing this failure; the complete current suite passes. Original parent was not replayed for this row."
     },
@@ -1157,11 +1208,12 @@
       "regression": {
         "file": "tests/test_setup_package.py",
         "function": "test_setup_copies_complete_runtime",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_setup_package.py#L14",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_setup_package.py#L14",
         "introduced_commit": "3f4e2b29dd1173aa67ea1a6cdca7e453f25b99c1",
         "introduced_on": "2026-09-11T19:50:35-07:00",
         "test_file_sha256": "a8700f5efaa83628156c5ce521c5925ee667a1b8dc62219907856c328920ce2c",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -1178,11 +1230,12 @@
       "regression": {
         "file": "tests/test_main.py",
         "function": "test_startup_snapshot_survives_more_than_fifty_interleaved_events",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_main.py#L1319",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_main.py#L1319",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "97e768f11f9907ce4c251452334e3c93cc3f176fa4791b33480ab491f78e27f8",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -1199,11 +1252,12 @@
       "regression": {
         "file": "tests/test_dbus_integration.py",
         "function": "test_private_dbus_lifecycle",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_dbus_integration.py#L40",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_dbus_integration.py#L40",
         "introduced_commit": "682c2c77a4e0164beae91a2d2a383b75e3362f03",
         "introduced_on": "2026-10-04T15:28:37Z",
         "test_file_sha256": "e7b98a9196d2116424e19e1c8aee35925e0927ac824c6af2a6bc549fb9c8d00f",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -1220,11 +1274,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_boot_hook_only_creates_a_missing_canonical_link",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L203",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L203",
         "introduced_commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
         "introduced_on": "2026-09-12T12:33:55-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -1241,11 +1296,12 @@
       "regression": {
         "file": "tests/test_update.py",
         "function": "test_repeated_in_place_updates_preserve_live_supervisors_and_boot",
-        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/f9b1d07f729fc9585f5e122e4bd27540461dc7dc/tests/test_update.py#L123",
+        "url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/tests/test_update.py#L123",
         "introduced_commit": "68867ace2ed35c911d32f7420ddc0d2d12cb8b8c",
         "introduced_on": "2026-09-12T12:33:55-07:00",
         "test_file_sha256": "28ba82bf57a45ec00c96634832fa30220624aaae01ae16c0acd159964d488228",
-        "timing": "earlier_or_later_test_requires_specific_review"
+        "timing": "earlier_or_later_test_requires_specific_review",
+        "reviewed_test_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1"
       },
       "verification": "Current test identified; function-first-seen date alone is insufficient to establish causal regression coverage."
     },
@@ -1305,7 +1361,7 @@
       "regression_status": "not_verified"
     }
   ],
-  "criterion_status": "not_yet_verified",
+  "criterion_status": "met_by_conservative_lower_bound_pending_merge",
   "commit_inventory": [
     {
       "commit": "b34afcd141e18c4dfb99a1849a28ad7b544f0c52",
@@ -1990,41 +2046,301 @@
   "new_feature_exclusions": [
     "The first source-bound release-note parser and its initial edge-case tests are new functionality, not eight separate historical defects.",
     "The first signing verifier and staged installer are new functionality. Later regression evidence must identify a defect that existed before its correction.",
-    "New worker queue mechanics, REST transport and HTTP pooling were reviewed as features; only identifiable preexisting causes are listed, not every test branch."
+    "New worker queue mechanics, REST transport and HTTP pooling were reviewed as features; only identifiable preexisting causes are listed, not every test branch.",
+    "The intermediate Docker-action validator regression is not an original historical defect: both audited base commits already accept docker://image@sha256:<64hex>. Its restoration within this PR is excluded from old defect counts.",
+    "New optional signing, validation profiles, coverage upload, runner preflight and DESTDIR interfaces, their first tests, and type annotations/casts do not create historical fixes. Existing-code hardening that might repair a defect is separately reserved above."
   ],
   "review_summary": {
-    "distinct_reviewed_defects": 68,
-    "verified_regression_defects": 47,
+    "original_reviewed_defect_units": 68,
+    "additional_upper_bound_units": 14,
+    "maximum_identified_defects": 82,
+    "verified_regression_defects": 46,
+    "verified_regression_ids": [
+      "dbus-emporia-vue-002",
+      "dbus-emporia-vue-003",
+      "dbus-emporia-vue-004",
+      "dbus-emporia-vue-005",
+      "dbus-emporia-vue-006",
+      "dbus-emporia-vue-007",
+      "dbus-emporia-vue-008",
+      "dbus-emporia-vue-010",
+      "dbus-emporia-vue-011",
+      "dbus-emporia-vue-012",
+      "dbus-emporia-vue-013",
+      "dbus-emporia-vue-014",
+      "dbus-emporia-vue-015",
+      "dbus-emporia-vue-016",
+      "dbus-emporia-vue-017",
+      "dbus-emporia-vue-018",
+      "dbus-emporia-vue-019",
+      "dbus-emporia-vue-020",
+      "dbus-emporia-vue-021",
+      "dbus-emporia-vue-022",
+      "dbus-emporia-vue-024",
+      "dbus-emporia-vue-025",
+      "dbus-emporia-vue-027",
+      "dbus-emporia-vue-030",
+      "dbus-emporia-vue-031",
+      "dbus-emporia-vue-032",
+      "dbus-emporia-vue-034",
+      "dbus-emporia-vue-038",
+      "dbus-emporia-vue-039",
+      "dbus-emporia-vue-040",
+      "dbus-emporia-vue-041",
+      "dbus-emporia-vue-043",
+      "dbus-emporia-vue-044",
+      "dbus-emporia-vue-045",
+      "dbus-emporia-vue-046",
+      "dbus-emporia-vue-048",
+      "dbus-emporia-vue-049",
+      "dbus-emporia-vue-050",
+      "dbus-emporia-vue-051",
+      "dbus-emporia-vue-052",
+      "dbus-emporia-vue-053",
+      "dbus-emporia-vue-054",
+      "dbus-emporia-vue-055",
+      "dbus-emporia-vue-056",
+      "dbus-emporia-vue-057",
+      "dbus-emporia-vue-058"
+    ],
+    "lower_bound_fraction": "46/82",
+    "lower_bound_percent": 56.097561,
     "unresolved_commit_classifications": 0,
-    "criterion_status": "not_yet_verified",
-    "reason": "All original commits are classified, but feature-versus-defect boundaries and later-test mappings remain subject to independent review. The ratio describes only this draft inventory; it is not a complete all-defect OpenSSF assertion.",
-    "independent_review_required": true,
-    "observed_ratio_within_draft_inventory": "47/68"
+    "criterion_status": "met_by_conservative_lower_bound_pending_merge",
+    "reason": "All original commits were classified. Remaining feature-versus-defect and current-delivery units are explicitly reserved in the denominator without credit, so their narrower interpretation cannot worsen this fraction. This does not claim every fix is tested or count a test case as a separate defect.",
+    "independent_review_scope": "Separate parent-agent sample review and boundary review; not an independent audit of every row."
   },
-  "scope": "Review of original merged history through the named base commit, prior to this OpenSSF delivery PR. Current delivery fixes are listed separately. A draft denominator is not an awarded criterion.",
+  "scope": "Six-month fix history through the original base commit, plus the current delivery corrections through b53fde1289173d0a76ff36668e21c45f9b97c8c1. Original commit classifications are retained. This is repository evidence for review, not an OpenSSF award.",
   "current_delivery_fixes": [
     {
-      "fix_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
-      "description": "Configuration generator accepted arbitrary URL schemes and forwarded authenticated requests through redirects. It now validates HTTP(S)/WS(S) endpoints and rejects redirects.",
-      "test_file": "tests/test_ha_config_gen.py",
-      "tests": [
-        "test_rejects_unsafe_endpoint_before_open",
-        "test_redirect_does_not_forward_bearer_token",
-        "test_authenticated_opener_has_no_redirect_handler"
-      ]
+      "id": "dbus-emporia-vue-bound-12",
+      "classification": "current_delivery_defect",
+      "description": "Unsupported Home Assistant URL schemes",
+      "reason": "The generator now validates supported HTTP(S)/WS(S) endpoint schemes before opening a request.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "source_file": "ha_config_gen.py",
+      "source_patch_sha256": "33152a5d65db07a19c79b33f3bc5f26e067bf01f96d873dfa485b0130dd0263c"
     },
     {
-      "fix_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
-      "description": "Configuration generator could write credentials through a permissive target path. It now writes a private temporary file and atomically replaces the destination, refusing symlinks.",
-      "test_file": "tests/test_ha_config_gen.py",
-      "tests": [
-        "test_private_config_replaces_permissive_file"
-      ]
+      "id": "dbus-emporia-vue-bound-13",
+      "classification": "current_delivery_defect",
+      "description": "Bearer-token forwarding across HTTP redirects",
+      "reason": "The generator now disables redirect forwarding of authenticated requests.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "source_file": "ha_config_gen.py",
+      "source_patch_sha256": "33152a5d65db07a19c79b33f3bc5f26e067bf01f96d873dfa485b0130dd0263c"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-14",
+      "classification": "current_delivery_defect",
+      "description": "Insecure generated credential-file replacement",
+      "reason": "Private temporary output and atomic replacement prevent permissive files or target symlinks from exposing credentials.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "source_file": "ha_config_gen.py",
+      "source_patch_sha256": "33152a5d65db07a19c79b33f3bc5f26e067bf01f96d873dfa485b0130dd0263c"
     }
   ],
   "independent_sample_review": {
     "reviewer": "separate parent agent",
     "scope": "Rows041/045/051/058",
     "result": "Sampled current assertions address the stated failure mechanisms. This is not an independent audit of the complete denominator."
+  },
+  "additional_upper_bound_units": [
+    {
+      "id": "dbus-emporia-vue-bound-01",
+      "classification": "possible_defect",
+      "description": "Pre-plan artifact version could differ from the intended release tag",
+      "reason": "Initial frozen-version adoption is largely a new protocol. Conservatively reserve one preexisting artifact/version mismatch without treating every new protocol function as a separate bug.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "c91d8eced2f235b78b3cefecea11e45adc9e08b2",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/c91d8eced2f235b78b3cefecea11e45adc9e08b2",
+      "source_file": "scripts/prepare_version.py",
+      "source_patch_sha256": "aeb65f7a184323b65533023e71b9aa35e37416555d9df8aabfcd880bdeb2874c"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-02",
+      "classification": "possible_defect",
+      "description": "Pre-plan artifacts lacked explicit source/recipe receipt binding",
+      "reason": "Reserve one possible preexisting binding defect for the first version-plan/receipt adoption; no first-feature test receives credit.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "c91d8eced2f235b78b3cefecea11e45adc9e08b2",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/c91d8eced2f235b78b3cefecea11e45adc9e08b2",
+      "source_file": "scripts/version_receipt.py",
+      "source_patch_sha256": "c9d40f7f9ce1e6355c1a32ed69ce08efebdb8c6aa57ec901f8b2cd04aec92623"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-03",
+      "classification": "possible_defect",
+      "description": "Ambiguous duplicate YAML keys could be silently overwritten",
+      "reason": "UniqueKeyLoader now rejects duplicate keys; retain a possible preexisting configuration-validation defect even though no historical incident was established.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "source_file": "scripts/workflow_contracts.py",
+      "source_patch_sha256": "5343fa69952de7c5f28196f943db64b4bd128877b1d836bc56be3ba9647e5857",
+      "before_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b34afcd141e18c4dfb99a1849a28ad7b544f0c52/scripts/workflow_contracts.py",
+      "after_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/scripts/workflow_contracts.py"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-04",
+      "classification": "possible_defect",
+      "description": "CodeQL SHA comments could omit the full release used by automated updates",
+      "reason": "The added metadata guard and corrected workflow comments prevent missing/inconsistent release labels from blocking automated updates.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "source_file": "scripts/workflow_contracts.py",
+      "source_patch_sha256": "5343fa69952de7c5f28196f943db64b4bd128877b1d836bc56be3ba9647e5857",
+      "before_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b34afcd141e18c4dfb99a1849a28ad7b544f0c52/scripts/workflow_contracts.py",
+      "after_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/scripts/workflow_contracts.py"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-05",
+      "classification": "possible_defect",
+      "description": "GitHub metadata GET could remain unbounded",
+      "reason": "A 30-second subprocess timeout is now applied to metadata GET operations. Count a possible timeout defect separately from retry availability.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "source_file": "scripts/release_control.py",
+      "source_patch_sha256": "967b16179a4cd02a5224dad776afa14ecabe51afc81be76a6eb88639b99984e9",
+      "before_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b34afcd141e18c4dfb99a1849a28ad7b544f0c52/scripts/release_control.py",
+      "after_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/scripts/release_control.py"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-06",
+      "classification": "possible_defect",
+      "description": "Transient GitHub metadata GET failure could abort otherwise valid validation",
+      "reason": "Bounded retries now handle transient errors. Count a possible availability defect separately from unbounded requests, with no extra credit from new tests.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "source_file": "scripts/release_control.py",
+      "source_patch_sha256": "967b16179a4cd02a5224dad776afa14ecabe51afc81be76a6eb88639b99984e9",
+      "before_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b34afcd141e18c4dfb99a1849a28ad7b544f0c52/scripts/release_control.py",
+      "after_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/scripts/release_control.py"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-07",
+      "classification": "possible_defect",
+      "description": "Canonical workflow pin checks could omit an unknown action or reusable job reference",
+      "reason": "The stricter manifest comparison checks each external step and job reference. Reserve one possible old validation omission.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "source_file": "scripts/workflow_contracts.py",
+      "source_patch_sha256": "5343fa69952de7c5f28196f943db64b4bd128877b1d836bc56be3ba9647e5857",
+      "before_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b34afcd141e18c4dfb99a1849a28ad7b544f0c52/scripts/workflow_contracts.py",
+      "after_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/scripts/workflow_contracts.py"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-08",
+      "classification": "possible_defect",
+      "description": "An absent canonical action-pin manifest could disable toolkit pin comparison",
+      "reason": "This is an inactive toolkit-only branch in the shipped consumer validator: consumers do not ship install_release.py. It is retained only as a conservative possible zero-credit unit, not claimed as an observed consumer failure.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/b53fde1289173d0a76ff36668e21c45f9b97c8c1",
+      "source_file": "scripts/workflow_contracts.py",
+      "source_patch_sha256": "5343fa69952de7c5f28196f943db64b4bd128877b1d836bc56be3ba9647e5857",
+      "before_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b34afcd141e18c4dfb99a1849a28ad7b544f0c52/scripts/workflow_contracts.py",
+      "after_source_url": "https://github.com/victron-venus/dbus-emporia-vue/blob/b53fde1289173d0a76ff36668e21c45f9b97c8c1/scripts/workflow_contracts.py"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-09",
+      "classification": "possible_defect",
+      "description": "A boot-persistence block appended after exit 0 could never execute",
+      "reason": "The installation unification puts the block before an existing early exit. Reserve this separately from the earlier absence of boot persistence.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "e277796e150e12ad50d644f85a4ac980d1b71538",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/e277796e150e12ad50d644f85a4ac980d1b71538",
+      "source_file": "update.sh",
+      "source_patch_sha256": "70b86deb1b93677c548e8bf901c516eb25aea892cff8137d1061aa88a90f9fe7"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-10",
+      "classification": "possible_defect",
+      "description": "Setup invoked its persistence function before the shell had defined it",
+      "reason": "The previous setup invokes setupFirmwarePersistence before its definition; the replacement delegates to the updater. Reserve one possible shell-order defect without double-counting all new updater behavior.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "e277796e150e12ad50d644f85a4ac980d1b71538",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/e277796e150e12ad50d644f85a4ac980d1b71538",
+      "source_file": "setup",
+      "source_patch_sha256": "4aed4d4aff3f356583e38471cd523ad7501313486acfd2cca8ee3ee43df04066"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-11",
+      "classification": "possible_defect",
+      "description": "Setup could continue after an unsuccessful copy or install operation",
+      "reason": "The replacement setup delegates to a fail-fast updater and propagates failure. Reserve one possible old error-propagation omission.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "e277796e150e12ad50d644f85a4ac980d1b71538",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/e277796e150e12ad50d644f85a4ac980d1b71538",
+      "source_file": "setup",
+      "source_patch_sha256": "4aed4d4aff3f356583e38471cd523ad7501313486acfd2cca8ee3ee43df04066"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-12",
+      "classification": "current_delivery_defect",
+      "description": "Unsupported Home Assistant URL schemes",
+      "reason": "The generator now validates supported HTTP(S)/WS(S) endpoint schemes before opening a request.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "source_file": "ha_config_gen.py",
+      "source_patch_sha256": "33152a5d65db07a19c79b33f3bc5f26e067bf01f96d873dfa485b0130dd0263c"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-13",
+      "classification": "current_delivery_defect",
+      "description": "Bearer-token forwarding across HTTP redirects",
+      "reason": "The generator now disables redirect forwarding of authenticated requests.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "source_file": "ha_config_gen.py",
+      "source_patch_sha256": "33152a5d65db07a19c79b33f3bc5f26e067bf01f96d873dfa485b0130dd0263c"
+    },
+    {
+      "id": "dbus-emporia-vue-bound-14",
+      "classification": "current_delivery_defect",
+      "description": "Insecure generated credential-file replacement",
+      "reason": "Private temporary output and atomic replacement prevent permissive files or target symlinks from exposing credentials.",
+      "numerator_credit": 0,
+      "maximum_distinct_defects": 1,
+      "fixed_commit": "f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "fix_url": "https://github.com/victron-venus/dbus-emporia-vue/commit/f9b1d07f729fc9585f5e122e4bd27540461dc7dc",
+      "source_file": "ha_config_gen.py",
+      "source_patch_sha256": "33152a5d65db07a19c79b33f3bc5f26e067bf01f96d873dfa485b0130dd0263c"
+    }
+  ],
+  "boundary_review": {
+    "pump_async": "One preexisting blocking-I/O cause; delayed stale handling is a consequence. Newly introduced queue mechanics are not independent historical defects.",
+    "pump_security_gate_revert": "The suppression and later revert of a recurring failure are one unit with zero credit.",
+    "documentation": "Actual wrong operational documentation is counted; prose/style-only changes are not defects.",
+    "emporia_freshness": "Potential new policy is retained with zero credit.",
+    "initial_versioning": "At most two potential preexisting causes reserved; new protocol functions are not individual defects."
   }
 }

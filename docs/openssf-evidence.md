@@ -92,6 +92,8 @@ process and scoped evidence. The owner confirmed that no continuity mechanism
 is currently in place: access_continuity remains Unmet. The owner also confirmed
 no reports outside GitHub in the preceding 12 months; this does not replace the
 separate GitHub history review recorded above or create retrospective response records.
-Signing verification and a completed regression-history denominator remain open.
+Signing verification and all-language coverage evidence remain open. The
+[defect-level history review](evidence/defect-level-review-2026-10-12.json) records
+a conservative regression-test lower bound above 50%.
 The [live OpenSSF assessment](https://www.bestpractices.dev/projects/15437) is registered.
 The README badge displays its current status; no Silver award is claimed.

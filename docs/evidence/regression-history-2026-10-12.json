@@ -2,8 +2,8 @@
   "period_start": "2026-04-12",
   "period_end": "2026-10-12",
   "base_commit": "b34afcd141e18c4dfb99a1849a28ad7b544f0c52",
-  "method": "Full non-merge history is retained. Candidate discovery uses title terms fix/correct/preserve/recover/restore/harden/reject/prevent. Candidate discovery can omit differently titled fixes and overcount maintenance; therefore no all-fixes percentage is claimed. Entries marked reviewed have added regression assertions linked to the changed code. Dependency-only updates are not automatically counted as bug fixes. Additional content review includes fixes missed by title filtering and explicitly includes installation, CI authentication and dependency-lock defects. A commit can contain several defects; reviewed commit-pair counts are not the denominator of all corrected defects.",
-  "criterion_status": "not_yet_verified",
+  "method": "Historical discovery snapshot only. Title/file matching was incomplete and is not a defect denominator. The finalized defect-level-review-2026-10-12.json classifies every original commit, including title matches absent from candidate_pairs, and records a conservative ratio. Original candidate rows are retained for traceability, not current acceptance.",
+  "criterion_status": "superseded_by_defect_level_review",
   "reviewed_pairs": 19,
   "candidate_pairs": [
     {
@@ -1052,5 +1052,6 @@
       "date": "2026-08-14T05:19:20-07:00",
       "title": "Initial commit"
     }
-  ]
+  ],
+  "superseded_by": "defect-level-review-2026-10-12.json"
 }

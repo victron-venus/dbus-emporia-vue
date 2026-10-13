@@ -24,9 +24,10 @@ Obtain source and published artifacts through the repository's HTTPS URLs. Verif
 
 ## Reporter credit and response records
 
-Offer public credit to reporters of confirmed vulnerabilities when disclosing
-the fix, unless they request anonymity. Ask their preferred attribution before
-publication and retain the decision with the private report. Track acknowledgement,
+Offer public credit to reporters of confirmed vulnerabilities. Publish it only
+after the reporter approves the exact attribution; use anonymous attribution if
+they do not respond or request anonymity. Ask their preference before publication
+and retain the decision with the private report. Track acknowledgement,
 triage, mitigation, release and disclosure dates; escalate delayed critical fixes
 to repository administrators. This is the required process going forward, not an
 assertion about reports received before it.
