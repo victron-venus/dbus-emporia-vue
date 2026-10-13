@@ -36,13 +36,16 @@
         "member": "dbus-emporia-vue/version"
       }
     ],
-    "toolkit_revision": "fca833a9da6b49116444ffd7ac6739e08f9cbc61"
+    "toolkit_revision": "d1c3848e874d06a44681e1fbdd58b75c85443df0"
   },
   "single_entry_ci": true,
   "validation_oidc_workflows": [
     "python-ci.yml"
   ],
   "release_notes": "CHANGELOG.md",
-  "toolkit_revision": "7282a18bd5975975ec323ac765557cf0aec6e11d",
-  "sign_releases": true
+  "toolkit_revision": "d1c3848e874d06a44681e1fbdd58b75c85443df0",
+  "sign_releases": true,
+  "fuzzing": {
+    "toolkit_ref": "d1c3848e874d06a44681e1fbdd58b75c85443df0"
+  }
 }

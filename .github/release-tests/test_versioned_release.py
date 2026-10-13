@@ -508,6 +508,9 @@ class ToolchainTests(unittest.TestCase):
 
 class ReceiptTests(unittest.TestCase):
     def setUp(self):
+        # This synthetic fixture intentionally has no detached OCI contract.
+        import release_provenance
+        self.enterContext(patch.object(release_provenance, "REQUIRED_PAIRS", ()))
         self.enterContext(
             patch.object(
                 receipt,
@@ -610,6 +613,9 @@ class ReceiptTests(unittest.TestCase):
 
 class LifecycleTests(unittest.TestCase):  # pylint: disable=too-many-public-methods
     def setUp(self):
+        # This synthetic fixture intentionally has no detached OCI contract.
+        import release_provenance
+        self.enterContext(patch.object(release_provenance, "REQUIRED_PAIRS", ()))
         self.enterContext(
             patch.object(
                 receipt,
@@ -1082,8 +1088,9 @@ class LifecycleTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
         )
         self.assertEqual(manifest["version_plan"], plan)
         self.assertEqual(len(manifest["assets"]), 2)
+        raw = rc.json_bytes(manifest)
         with self.assertRaisesRegex(rc.ReleaseError, "Only release candidates"):
-            rc.validate_manifest(rc.json_bytes(manifest), REPO, plan["tag"])
+            rc.validate_manifest(raw, REPO, plan["tag"])
 
     def test_rc_profile_cannot_claim_fast_beta_evidence(self):
         self.enable_beta_validation("rc")
@@ -1091,8 +1098,9 @@ class LifecycleTests(unittest.TestCase):  # pylint: disable=too-many-public-meth
         self.assertEqual(manifest["validation_profile"]["workflows"], ["ci.yml"])
         rc.validate_manifest(rc.json_bytes(manifest), REPO, plan["tag"])
         manifest["validation_profile"]["workflows"] = ["beta-checks.yml"]
+        raw = rc.json_bytes(manifest)
         with self.assertRaisesRegex(rc.ReleaseError, "validation profile"):
-            rc.validate_manifest(rc.json_bytes(manifest), REPO, plan["tag"])
+            rc.validate_manifest(raw, REPO, plan["tag"])
 
     def test_opt_in_rc_promotes_with_unchanged_full_validation_evidence(self):
         self.policy["versioning"]["promotion"] = "promote-bytes"
