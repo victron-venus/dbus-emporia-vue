@@ -1,6 +1,6 @@
 # OpenSSF Best Practices evidence: dbus-emporia-vue
 
-This index supports review against the [OpenSSF Passing criteria](https://www.bestpractices.dev/en/criteria/0). It is not an awarded badge, a security guarantee or a completed self-attestation. Initial source inventory: `4f931077d75154144eaf0eb90330398df73f213e`. Re-check the final merged commit and its CI before submitting an assessment.
+This index supports review against the [OpenSSF Passing criteria](https://www.bestpractices.dev/en/criteria/0). The project has earned [Passing](https://www.bestpractices.dev/en/projects/15437); Silver remains in progress. This index is evidence, not a security guarantee. Initial source inventory: `4f931077d75154144eaf0eb90330398df73f213e`. Re-check the final merged commit and its CI before submitting an assessment.
 
 ## Project and contribution process
 
@@ -62,10 +62,10 @@ Scorecard findings concern maintenance, branch protection, fuzzing and the badge
 they are process findings, not established exploitable runtime defects. These
 inventories are time-specific and must be reviewed again before submission.
 
-The proposed [.bestpractices.json](../.bestpractices.json) contains this project's
-Passing answers and public evidence links. Import only after the reviewed changes
-merge and required CI succeeds. The live assessment is the source of truth for
-any awarded level; a README badge does not itself establish compliance.
+The [.bestpractices.json](../.bestpractices.json) file preserves the initial
+Passing answer snapshot and public evidence links. The live assessment records
+subsequent updates and remains the source of truth for any awarded level.
+Reassess claims when their source, dependencies or supporting evidence change.
 
 ## Release-note source
 
@@ -78,8 +78,9 @@ receipts and unsafe staging inputs. Consumer regression tests exercise those
 contracts. [Recipient signature verification](release-signatures.md) authenticates
 the full original artifact inventory and reviewed source archive. Signing runs
 only after compilation and quality checks, in a separate job with scoped OIDC
-permission. A real signed release still needs to be published and independently
-verified; historical releases remain unsigned.
+permission. [Stable v1.0.9](release-acceptance.md) has been published and
+independently verified against its reviewed source and complete signed inventory.
+This does not retroactively sign older releases.
 
 The CodeQL configuration also analyzes GitHub Actions in its own analysis category; existing application-language analyses remain enabled.
 
@@ -92,7 +93,8 @@ process and scoped evidence. The owner confirmed that no continuity mechanism
 is currently in place: access_continuity remains Unmet. The owner also confirmed
 no reports outside GitHub in the preceding 12 months; this does not replace the
 separate GitHub history review recorded above or create retrospective response records.
-Published signing verification remains open. The conservative cross-language
+[Published signing and scoped target acceptance](release-acceptance.md) are
+recorded for stable v1.0.9. The conservative cross-language
 coverage bound exceeds 80% (see [quality evidence](quality-evidence.md)). The
 [defect-level history review](evidence/defect-level-review-2026-10-12.json) records
 a conservative regression-test lower bound above 50%.
