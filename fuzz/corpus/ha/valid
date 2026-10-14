@@ -1,0 +1,1 @@
+{"type":"event","event":{"variables":{"trigger":{"entity_id":"sensor.power","to_state":{"state":"-123.4"}}}}}

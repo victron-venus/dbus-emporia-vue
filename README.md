@@ -1,5 +1,7 @@
 # dbus-emporia-vue
 
+[![Fuzzing: RC only](https://img.shields.io/badge/Fuzzing-RC%20only-blue)](docs/fuzzing.md)
+
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/15437/badge)](https://www.bestpractices.dev/projects/15437)
 
 Show Emporia Vue circuits as AC loads on a Victron GX device. Read power from
@@ -169,3 +171,9 @@ The [quality evidence](docs/quality-evidence.md) and [security assurance argumen
 explain the checks, their scope and outstanding work. The
 [OpenSSF evidence](docs/openssf-evidence.md) records progress without claiming an
 unearned badge.
+
+## Release-candidate fuzzing
+
+The target exercises the real Home Assistant state-change parser and submeter conversion, including wrong object shapes, non-text entity identifiers, unavailable values, nonfinite numbers and unit-conversion overflow. Accepted power/timestamps must be finite. It never logs in to Home Assistant or Emporia and never publishes D-Bus values.
+
+[RC-only fuzzing policy, local reproduction and failure handling](docs/fuzzing.md).
