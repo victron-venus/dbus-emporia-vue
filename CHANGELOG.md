@@ -14,7 +14,7 @@ Use the existing installation procedure, preserve local configuration and keep t
 
 ### Security
 
-The release gate rejects absent or invalid fuzz evidence and unsafe seed inputs. No application vulnerability or new target-device acceptance is claimed by these tooling changes.
+The release gate rejects absent or invalid fuzz evidence and unsafe corpus filesystem properties. No application vulnerability or new target-device acceptance is claimed by these tooling changes.
 
 ## [1.0.10] - Development line
 
