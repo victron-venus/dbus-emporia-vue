@@ -31,3 +31,9 @@ release-assets/
 # Local coverage reports (dated evidence is under docs/evidence)
 coverage.xml
 .coverage.*
+
+# Isolated RC fuzz runtime and local libFuzzer diagnostics
+.fuzz-venv/
+crash-*
+timeout-*
+oom-*

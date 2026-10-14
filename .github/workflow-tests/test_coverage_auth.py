@@ -31,7 +31,7 @@ def validate(policy, workflows):
     assert policy["sign_releases"] is True
     sign = release["jobs"]["sign"]
     assert sign["permissions"] == {"contents": "read", "actions": "read", "id-token": "write"}
-    assert set(sign["needs"]) == {"prepare", "checks", "build"}
+    assert set(sign["needs"]) == {"prepare", "checks", "build", "fuzz"}
     test = ci["jobs"]["test"]
     assert test["permissions"]["contents"] == "read"
     assert not test.get("continue-on-error", False)

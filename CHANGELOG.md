@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.10] - Development line
+
+### Maintenance
+
+- Require bounded fuzzing on public release candidates, with source-bound reports and retained diagnostics; beta and ordinary CI do not run mutation campaigns.
+- Reject malformed or excessively nested Home Assistant JSON, numeric overflow and non-finite converted power.
+- Resolve release channel validation imports in both package and script execution modes.
+
+### Upgrade
+
+Use the documented update procedure and retain local configuration. Automated tests do not establish target-device acceptance.
+
+### Security
+
+Release qualification now requires isolated fuzzing against the candidate source. Report findings through SECURITY.md.
+
 ## [1.0.9] - Development line
 
 ### Release overview
