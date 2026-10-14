@@ -29,7 +29,26 @@
         "-max_len=4096"
       ],
       "seconds": 60,
-      "corpus": "fuzz/corpus/ha"
+      "corpus": "fuzz/corpus/ha",
+      "instrumentation": [
+        {
+          "module": "parse_ha",
+          "functions": [
+            "parse_ha_state_change",
+            "parse_submeter_state",
+            "parse_power"
+          ]
+        }
+      ]
     }
+  ],
+  "preflight-paths": [
+    ".github/requirements-fuzz.in",
+    "fuzz",
+    "parse_ha.py",
+    "requirements-dev.lock",
+    "requirements-dev.txt",
+    "requirements.lock",
+    "requirements.txt"
   ]
 }
