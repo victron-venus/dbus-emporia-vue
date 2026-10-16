@@ -1,6 +1,6 @@
 """Exercise the vendored fuzz safety boundary in the consumer coverage suite.
 
-These portable regression cases are adapted from the shared toolkit. Native
+These consumer integration cases exercise the public toolkit contracts. Native
 Atheris replay remains in the deterministic preflight CI job; these tests verify
 that invalid evidence and unsafe inputs fail before any campaign can run.
 """
@@ -18,7 +18,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import fuzz_python_preflight as python_preflight  # noqa: E402
 import release_fuzz as fuzz  # noqa: E402
