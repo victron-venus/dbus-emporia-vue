@@ -1,5 +1,9 @@
 # Release-candidate fuzz testing
 
+See the [illustrated RC fuzzing process and verified rollout results](https://github.com/victron-venus/venus-os-ci-toolkit/blob/main/docs/rc-fuzzing-results.md)
+for the shared release flow, evidence requirements and a dated cross-project
+snapshot. The project-specific scope and reproduction guidance below still apply.
+
 ## Scope and assertions
 
 **Home Assistant event and power parsing.** The target exercises the real Home Assistant state-change parser and submeter conversion, including wrong object shapes, non-text entity identifiers, unavailable values, nonfinite numbers and unit-conversion overflow. Accepted power/timestamps must be finite. It never logs in to Home Assistant or Emporia and never publishes D-Bus values.
