@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.13] - 2026-10-18
+
+### Changed
+
+- Update the supported boto3 dependency lower bound to 1.43.112 while retaining the existing upper bound.
+
+### Upgrade
+
+Use the documented upgrade procedure and preserve local configuration and data. No configuration migration is required. Keep the previous immutable release available for rollback.
+
+### Security
+
+This maintenance release preserves the existing security and release-validation requirements. Publication does not deploy the service or establish physical-device acceptance.
+
 ## [1.0.12] - 2026-10-17
 
 ### Changed
