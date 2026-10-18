@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.12] - 2026-10-17
+
+### Changed
+
+- Validate the current Scorecard 5.6 report without accepting incomplete evidence.
+- Link the maintained RC fuzzing process and remove obsolete deployment handoff notes.
+
+### Upgrade
+
+Use the existing installation procedure and preserve local configuration. This maintenance release does not change the device configuration format.
+
+### Security
+
+CI validates the pinned security-report contract more strictly. No new runtime vulnerability fix or device acceptance is claimed.
+
 ## [1.0.11] - 2026-10-14
 
 ### Changed
