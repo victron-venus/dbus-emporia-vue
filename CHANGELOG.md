@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Route Dependabot metadata approval through the trusted default branch while preserving the existing author and review policy.
 - Update the supported boto3 dependency lower bound to 1.43.112 while retaining the existing upper bound.
 
 ### Upgrade
