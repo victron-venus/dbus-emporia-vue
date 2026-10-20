@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.14] - Unreleased
+
+### Changed
+
+- Update boto3 and botocore to 1.43.114 in the runtime and development locks.
+- Update Ruff to 0.17.1 and document paired lock regeneration.
+- Refresh pinned CodeQL actions while preserving the existing quality gates.
+
+### Upgrade
+
+Use the existing upgrade procedure and preserve configuration and credentials.
+This dependency maintenance release does not require a configuration migration.
+
+### Security
+
+Keep Emporia credentials in the existing protected configuration and retain TLS
+verification for cloud requests. The dependency refresh does not change these
+trust requirements; the existing dependency and secret scans remain required
+before publication.
+
 ## [1.0.13] - 2026-10-18
 
 ### Changed
