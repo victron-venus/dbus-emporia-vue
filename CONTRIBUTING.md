@@ -19,6 +19,28 @@ Contributions must be compatible with [LICENSE](LICENSE). Preserve third-party c
 
 ## Local validation
 
+### Dependency updates
+
+The installer uses `requirements.lock`; CI uses `requirements-dev.lock`.
+Changes to `requirements.txt` or `requirements-dev.txt` must include regenerated
+locks in the same pull request, including updates opened by Dependabot. This
+project uses compiled requirements rather than a `pyproject.toml`/`uv.lock`
+project, so switching its Dependabot entry to `uv` would not cover these files.
+
+Regenerate the runtime lock first, then constrain the development lock to it:
+
+```sh
+uv pip compile requirements.txt -o requirements.lock --python-version 3.12.13 --generate-hashes
+uv pip compile requirements.txt requirements-dev.txt -c requirements.lock -o requirements-dev.lock --python-version 3.12.13 --generate-hashes
+```
+
+Use `--upgrade-package PACKAGE==VERSION` for the intended package and any
+required coupled dependency when an existing pin needs to advance. Inspect the
+diff to keep unrelated packages unchanged. Run the existing
+`tests/test_requirement_locks.py` checks and the local validation below.
+Hash-checked installation and the consistency tests remain required; CI does
+not regenerate locks or accept a manifest-only update.
+
 Install local test dependencies with `bash scripts/ci.sh --install`, then run `bash scripts/ci.sh`. The script is the authoritative local entry point for the checks and tool versions; inspect it and the checked-in dependency manifests before installing prerequisites. Use an isolated development environment.
 
 Automated tests use mocks or controlled fixtures where available. A passing unit test does not establish hardware safety. Describe any physical-device test separately, including firmware, configuration and expected rollback. Never run installation, deployment, Terraform apply or actuator commands merely to validate a documentation change.
