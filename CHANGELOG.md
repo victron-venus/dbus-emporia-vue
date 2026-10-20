@@ -13,6 +13,13 @@
 Use the existing upgrade procedure and preserve configuration and credentials.
 This dependency maintenance release does not require a configuration migration.
 
+### Security
+
+Keep Emporia credentials in the existing protected configuration and retain TLS
+verification for cloud requests. The dependency refresh does not change these
+trust requirements; the existing dependency and secret scans remain required
+before publication.
+
 ## [1.0.13] - 2026-10-18
 
 ### Changed
