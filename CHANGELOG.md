@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.15] - 2026-10-27
+
+### Changed
+
+- Update the locked WebSocket client to 17.3 and the AWS SDK family to 1.43.118.
+- Retain the existing configuration and D-Bus interface while validating the refreshed dependency closure.
+
 ## [1.0.14] - Unreleased
 
 ### Changed
