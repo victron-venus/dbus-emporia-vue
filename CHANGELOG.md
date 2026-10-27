@@ -7,6 +7,14 @@
 - Update the locked WebSocket client to 17.3 and the AWS SDK family to 1.43.118.
 - Retain the existing configuration and D-Bus interface while validating the refreshed dependency closure.
 
+### Upgrade
+
+Use the existing installation or update procedure with the committed dependency locks. Preserve Emporia credentials and local configuration, and retain the previous immutable package for rollback. No configuration migration is required.
+
+### Security
+
+Keep credentials in the existing protected configuration and retain TLS certificate and hostname verification for cloud requests. This dependency refresh does not change those trust requirements or establish live account/device acceptance; no additional vulnerability fix is claimed.
+
 ## [1.0.14] - Unreleased
 
 ### Changed
