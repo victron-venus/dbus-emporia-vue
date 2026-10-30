@@ -4,7 +4,8 @@
 
 ### Changed
 
-- Update the locked WebSocket client to 17.3 and the AWS SDK family to 1.43.118.
+- Update the locked WebSocket client to 17.3 and the AWS SDK family to 1.43.119.
+- Regenerate runtime and development dependency locks together, including the Ruff 0.17.3 development tooling update.
 - Retain the existing configuration and D-Bus interface while validating the refreshed dependency closure.
 
 ### Upgrade
