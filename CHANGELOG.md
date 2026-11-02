@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Update boto3/botocore to 1.43.122, pytest to 9.2.0 and mypy to 2.4.1 with synchronized installer and CI locks. Set the async fixture loop scope explicitly for the newer test runner.
+
 - Update the locked WebSocket client to 17.3 and the AWS SDK family to 1.43.119.
 - Regenerate runtime and development dependency locks together, including the Ruff 0.17.3 development tooling update.
 - Retain the existing configuration and D-Bus interface while validating the refreshed dependency closure.
