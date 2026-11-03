@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.16] - 2026-11-03
+
+### Security
+
+- Update the locked WebSocket client to 17.4, which bounds the number of frames assembled by `recv()` and fixes memory exhaustion through excessive fragmentation. Keep the upstream default of 4096 fragments per message.
+
+### Changed
+
+- Synchronize the runtime and development dependency locks and retain the reviewed boto3/botocore 1.43.123 versions.
+
+### Upgrade
+
+Use the existing installation or update procedure, preserve Emporia credentials and local configuration, and retain the previous immutable package for rollback. No configuration or D-Bus interface migration is required. Automated checks do not establish live account or physical-device acceptance.
+
 ## [1.0.15] - 2026-10-27
 
 ### Changed
