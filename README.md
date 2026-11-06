@@ -25,8 +25,8 @@ After changing either requirements manifest, regenerate the installer lock first
 then constrain the CI lock to those same runtime versions:
 
 ```sh
-uv pip compile requirements.txt -o requirements.lock --python-version 3.12.13 --generate-hashes
-uv pip compile requirements.txt requirements-dev.txt -c requirements.lock -o requirements-dev.lock --python-version 3.12.13 --generate-hashes
+uv pip compile requirements.txt --output-file=requirements.lock --python-version=3.12.13 --generate-hashes
+uv pip compile requirements.txt requirements-dev.txt --constraint=requirements.lock --output-file=requirements-dev.lock --python-version=3.12.13 --generate-hashes
 bash scripts/ci.sh --install
 bash scripts/ci.sh
 ```
