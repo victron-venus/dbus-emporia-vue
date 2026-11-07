@@ -30,8 +30,8 @@ project, so switching its Dependabot entry to `uv` would not cover these files.
 Regenerate the runtime lock first, then constrain the development lock to it:
 
 ```sh
-uv pip compile requirements.txt -o requirements.lock --python-version 3.12.13 --generate-hashes
-uv pip compile requirements.txt requirements-dev.txt -c requirements.lock -o requirements-dev.lock --python-version 3.12.13 --generate-hashes
+uv pip compile requirements.txt --output-file=requirements.lock --python-version=3.12.13 --generate-hashes
+uv pip compile requirements.txt requirements-dev.txt --constraint=requirements.lock --output-file=requirements-dev.lock --python-version=3.12.13 --generate-hashes
 ```
 
 Use `--upgrade-package PACKAGE==VERSION` for the intended package and any
