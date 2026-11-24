@@ -4,7 +4,7 @@ pytest-asyncio==1.5.0
 pytest-cov==7.1.0
 mypy==2.4.1
 ruff==0.17.6
-coverage==7.17.3
-packaging==26.3
+coverage==7.17.5
+packaging==26.4
 
-PyYAML==6.0.3
+PyYAML==6.0.4
