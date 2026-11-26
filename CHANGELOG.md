@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.17] - 2026-11-26
+
+### Security
+
+- Move the pinned CodeQL analysis actions to v4.39.5 and the reusable review, auto-merge and release workflows to their current reviewed commits.
+- No runtime dependency version changed since 1.0.16. The dependency refresh is limited to the development lock: coverage 7.17.5, packaging 26.4 and PyYAML 6.0.4.
+
+### Changed
+
+- Point the fuzzing toolkit reference in `.release-policy.json` at the current reviewed toolkit commit.
+
+### Upgrade
+
+Use the existing installation or update procedure and preserve Emporia credentials and local configuration. No configuration, D-Bus interface or runtime dependency migration is required, and the previously installed package remains available for rollback. Automated checks do not establish live account or physical-device acceptance.
+
 ## [1.0.16] - 2026-11-03
 
 ### Security
